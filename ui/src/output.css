@@ -427,6 +427,9 @@
   .h-px {
     height: 1px;
   }
+  .max-h-16 {
+    max-height: 4rem;
+  }
   .max-h-60 {
     max-height: 15rem;
   }
