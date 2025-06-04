@@ -1,3 +1,13 @@
+function getImportPath(filename) {
+    const apiBase = window.comfyAPI?.api?.api?.api_base;
+    if (apiBase) {
+        // 有 API base 时，使用完整路径
+        return `${apiBase.substring(1)}/copilot_web/${filename}`;
+    } else {
+        // 没有 API base 时，使用相对路径（因为所有文件都在同一目录）
+        return `./${filename}`;
+    }
+}
 import{r as so,c as ri,g as oo}from"./vendor-react-V04_Axys.js";var $a={exports:{}},tn={};/**
  * @license React
  * react-jsx-runtime.production.min.js
