@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-02-17 20:53:45
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-04 17:16:22
+ * @LastEditTime: 2025-06-04 19:22:30
  * @FilePath: /comfyui_copilot/ui/scripts/post-build.js
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -31,36 +31,13 @@ files.forEach(file => {
             const originalDeps = depsMatch[1];
             
             // 如果文件中还没有路径转换逻辑，则添加
-            if (!content.includes('window.location.protocol')) {
+            if (!content.includes('window.comfyAPI?.api?.api?.api_base')) {
                 content = content.replace(
                     /const __vite__mapDeps=.*?\)=>i\.map\(i=>d\[i\]\);/,
                     `const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=[${originalDeps}].map(path => {
-                        // 判断是否在代理环境下（如 nebula-notebook）
-                        let baseUrl = '';
-                        try {
-                            if (window.location && window.location.pathname.includes('/proxy/')) {
-                                // 在代理环境下使用完整路径
-                                const protocol = window.location.protocol;
-                                const host = window.location.host;
-                                const pathname = window.location.pathname;
-                                baseUrl = \`\${protocol}//\${host}\${pathname}\`;
-                                // 确保路径以 / 结尾
-                                if (!baseUrl.endsWith('/')) {
-                                    baseUrl += '/';
-                                }
-                            } else {
-                                // 在本地环境下使用相对路径或API base
-                                const apiBase = window.comfyAPI?.api?.api?.api_base;
-                                baseUrl = apiBase ? \`\${apiBase.substring(1)}/\` : '';
-                            }
-                        } catch (e) {
-                            console.warn('Failed to get base URL:', e);
-                            // 回退到原来的方式
-                            const apiBase = window.comfyAPI?.api?.api?.api_base;
-                            baseUrl = apiBase ? \`\${apiBase.substring(1)}/\` : '';
-                        }
-                        
-                        return \`\${baseUrl}\${path}\`;
+                        const apiBase = window.comfyAPI?.api?.api?.api_base;
+                        const prefix = apiBase ? \`\${apiBase.substring(1)}/\` : '';
+                        return \`\${prefix}\${path}\`;
                     }))))=>i.map(i=>d[i]);`
                 );
             } else {
@@ -76,7 +53,35 @@ files.forEach(file => {
         } else {
             console.log(`No deps pattern found in ${path.basename(file)}`);
         }
+    }
+    
+    // 处理直接的 import() 调用
+    if (content.includes('import("./')) {
+        // 添加路径转换函数（如果还没有）
+        if (!content.includes('function getImportPath')) {
+            const pathTransformFunction = `
+const getImportPath = (relativePath) => {
+    const apiBase = window.comfyAPI?.api?.api?.api_base;
+    if (apiBase) {
+        // 有 API base 时，使用绝对路径
+        const prefix = apiBase.substring(1); // 移除开头的 /
+        return \`/\${prefix}/copilot_web/\${relativePath}\`;
     } else {
-        console.log(`No __vite__mapDeps found in ${path.basename(file)}`);
+        // 没有 API base 时，使用相对路径
+        return \`./\${relativePath}\`;
+    }
+};`;
+            content = pathTransformFunction + content;
+        }
+        
+        // 替换所有直接的 import() 调用，保留相对路径前缀
+        content = content.replace(/import\("\.\/([^"]+)"\)/g, 'import(getImportPath("$1"))');
+        
+        fs.writeFileSync(file, content, 'utf-8');
+        console.log(`Modified direct import() calls in ${path.basename(file)}`);
+    }
+    
+    if (!content.includes('__vite__mapDeps') && !content.includes('import("./')) {
+        console.log(`No __vite__mapDeps or direct imports found in ${path.basename(file)}`);
     }
 }); 
