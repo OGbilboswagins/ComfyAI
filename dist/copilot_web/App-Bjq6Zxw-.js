@@ -1,14 +1,7 @@
 function getImportPath(filename) {
-    const apiBase = window.comfyAPI?.api?.api?.api_base;
-    if (apiBase) {
-        // 有 API base 时，使用完整路径
-        return `${apiBase.substring(1)}/copilot_web/${filename}`;
-    } else {
-        // 没有 API base 时，使用相对路径（因为所有文件都在同一目录）
-        return `./${filename}`;
-    }
-}
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["copilot_web/workflowChat-DztaEqXX.js","copilot_web/input.js","copilot_web/vendor-markdown-Dek94WS0.js","copilot_web/vendor-react-V04_Axys.js","copilot_web/message-components-BQDbTDiL.js","copilot_web/assets/input-BFxtFr8c.css","copilot_web/fonts.css"].map(path => {
+            return `./${filename}`;
+        }
+            const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["copilot_web/workflowChat-DztaEqXX.js","copilot_web/input.js","copilot_web/vendor-markdown-Dek94WS0.js","copilot_web/vendor-react-V04_Axys.js","copilot_web/message-components-BQDbTDiL.js","copilot_web/assets/input-BFxtFr8c.css","copilot_web/fonts.css"].map(path => {
                         const apiBase = window.comfyAPI?.api?.api?.api_base;
                         if (apiBase) {
                             // 有 API base 时，使用完整路径

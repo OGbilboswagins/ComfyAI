@@ -1,14 +1,7 @@
 function getImportPath(filename) {
-    const apiBase = window.comfyAPI?.api?.api?.api_base;
-    if (apiBase) {
-        // 有 API base 时，使用完整路径
-        return `${apiBase.substring(1)}/copilot_web/${filename}`;
-    } else {
-        // 没有 API base 时，使用相对路径（因为所有文件都在同一目录）
-        return `./${filename}`;
-    }
-}
-var vd=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function Ja(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,"default")?e.default:e}var Uo={exports:{}},T={};/**
+            return `./${filename}`;
+        }
+            var vd=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function Ja(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,"default")?e.default:e}var Uo={exports:{}},T={};/**
  * @license React
  * react.production.min.js
  *

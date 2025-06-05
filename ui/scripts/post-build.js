@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-02-17 20:53:45
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-04 20:11:49
+ * @LastEditTime: 2025-06-05 11:18:48
  * @FilePath: /comfyui_copilot/ui/scripts/post-build.js
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -25,18 +25,24 @@ files.forEach(file => {
     let content = fs.readFileSync(file, 'utf-8');
 
     // 检查是否已经有 getImportPath 函数（function 或 const 形式）
+//     if (!content.includes('getImportPath')) {
+//         content = `function getImportPath(filename) {
+//     const apiBase = window.comfyAPI?.api?.api?.api_base;
+//     if (apiBase) {
+//         // 有 API base 时，使用完整路径
+//         return \`\${apiBase.substring(1)}/copilot_web/\${filename}\`;
+//     } else {
+//         // 没有 API base 时，使用相对路径（因为所有文件都在同一目录）
+//         return \`./\${filename}\`;
+//     }
+// }
+// ` + content;
+//     }
     if (!content.includes('getImportPath')) {
         content = `function getImportPath(filename) {
-    const apiBase = window.comfyAPI?.api?.api?.api_base;
-    if (apiBase) {
-        // 有 API base 时，使用完整路径
-        return \`\${apiBase.substring(1)}/copilot_web/\${filename}\`;
-    } else {
-        // 没有 API base 时，使用相对路径（因为所有文件都在同一目录）
-        return \`./\${filename}\`;
-    }
-}
-` + content;
+            return \`./\${filename}\`;
+        }
+            ` + content;
     }
 
     if (content.includes('__vite__mapDeps')) {
