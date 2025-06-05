@@ -36,8 +36,6 @@ const rewriteImportPlugin = ({ isDev }) => {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   envDir: ".",
-  // 使用相对路径，确保在代理环境下也能正确加载资源
-  base: "./",
   css: {
     postcss: {
       plugins: [
