@@ -1,8 +1,8 @@
 /*
  * @Author: 晴知 qingli.hql@alibaba-inc.com
  * @Date: 2024-11-28 10:19:07
- * @LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
- * @LastEditTime: 2025-04-22 17:52:22
+ * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
+ * @LastEditTime: 2025-06-05 15:01:55
  * @FilePath: /comfyui_copilot/ui/src/components/chat/ChatHeader.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -73,7 +73,7 @@ export function ChatHeader({
                         bg-white border-gray-200 sticky top-2 z-10">
                 <div className="flex items-center space-x-1">
                     <img 
-                        src={logoImage}
+                        src={`.${logoImage}`}
                         alt="ComfyUI-Copilot Logo" 
                         className="h-7 w-7 -ml-1" 
                     />

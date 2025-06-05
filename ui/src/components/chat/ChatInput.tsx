@@ -4,6 +4,7 @@
 import { ChangeEvent, KeyboardEvent, useState, useRef, useEffect } from 'react';
 import { SendIcon, ImageIcon, PlusIcon, XIcon } from './Icons';
 import React from 'react';
+import { WorkflowChatAPI } from '../../apis/workflowChatApi';
 
 interface ChatInputProps {
     input: string;
@@ -27,25 +28,6 @@ export interface UploadedImage {
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const SUPPORTED_FORMATS = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-const models_conf = [
-    {
-        "name": "gpt-4o",
-        "image_enable": true
-    },
-    {
-        "name": "gpt-4o-mini",
-        "image_enable": true
-    },
-    {
-        "name": "qwen-plus",
-        "image_enable": false
-    },
-    {
-        "name": "DeepSeek-V3",
-        "image_enable": false
-    }
-]
-
 export function ChatInput({ 
     input, 
     loading, 
@@ -59,6 +41,7 @@ export function ChatInput({
     onModelChange,
 }: ChatInputProps) {
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [models, setModels] = useState<{ name: string; image_enable: boolean }[]>([]);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,6 +54,39 @@ export function ChatInput({
             textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 400)}px`;
         }
     }, [input]);
+
+    // Load models on component mount
+    useEffect(() => {
+        const loadModels = async () => {
+            try {
+                const result = await WorkflowChatAPI.listModels();
+                setModels(result.models);
+            } catch (error) {
+                console.error('Failed to load models:', error);
+                // Fallback to default models if API fails
+                setModels([
+                    {
+                        "name": "gpt-4o",
+                        "image_enable": true
+                    },
+                    {
+                        "name": "gpt-4o-mini",
+                        "image_enable": true
+                    },
+                    {
+                        "name": "qwen-plus",
+                        "image_enable": false
+                    },
+                    {
+                        "name": "DeepSeek-V3",
+                        "image_enable": false
+                    }
+                ]);
+            }
+        };
+
+        loadModels();
+    }, []);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
@@ -161,7 +177,7 @@ export function ChatInput({
                              focus:border-transparent hover:bg-gray-50
                              transition-colors border-0"
                 >
-                    {models_conf.map((model) => (
+                    {models.map((model) => (
                         <option value={model.name} key={model.name}>{model.name}</option>
                     ))}
                 </select>
@@ -170,11 +186,11 @@ export function ChatInput({
                 <button
                     type="button"
                     onClick={() => setShowUploadModal(true)}
-                    disabled={!models_conf.find(model => model.name === selectedModel)?.image_enable}
+                    disabled={!models.find(model => model.name === selectedModel)?.image_enable}
                     className={`p-1.5 text-gray-500 bg-white border-none
                              hover:bg-gray-100 hover:text-gray-600 
                              transition-all duration-200 outline-none
-                             ${!models_conf.find(model => model.name === selectedModel)?.image_enable ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                             ${!models.find(model => model.name === selectedModel)?.image_enable ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <ImageIcon className="h-4 w-4" />
                 </button>
             </div>

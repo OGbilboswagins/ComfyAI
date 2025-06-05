@@ -1,4 +1,7 @@
-var vd=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function Ja(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,"default")?e.default:e}var Uo={exports:{}},T={};/**
+function getImportPath(filename) {
+            return `./${filename}`;
+        }
+            var vd=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function Ja(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,"default")?e.default:e}var Uo={exports:{}},T={};/**
  * @license React
  * react.production.min.js
  *

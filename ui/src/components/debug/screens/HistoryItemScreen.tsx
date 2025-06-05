@@ -66,10 +66,11 @@ export const HistoryItemScreen: React.FC<HistoryItemScreenProps> = ({
       <ImageModal
         visible={modalVisible}
         imageUrl={modalImageUrl}
-        params={{
-          ...params,
+        params={modalImageParams ? {
+          ...modalImageParams,
+          // Keep the nodeName for context, ensuring it's always available
           nodeNames: { [historyItem.nodeName.split('<')[0]]: historyItem.nodeName.split('<')[0] }
-        }}
+        } : undefined}
         onClose={closeImageModal}
       />
       

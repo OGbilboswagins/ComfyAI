@@ -117,6 +117,18 @@ export const ResultGalleryScreen: React.FC<ResultGalleryScreenProps> = ({
                   className="w-full h-full object-cover"
                 />
               </div>
+              <div className="p-2 text-xs text-gray-600 bg-white max-h-16 overflow-y-auto">
+                {Object.entries(image.params)
+                  // Filter out nodeParams and other complex objects from display
+                  .filter(([paramName, value]) => 
+                    paramName !== 'nodeParams' && 
+                    typeof value !== 'object'
+                  )
+                  .map(([paramName, value]) => (
+                    <div key={paramName}>{paramName}: {String(value)}</div>
+                  ))
+                }
+              </div>
             </div>
           );
         })}

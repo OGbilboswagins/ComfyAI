@@ -480,6 +480,29 @@ export namespace WorkflowChatAPI {
     // This should never be reached due to the throw in the loop, but TypeScript needs it
     throw lastError;
   }
+
+  export async function listModels(): Promise<{ models: { name: string; image_enable: boolean }[] }> {
+    const apiKey = getApiKey();
+    const browserLanguage = getBrowserLanguage();
+    
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'accept': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'trace-id': generateUUID(),
+      'Accept-Language': browserLanguage,
+    };
+    
+    const response = await fetch(`${BASE_URL}/v1/models`, {
+      method: 'GET',
+      headers,
+    });
+    
+    const result = await response.json();
+    
+    return result as { models: { name: string; image_enable: boolean }[] };
+  }
 }
 
   

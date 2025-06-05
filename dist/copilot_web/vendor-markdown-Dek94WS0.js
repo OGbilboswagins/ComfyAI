@@ -1,4 +1,7 @@
-import{r as so,c as ri,g as oo}from"./vendor-react-V04_Axys.js";var $a={exports:{}},tn={};/**
+function getImportPath(filename) {
+            return `./${filename}`;
+        }
+            import{r as so,c as ri,g as oo}from"./vendor-react-V04_Axys.js";var $a={exports:{}},tn={};/**
  * @license React
  * react-jsx-runtime.production.min.js
  *
