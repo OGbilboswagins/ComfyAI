@@ -199,8 +199,59 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     } else if (message.metadata?.pendingWorkflow) {
                                         const workflow = message.metadata.pendingWorkflow;
                                         const optimizedParams = message.metadata.optimizedParams;
-                                        app.loadGraphData(workflow);
                                         
+                                        // 支持不同格式的工作流
+                                        if(workflow.nodes) {
+                                            app.loadGraphData(workflow);
+                                        } else {
+                                            app.loadApiJson(workflow);
+                                            // 获取所有节点，并且优化排布
+                                            const node_ids = Object.keys(workflow);
+                                            
+                                            // 布局参数
+                                            let start_x = 0;
+                                            const base_size_x = 250;
+                                            const base_size_y = 60;
+                                            const param_y = 20;
+                                            const align = 60;
+                                            const align_y = 50;
+                                            const max_size_y = 1000;
+                                            
+                                            let last_start_x = start_x;
+                                            let last_start_y = 0;
+                                            let tool_size_y = 0;
+                                            
+                                            for(const node_id of node_ids) {
+                                                const node = app.graph._nodes_by_id[node_id];
+                                                if(node) {
+                                                    // 检查是否需要换列
+                                                    if (tool_size_y > max_size_y) {
+                                                        last_start_x += base_size_x + align;
+                                                        tool_size_y = 0;
+                                                        last_start_y = 0;
+                                                    }
+
+                                                    // 根据参数计算节点的高度
+                                                    const inputCount = node.inputs ? node.inputs.length : 0;
+                                                    const outputCount = node.outputs ? node.outputs.length : 0;
+                                                    const widgetCount = node.widgets ? node.widgets.length : 0;
+                                                    const param_count = Math.max(inputCount, outputCount) + widgetCount;
+                                                    
+                                                    const size_y = param_y * param_count + base_size_y;
+                                                    
+                                                    // 设置节点大小和位置
+                                                    node.size[0] = base_size_x;
+                                                    node.size[1] = size_y;
+                                                    node.pos[0] = last_start_x;
+                                                    node.pos[1] = last_start_y;
+
+                                                    tool_size_y += size_y + align_y;
+                                                    last_start_y += size_y + align_y;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // 应用优化参数
                                         for (const [nodeId, nodeName, paramIndex, paramName, value] of optimizedParams) {
                                             const widgets = app.graph._nodes_by_id[nodeId].widgets;
                                             for (const widget of widgets) {
