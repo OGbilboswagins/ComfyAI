@@ -208,8 +208,13 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                             // 获取所有节点，并且优化排布
                                             const node_ids = Object.keys(workflow);
                                             
+                                            // 获取第一个节点作为基准位置
+                                            const firstNodeId = Object.keys(app.graph._nodes_by_id)[0];
+                                            const firstNode = app.graph._nodes_by_id[firstNodeId];
+                                            const base_x = firstNode ? firstNode.pos[0] : 0;
+                                            const base_y = firstNode ? firstNode.pos[1] : 0;
+                                            
                                             // 布局参数
-                                            let start_x = 0;
                                             const base_size_x = 250;
                                             const base_size_y = 60;
                                             const param_y = 20;
@@ -217,8 +222,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                             const align_y = 50;
                                             const max_size_y = 1000;
                                             
-                                            let last_start_x = start_x;
-                                            let last_start_y = 0;
+                                            let last_start_x = base_x;
+                                            let last_start_y = base_y;
                                             let tool_size_y = 0;
                                             
                                             for(const node_id of node_ids) {
@@ -228,7 +233,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                                     if (tool_size_y > max_size_y) {
                                                         last_start_x += base_size_x + align;
                                                         tool_size_y = 0;
-                                                        last_start_y = 0;
+                                                        last_start_y = base_y;
                                                     }
 
                                                     // 根据参数计算节点的高度
