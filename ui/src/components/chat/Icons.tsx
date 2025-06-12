@@ -7,5 +7,6 @@ export {
     Upload as UploadIcon,
     Image as ImageIcon,
     Plus as PlusIcon,
-    Settings as CogIcon
+    Settings as CogIcon,
+    StopCircle as StopIcon
 } from 'lucide-react'; 
