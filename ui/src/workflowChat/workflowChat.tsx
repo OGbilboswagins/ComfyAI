@@ -27,6 +27,7 @@ import { useNodeSelection } from '../hooks/useNodeSelection';
 import { MemoizedReactMarkdown } from "../components/markdown";
 import remarkGfm from 'remark-gfm';
 import rehypeExternalLinks from 'rehype-external-links';
+import { indexedDBManager } from '../utils/indexedDB';
 
 // Define the Tab type - We should import this from context to ensure consistency
 import type { TabType } from '../context/ChatContext';
@@ -173,7 +174,17 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     useMousePosition(visible && activeTab === 'chat');
     useNodeSelection(visible);
 
-    // 使用自定义 hooks
+    // Initialize IndexedDB
+    useEffect(() => {
+        indexedDBManager.init().catch(console.error);
+    }, []);
+
+    // Auto-save messages to IndexedDB when they change
+    useEffect(() => {
+        if (messages.length > 0 && sessionId) {
+            updateMessagesCache(messages);
+        }
+    }, [messages, sessionId]);
 
     useEffect(() => {
         if (messageDivRef.current) {
@@ -195,6 +206,14 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     // 获取历史消息
     const fetchMessages = async (sid: string) => {
         try {
+            // First try to get from IndexedDB
+            const indexedSession = await indexedDBManager.getSession(sid);
+            if (indexedSession && indexedSession.messages.length > 0) {
+                dispatch({ type: 'SET_MESSAGES', payload: indexedSession.messages });
+                return;
+            }
+            
+            // If not found in IndexedDB, try API
             const data = await WorkflowChatAPI.fetchMessages(sid);
             dispatch({ type: 'SET_MESSAGES', payload: data });
             // Note: The localStorage cache is already updated in the fetchMessages API function
@@ -542,10 +561,16 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         }
     };
 
-    // Utility function to update localStorage cache for messages
-    const updateMessagesCache = (messages: Message[]) => {
+    // Utility function to update localStorage cache and IndexedDB for messages
+    const updateMessagesCache = async (messages: Message[]) => {
         if (state.sessionId) {
             localStorage.setItem(`messages_${state.sessionId}`, JSON.stringify(messages));
+            // Also save to IndexedDB
+            try {
+                await indexedDBManager.saveSession(state.sessionId, messages);
+            } catch (error) {
+                console.error('Failed to save session to IndexedDB:', error);
+            }
         }
     };
 
@@ -554,8 +579,16 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         const updatedMessages = [...state.messages, message];
         dispatch({ type: 'ADD_MESSAGE', payload: message });
         
-        // Update the localStorage cache with the new message
+        // Update the localStorage cache and IndexedDB with the new message
         updateMessagesCache(updatedMessages);
+    };
+
+    const handleSelectSession = (sessionId: string, messages: Message[]) => {
+        // Clear current state and load new session
+        dispatch({ type: 'SET_SESSION_ID', payload: sessionId });
+        dispatch({ type: 'SET_MESSAGES', payload: messages });
+        localStorage.setItem("sessionId", sessionId);
+        localStorage.setItem(`messages_${sessionId}`, JSON.stringify(messages));
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -659,6 +692,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     onClear={handleClearMessages}
                     hasMessages={messages.length > 0}
                     title={`ComfyUI-Copilot`}
+                    onSelectSession={handleSelectSession}
+                    currentSessionId={sessionId}
                 />
                 
                 {/* Tab navigation */}

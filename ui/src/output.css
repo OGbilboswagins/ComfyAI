@@ -523,6 +523,9 @@
   .w-full {
     width: 100%;
   }
+  .min-w-0 {
+    min-width: 0px;
+  }
   .min-w-\[400px\] {
     min-width: 400px;
   }
@@ -659,6 +662,11 @@
     margin-right: calc(0.5rem * var(--tw-space-x-reverse));
     margin-left: calc(0.5rem * calc(1 - var(--tw-space-x-reverse)));
   }
+  .space-y-1 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+  }
   .space-y-2 > :not([hidden]) ~ :not([hidden]) {
     --tw-space-y-reverse: 0;
     margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
@@ -688,6 +696,11 @@
   }
   .scroll-smooth {
     scroll-behavior: smooth;
+  }
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .text-ellipsis {
     text-overflow: ellipsis;
@@ -1036,6 +1049,10 @@
     padding-top: 1rem;
     padding-bottom: 1rem;
   }
+  .py-8 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
   .pb-10 {
     padding-bottom: 2.5rem;
   }
@@ -1274,6 +1291,11 @@
     --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
+  .shadow-xl {
+    --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
   .outline-none {
     outline: 2px solid transparent;
     outline-offset: 2px;
@@ -1461,6 +1483,11 @@
 
 .hover\:text-gray-900:hover {
   color: color-mix(in srgb, var(--p-text-color) 90%, transparent);
+}
+
+.hover\:text-red-500:hover {
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-red-600:hover {
@@ -1655,6 +1682,10 @@
     color: rgb(96 165 250 / var(--tw-text-opacity, 1));
   }
 
+  .dark\:text-gray-100 {
+    color: color-mix(in srgb, var(--p-text-color) 10%, transparent);
+  }
+
   .dark\:text-gray-200 {
     color: color-mix(in srgb, var(--p-text-color) 20%, transparent);
   }
@@ -1710,6 +1741,10 @@
 
   .dark\:hover\:text-gray-200:hover {
     color: color-mix(in srgb, var(--p-text-color) 20%, transparent);
+  }
+
+  .dark\:hover\:text-white:hover {
+    color: var(--p-panel-background);
   }
 
   .dark\:focus\:border-blue-400:focus {

@@ -10,9 +10,11 @@
 // Licensed under the MIT License.
 
 import { useState, useEffect } from 'react';
-import { XIcon, TrashIcon, CogIcon } from './Icons';
+import { XIcon, TrashIcon, CogIcon, HistoryIcon } from './Icons';
 import { ApiKeyModal } from './ApiKeyModal';
+import { SessionHistoryModal } from './SessionHistoryModal';
 import logoImage from '../../../../assets/logo.png';
+import { Message } from '../../types/types';
 
 interface ChatHeaderProps {
     onClose?: () => void;
@@ -20,6 +22,8 @@ interface ChatHeaderProps {
     hasMessages: boolean;
     onHeightResize?: (deltaY: number) => void;
     title?: string;
+    onSelectSession?: (sessionId: string, messages: Message[]) => void;
+    currentSessionId?: string | null;
 }
 
 export function ChatHeader({ 
@@ -27,17 +31,28 @@ export function ChatHeader({
     onClear, 
     hasMessages, 
     onHeightResize,
-    title = "ComfyUI-Copilot"
+    title = "ComfyUI-Copilot",
+    onSelectSession,
+    currentSessionId
 }: ChatHeaderProps) {
     const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+    const [isSessionHistoryModalOpen, setIsSessionHistoryModalOpen] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     
     const handleApiKeyClick = () => {
         setIsApiKeyModalOpen(true);
     };
 
+    const handleSessionHistoryClick = () => {
+        setIsSessionHistoryModalOpen(true);
+    };
+
     const handleSaveApiKey = (apiKey: string) => {
         localStorage.setItem('chatApiKey', apiKey);
+    };
+
+    const handleSelectSession = (sessionId: string, messages: Message[]) => {
+        onSelectSession?.(sessionId, messages);
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -87,6 +102,13 @@ export function ChatHeader({
                 </div>
                 <div className="flex items-center gap-1">
                     <button
+                        onClick={handleSessionHistoryClick}
+                        className="p-1.5 bg-white border-none hover:bg-gray-100 rounded text-gray-500"
+                        title="Session History"
+                    >
+                        <HistoryIcon className="h-4 w-4" />
+                    </button>
+                    <button
                         className={`inline-flex bg-white border-none items-center justify-center rounded-md p-1.5 
                                  ${hasMessages ? 'text-gray-500 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
                         disabled={!hasMessages}
@@ -101,6 +123,13 @@ export function ChatHeader({
                 onClose={() => setIsApiKeyModalOpen(false)}
                 onSave={handleSaveApiKey}
                 initialApiKey={localStorage.getItem('chatApiKey') || ''}
+            />
+
+            <SessionHistoryModal
+                isOpen={isSessionHistoryModalOpen}
+                onClose={() => setIsSessionHistoryModalOpen(false)}
+                onSelectSession={handleSelectSession}
+                currentSessionId={currentSessionId || null}
             />
         </>
     );
