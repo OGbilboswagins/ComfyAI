@@ -126,19 +126,15 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * Verify if an OpenAI API key is valid
  * @param apiKey The OpenAI API key to verify
  * @param baseUrl The OpenAI API base URL
- * @param publicKey The RSA public key for encryption
  * @returns A boolean indicating if the key is valid
  */
-export async function verifyOpenAiApiKey(apiKey: string, baseUrl: string, publicKey: string): Promise<boolean> {
+export async function verifyOpenAiApiKey(apiKey: string, baseUrl: string): Promise<boolean> {
   try {
-    // Encrypt the API key
-    const encryptedApiKey = await encryptWithRsaPublicKey(apiKey, publicKey);
-    
     // Call the verification endpoint
-    const response = await fetch(`${config.apiBaseUrl}/api/chat/verify_openai_key`, {
+    const response = await fetch(`/verify_openai_key`, {
       method: 'GET',
       headers: {
-        'Encrypted-Openai-Api-Key': encryptedApiKey,
+        'Openai-Api-Key': apiKey,
         'Openai-Base-Url': baseUrl
       }
     });

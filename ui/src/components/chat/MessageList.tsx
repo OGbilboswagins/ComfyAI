@@ -45,6 +45,7 @@ const LazyWorkflowOption = lazy(() => import('./messages/WorkflowOption').then(m
 const LazyNodeSearch = lazy(() => import('./messages/NodeSearch').then(m => ({ default: m.NodeSearch })));
 const LazyDownstreamSubgraphs = lazy(() => import('./messages/DownstreamSubgraphs').then(m => ({ default: m.DownstreamSubgraphs })));
 const LazyNodeInstallGuide = lazy(() => import('./messages/NodeInstallGuide').then(m => ({ default: m.NodeInstallGuide })));
+const LazyDebugGuide = lazy(() => import('./messages/DebugGuide').then(m => ({ default: m.DebugGuide })));
 
 export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading }: MessageListProps) {
     // 使用useMemo缓存renderMessage函数
@@ -73,6 +74,9 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 const nodeExt = response.ext?.find((item: ExtItem) => item.type === 'node');
                 const downstreamSubgraphsExt = response.ext?.find((item: ExtItem) => item.type === 'downstream_subgraph_search');
                 const nodeInstallGuideExt = response.ext?.find((item: ExtItem) => item.type === 'node_install_guide');
+                
+                // 检查是否是工作流成功加载的消息
+                const isWorkflowSuccessMessage = response.text === 'The workflow has been successfully loaded to the canvas';
                 
                 // 移除频繁的日志输出
                 // console.log('[MessageList] Found extensions:', {
@@ -283,6 +287,23 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             />
                         </Suspense>
                     );
+                } else if (isWorkflowSuccessMessage) {
+                    // 使用DebugGuide组件来处理工作流成功加载的消息
+                    ExtComponent = (
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <LazyDebugGuide
+                                content={message.content}
+                                name={message.name}
+                                avatar={avatar}
+                                onAddMessage={onAddMessage}
+                            />
+                        </Suspense>
+                    );
+                }
+
+                // 如果是工作流成功消息，直接返回DebugGuide组件
+                if (isWorkflowSuccessMessage && ExtComponent) {
+                    return ExtComponent;
                 }
 
                 // 如果有response.text，使用AIMessage渲染

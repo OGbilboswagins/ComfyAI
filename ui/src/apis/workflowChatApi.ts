@@ -97,14 +97,6 @@ export namespace WorkflowChatAPI {
       const { openaiApiKey, openaiBaseUrl, rsaPublicKey } = getOpenAiConfig();
       // Generate a unique message ID for this chat request
       const messageId = generateUUID();
-
-      // if (!apiKey) {
-      //   yield {
-      //       text: 'API key is required. Please set your API key first.⚙\nIf you don\'t have an API key, please email us at ComfyUI-Copilot@service.alibaba.com and we will get back to you as soon as possible.',
-      //       finished: true
-      //   } as ChatResponse;
-      //   return;
-      // }
       
       // Convert images to base64
       const imagePromises = (images || []).map(file => 
@@ -134,8 +126,9 @@ export namespace WorkflowChatAPI {
       // Add OpenAI configuration headers if available
       if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
         try {
-          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
-          headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
+          // const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
+          // headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
+          // headers['Openai-Api-Key'] = openaiApiKey;
           headers['Openai-Base-Url'] = openaiBaseUrl;
         } catch (error) {
           console.error('Error encrypting OpenAI API key:', error);
@@ -153,10 +146,16 @@ export namespace WorkflowChatAPI {
           controller.abort();
         });
       }
-      
-      const response = await fetch(`${BASE_URL}/api/chat/invoke`, {
+
+      let chatUrl = `/api/chat/invoke`
+      if(intent && intent !== '') {
+        chatUrl = `${BASE_URL}/api/chat/invoke`
+      } else {
+        headers['Openai-Api-Key'] = openaiApiKey;
+      }
+      const response = await fetch(chatUrl, {
         method: 'POST',
-        headers,
+        headers: headers,
         body: JSON.stringify({
           session_id: sessionId,
           prompt: prompt,
@@ -518,6 +517,131 @@ export namespace WorkflowChatAPI {
     const result = await response.json();
     
     return result as { models: { name: string; image_enable: boolean }[] };
+  }
+
+  export async function* streamDebugAgent(
+    errorData: any, 
+    workflowData: any, 
+    abortSignal?: AbortSignal
+  ): AsyncGenerator<{ text: string; ext?: any }> {
+    try {
+      const { openaiApiKey, openaiBaseUrl } = getOpenAiConfig();
+      
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'accept': 'text/plain',
+        'trace-id': generateUUID(),
+      };
+      
+      // Add OpenAI configuration headers if available
+      if (openaiApiKey && openaiApiKey.trim() !== '') {
+        headers['Openai-Api-Key'] = openaiApiKey;
+        headers['Openai-Base-Url'] = openaiBaseUrl;
+      }
+      
+      // Create controller and combine with external signal if provided
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+      
+      // If an external abort signal is provided, listen to it
+      if (abortSignal) {
+        abortSignal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          controller.abort();
+        });
+      }
+
+      const response = await fetch('/api/debug-agent', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          error_data: errorData,
+          workflow_data: workflowData
+        }),
+        signal: controller.signal
+      });
+      
+      // Clear the timeout since we got a response
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Debug agent request failed: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+                if (data.text) {
+                  yield {
+                    text: data.text,
+                    ext: data.ext
+                  };
+                }
+              } catch (parseError) {
+                console.error('Error parsing SSE data:', parseError);
+              }
+            }
+          }
+        }
+        
+        // Process any remaining buffer content
+        if (buffer.trim() && buffer.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(buffer.slice(6));
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            if (data.text) {
+              yield {
+                text: data.text,
+                ext: data.ext
+              };
+            }
+          } catch (parseError) {
+            console.error('Error parsing final SSE data:', parseError);
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+    } catch (error: unknown) {
+      console.error('Error in streamDebugAgent:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Check if it's a timeout or user-initiated abort
+        if (abortSignal?.aborted) {
+          // User-initiated abort, just throw silently
+          throw error;
+        } else {
+          // Timeout
+          throw new Error('Debug request timed out after 2 minutes. Please try again.');
+        }
+      } else {
+        throw new Error(error instanceof Error ? error.message : 'An error occurred while debugging the workflow.');
+      }
+    }
   }
 }
 
