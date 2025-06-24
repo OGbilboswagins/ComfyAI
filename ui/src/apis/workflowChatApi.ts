@@ -88,7 +88,8 @@ export namespace WorkflowChatAPI {
     images: File[] = [], 
     intent: string | null = null, 
     ext: any | null = null,
-    trace_id?: string
+    trace_id?: string,
+    abortSignal?: AbortSignal
   ): AsyncGenerator<ChatResponse> {
     try {
       const apiKey = getApiKey();
@@ -141,9 +142,17 @@ export namespace WorkflowChatAPI {
         }
       }
       
-      // Set timeout to 2 minutes (120000ms)
+      // Create controller and combine with external signal if provided
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
+      
+      // If an external abort signal is provided, listen to it
+      if (abortSignal) {
+        abortSignal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          controller.abort();
+        });
+      }
       
       const response = await fetch(`${BASE_URL}/api/chat/invoke`, {
         method: 'POST',
@@ -194,10 +203,17 @@ export namespace WorkflowChatAPI {
           message_id: messageId
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error in streamInvokeServer:', error);
-      if (error.name === 'AbortError') {
-        alert('Request timed out after 2 minutes. Please try again.');
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Check if it's a timeout or user-initiated abort
+        if (abortSignal?.aborted) {
+          // User-initiated abort, just throw silently
+          throw error;
+        } else {
+          // Timeout
+          alert('Request timed out after 2 minutes. Please try again.');
+        }
       } else {
         alert(error instanceof Error ? error.message : 'An error occurred while streaming, please refresh the page and try again.');
       }

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { ChangeEvent, KeyboardEvent, useState, useRef, useEffect } from 'react';
-import { SendIcon, ImageIcon, PlusIcon, XIcon } from './Icons';
+import { SendIcon, ImageIcon, PlusIcon, XIcon, StopIcon } from './Icons';
 import React from 'react';
 import { WorkflowChatAPI } from '../../apis/workflowChatApi';
 
@@ -17,6 +17,7 @@ interface ChatInputProps {
     onRemoveImage: (imageId: string) => void;
     selectedModel: string;
     onModelChange: (model: string) => void;
+    onStop?: () => void;
 }
 
 export interface UploadedImage {
@@ -39,6 +40,7 @@ export function ChatInput({
     onRemoveImage,
     selectedModel,
     onModelChange,
+    onStop,
 }: ChatInputProps) {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [models, setModels] = useState<{ name: string; image_enable: boolean }[]>([]);
@@ -198,14 +200,13 @@ export function ChatInput({
             {/* Send button */}
             <button
                 type="submit"
-                onClick={onSend}
-                disabled={loading || input.trim() === ''}
+                onClick={loading ? onStop : onSend}
+                disabled={loading ? false : input.trim() === ''}
                 className="absolute bottom-3 right-3 p-2 rounded-md text-gray-500 bg-white border-none 
                          hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 
                          transition-all duration-200 active:scale-95">
                 {loading ? (
-                    <div className="h-5 w-5 animate-spin rounded-full 
-                                  border-2 border-gray-300 border-t-blue-500" />
+                    <StopIcon className="h-5 w-5 text-red-500 hover:text-red-600" />
                 ) : (
                     <SendIcon className="h-5 w-5 group-hover:translate-x-1" />
                 )}

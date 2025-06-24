@@ -166,6 +166,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     // 添加公告状态
     const [announcement, setAnnouncement] = useState<string>('');
     const [showAnnouncement, setShowAnnouncement] = useState<boolean>(false);
+    // 添加 AbortController 引用
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // 使用自定义 hooks，只在visible为true且activeTab为chat时启用
     useMousePosition(visible && activeTab === 'chat');
@@ -277,6 +279,13 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         setInput(event.target.value);
     }
 
+    const handleStop = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            dispatch({ type: 'SET_LOADING', payload: false });
+        }
+    }
 
     const handleSendMessage = async () => {
         dispatch({ type: 'SET_LOADING', payload: true });
@@ -295,6 +304,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
         setInput("");
 
+        // 创建新的 AbortController
+        abortControllerRef.current = new AbortController();
+
         try {
             const modelExt = { type: "model_select", data: [selectedModel] };
             let aiMessageId = generateUUID(); // 生成一个固定的消息ID
@@ -306,7 +318,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 uploadedImages.map(img => img.file),
                 null,
                 modelExt,
-                traceId
+                traceId,
+                abortControllerRef.current.signal
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,
@@ -331,11 +344,18 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
                 if (response.finished) {
                     dispatch({ type: 'SET_LOADING', payload: false });
+                    abortControllerRef.current = null;
                 }
             }
         } catch (error) {
-            console.error('Error sending message:', error);
+            if (error instanceof Error && error.name === 'AbortError') {
+                // 用户主动中断，不显示错误
+                console.log('User aborted the request');
+            } else {
+                console.error('Error sending message:', error);
+            }
             dispatch({ type: 'SET_LOADING', payload: false });
+            abortControllerRef.current = null;
         } finally {
             setUploadedImages([]);
         }
@@ -357,6 +377,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
         dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
 
+        // 创建新的 AbortController
+        abortControllerRef.current = new AbortController();
+
         try {
             const modelExt = { type: "model_select", data: [selectedModel] };
             let aiMessageId = generateUUID();
@@ -368,7 +391,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 uploadedImages.map(img => img.file),
                 null,
                 modelExt,
-                traceId
+                traceId,
+                abortControllerRef.current.signal
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,
@@ -393,11 +417,18 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
                 if (response.finished) {
                     dispatch({ type: 'SET_LOADING', payload: false });
+                    abortControllerRef.current = null;
                 }
             }
         } catch (error) {
-            console.error('Error sending message:', error);
+            if (error instanceof Error && error.name === 'AbortError') {
+                // 用户主动中断，不显示错误
+                console.log('User aborted the request');
+            } else {
+                console.error('Error sending message:', error);
+            }
             dispatch({ type: 'SET_LOADING', payload: false });
+            abortControllerRef.current = null;
         } finally {
             setUploadedImages([]);
         }
@@ -452,6 +483,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
         dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
 
+        // 创建新的 AbortController
+        abortControllerRef.current = new AbortController();
+
         try {
             let aiMessageId = generateUUID();
             let isFirstResponse = true;
@@ -462,7 +496,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 [], 
                 intent, 
                 ext,
-                traceId
+                traceId,
+                abortControllerRef.current.signal
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,
@@ -492,11 +527,18 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
                 if (response.finished) {
                     dispatch({ type: 'SET_LOADING', payload: false });
+                    abortControllerRef.current = null;
                 }
             }
         } catch (error) {
-            console.error('Error sending message:', error);
+            if (error instanceof Error && error.name === 'AbortError') {
+                // 用户主动中断，不显示错误
+                console.log('User aborted the request');
+            } else {
+                console.error('Error sending message:', error);
+            }
             dispatch({ type: 'SET_LOADING', payload: false });
+            abortControllerRef.current = null;
         }
     };
 
@@ -683,6 +725,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                         onRemoveImage={handleRemoveImage}
                         selectedModel={selectedModel}
                         onModelChange={setSelectedModel}
+                        onStop={handleStop}
                     />
                 </div>
 
