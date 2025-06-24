@@ -1,3 +1,11 @@
+/*
+ * @Author: ai-business-hql qingli.hql@alibaba-inc.com
+ * @Date: 2025-06-24 16:29:05
+ * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
+ * @LastEditTime: 2025-06-24 18:38:20
+ * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
@@ -527,26 +535,19 @@ export namespace WorkflowChatAPI {
   }
 
   export async function listModels(): Promise<{ models: { name: string; image_enable: boolean }[] }> {
-    const apiKey = getApiKey();
-    const browserLanguage = getBrowserLanguage();
     
-    // Prepare headers
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'accept': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'trace-id': generateUUID(),
-      'Accept-Language': browserLanguage,
-    };
-    
-    const response = await fetch(`${BASE_URL}/v1/models`, {
+    const response = await fetch('/api/model_config', {
       method: 'GET',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+        'trace-id': generateUUID(),
+      },
     });
     
     const result = await response.json();
     
-    return result as { models: { name: string; image_enable: boolean }[] };
+    return result as { models: { label: string; name: string; image_enable: boolean }[] };
   }
 
   export async function* streamDebugAgent(

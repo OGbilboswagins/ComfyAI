@@ -43,7 +43,9 @@ export function ChatInput({
     onStop,
 }: ChatInputProps) {
     const [showUploadModal, setShowUploadModal] = useState(false);
-    const [models, setModels] = useState<{ name: string; image_enable: boolean }[]>([]);
+    const [models, setModels] = useState<{
+        label: ReactNode; name: string; image_enable: boolean 
+}[]>([]);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -180,7 +182,7 @@ export function ChatInput({
                              transition-colors border-0"
                 >
                     {models.map((model) => (
-                        <option value={model.name} key={model.name}>{model.name}</option>
+                        <option value={model.name} key={model.name}>{model.label}</option>
                     ))}
                 </select>
 
