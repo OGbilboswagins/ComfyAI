@@ -32,7 +32,7 @@ except ImportError:
         ImageData = mcp_client_module.ImageData
     except Exception as e:
         print(f"Warning: Could not import comfyui_agent_invoke: {e}, using mock implementation")
-        async def comfyui_agent_invoke(prompt, images=None):
+        async def comfyui_agent_invoke(prompt, images=None, config=None):
             yield f"Mock response for: {prompt}"
         class ImageData:
             def __init__(self, filename: str, data: str, url: str = None):

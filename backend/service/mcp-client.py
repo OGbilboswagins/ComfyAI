@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-06-18 19:30:44
+LastEditTime: 2025-06-24 20:08:13
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -201,14 +201,3 @@ You must adhere to the following constraints to complete the task:
         # Yield error as tuple to maintain consistency
         yield (error_message, None)
 
-
-async def test():
-    test_messages = [
-        {"role": "user", "content": "我需要一个推荐的工作流来创建SK波普风插画，请帮我找到合适的工作流。"}
-    ]
-    async for result in comfyui_agent_invoke(test_messages):
-        print(f"Test result: {result}")
-
-
-if __name__ == "__main__":
-    asyncio.run(test())
