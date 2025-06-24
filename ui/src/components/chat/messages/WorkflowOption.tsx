@@ -1,12 +1,6 @@
 import { app } from "../../../utils/comfyapp";
-import { BaseMessage } from './BaseMessage';
 import { ChatResponse, Workflow } from "../../../types/types";
 import { WorkflowChatAPI } from "../../../apis/workflowChatApi";
-import { MemoizedReactMarkdown } from "../../markdown";
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import rehypeExternalLinks from 'rehype-external-links';
 import { generateUUID } from "../../../utils/uuid";
 import { useState } from "react";
 

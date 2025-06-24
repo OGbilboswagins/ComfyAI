@@ -41,8 +41,7 @@ except ImportError:
                 self.url = url
 
 
-# 使用内存字典存储会话消息
-session_messages = {}
+# 不再使用内存存储会话消息，改为从前端传递历史消息
 
 # 在文件开头添加
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "public")
@@ -232,23 +231,12 @@ async def workflow_gen(request):
         chat_response["text"] = message
         await response.write(json.dumps(chat_response).encode() + b"\n")
 
-    if session_id not in session_messages:
-        session_messages[session_id] = []
-
-    session_messages[session_id].extend([user_msg])
+    # 不再使用内存存储，前端负责消息存储
 
     await response.write_eof()
     return response
 
-@server.PromptServer.instance.routes.get("/workspace/fetch_messages_by_id")
-async def fetch_messages(request):
-    session_id = request.query.get('session_id')
-    data = await asyncio.to_thread(fetch_messages_sync, session_id)
-    return web.json_response(data)
-
-def fetch_messages_sync(session_id):
-    print("fetch_messages: ", session_id)
-    return session_messages.get(session_id, [])
+# 删除fetch_messages相关方法，消息由前端IndexedDB管理
 
 async def upload_to_oss(file_data: bytes, filename: str) -> str:
     # TODO: Implement your OSS upload logic here
@@ -359,6 +347,7 @@ async def invoke_chat(request):
     images = req_json.get('images', [])
     intent = req_json.get('intent')
     ext = req_json.get('ext')
+    historical_messages = req_json.get('messages', [])
 
     # Process images and upload to OSS (similar to reference implementation)
     processed_images = []
@@ -390,18 +379,8 @@ async def invoke_chat(request):
                 print(f"Error processing image {image.get('filename', 'unknown')}: {str(e)}")
                 # Continue with other images even if one fails
 
-    # Get historical messages from session_messages and convert to OpenAI format
-    if session_id not in session_messages:
-        session_messages[session_id] = []
-    
-    # Convert historical messages to OpenAI format
-    historical_messages = []
-    for msg in session_messages[session_id]:
-        openai_msg = {
-            "role": msg["role"],
-            "content": msg["content"]
-        }
-        historical_messages.append(openai_msg)
+    # 历史消息已经从前端传递过来，格式为OpenAI格式，直接使用
+    print(f"-- Received {len(historical_messages)} historical messages")
     
     # Add current user message to OpenAI format
     current_user_message = {"role": "user", "content": prompt}
@@ -421,15 +400,7 @@ async def invoke_chat(request):
     # Add current message to historical messages for MCP call
     openai_messages = historical_messages + [current_user_message]
     
-    # Create user message for session storage
-    user_msg = {
-        "id": str(len(session_messages[session_id])),
-        "content": prompt,
-        "role": "user"
-    }
-    
-    # Add user message to session
-    session_messages[session_id].append(user_msg)
+    # 不再需要创建用户消息存储到后端，前端负责消息存储
 
     try:
         # Call the MCP client to get streaming response with historical messages and image support
@@ -494,13 +465,7 @@ async def invoke_chat(request):
         
         await response.write(json.dumps(final_response).encode() + b"\n")
 
-        # Add AI response to session messages
-        ai_msg = {
-            "id": str(len(session_messages.get(session_id, []))),
-            "content": accumulated_text,
-            "role": "assistant"
-        }
-        session_messages[session_id].append(ai_msg)
+        # AI响应不再存储到后端，前端负责消息存储
 
     except Exception as e:
         print(f"Error in invoke_chat: {str(e)}")

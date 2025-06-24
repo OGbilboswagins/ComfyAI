@@ -2,7 +2,7 @@
  * @Author: ai-business-hql ai.bussiness.hql@gmail.com
  * @Date: 2025-03-20 15:15:20
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-05-14 20:48:24
+ * @LastEditTime: 2025-06-24 15:59:59
  * @FilePath: /comfyui_copilot/ui/src/workflowChat/workflowChat.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -338,7 +338,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 null,
                 modelExt,
                 traceId,
-                abortControllerRef.current.signal
+                abortControllerRef.current.signal,
+                state.messages
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,
@@ -411,7 +412,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 null,
                 modelExt,
                 traceId,
-                abortControllerRef.current.signal
+                abortControllerRef.current.signal,
+                state.messages
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,
@@ -516,7 +518,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 intent, 
                 ext,
                 traceId,
-                abortControllerRef.current.signal
+                abortControllerRef.current.signal,
+                state.messages
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,

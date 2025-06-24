@@ -89,7 +89,8 @@ export namespace WorkflowChatAPI {
     intent: string | null = null, 
     ext: any | null = null,
     trace_id?: string,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    historyMessages: Message[] = []
   ): AsyncGenerator<ChatResponse> {
     try {
       const apiKey = getApiKey();
@@ -109,6 +110,34 @@ export namespace WorkflowChatAPI {
       );
       
       const base64Images = await Promise.all(imagePromises);
+
+      // Convert frontend Message format to OpenAI format
+      const openaiMessages = historyMessages.map(msg => {
+        if (msg.role === 'user') {
+          return {
+            role: 'user',
+            content: msg.content
+          };
+        } else if (msg.role === 'ai' || msg.role === 'assistant') {
+          // For assistant messages, extract text from ChatResponse format if needed
+          try {
+            const parsed = JSON.parse(msg.content);
+            return {
+              role: 'assistant', 
+              content: parsed.text || msg.content
+            };
+          } catch {
+            return {
+              role: 'assistant',
+              content: msg.content
+            };
+          }
+        }
+        return {
+          role: msg.role,
+          content: msg.content
+        };
+      });
 
       // Handle ext parameter
       let finalExt = ext ? (Array.isArray(ext) ? ext : [ext]) : [];
@@ -162,6 +191,7 @@ export namespace WorkflowChatAPI {
           mock: false,
           intent: intent,
           ext: finalExt,
+          messages: openaiMessages,
           images: base64Images.map((base64, index) => ({
             filename: images[index].name,
             data: base64
