@@ -114,8 +114,7 @@ export default defineConfig(({ mode }) => ({
           
           // UI 组件
           'vendor-ui': [
-            '@heroicons/react',
-            '@tabler/icons-react'
+            '@heroicons/react'
           ],
           
           // 消息组件
