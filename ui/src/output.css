@@ -523,6 +523,9 @@
   .w-full {
     width: 100%;
   }
+  .min-w-0 {
+    min-width: 0px;
+  }
   .min-w-\[400px\] {
     min-width: 400px;
   }
@@ -688,6 +691,11 @@
   }
   .scroll-smooth {
     scroll-behavior: smooth;
+  }
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .text-ellipsis {
     text-overflow: ellipsis;
@@ -1352,6 +1360,18 @@
   }
 }
 
+.hover\:\!overflow-visible:hover {
+  overflow: visible !important;
+}
+
+.hover\:\!whitespace-normal:hover {
+  white-space: normal !important;
+}
+
+.hover\:\!break-words:hover {
+  overflow-wrap: break-word !important;
+}
+
 .hover\:border-b-2:hover {
   border-bottom-width: 2px;
 }
@@ -1522,8 +1542,8 @@
   opacity: 0.5;
 }
 
-.group:hover .group-hover\:block {
-  display: block;
+.group:hover .group-hover\:\!block {
+  display: block !important;
 }
 
 .group:hover .group-hover\:translate-x-1 {
