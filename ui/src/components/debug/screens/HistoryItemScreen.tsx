@@ -48,8 +48,8 @@ export const HistoryItemScreen: React.FC<HistoryItemScreenProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       <div className="mb-4 border-b pb-2 flex justify-between items-start">
-        <div>
-          <h3 className="text-base font-medium text-gray-800">{formatNodeNameWithParams(nodeName, params)}</h3>
+        <div className='min-w-0'>
+          <h3 className="text-base font-medium text-gray-800 truncate hover:!break-words hover:!whitespace-normal hover:!overflow-visible">{formatNodeNameWithParams(nodeName, params)}</h3>
           <p className="text-xs text-gray-500">{formatDate(timestamp)} • {generatedImages.length} images</p>
         </div>
         <button 
@@ -98,6 +98,18 @@ export const HistoryItemScreen: React.FC<HistoryItemScreenProps> = ({
                   alt={`Generated image ${actualIndex+1}`} 
                   className="w-full h-full object-cover"
                 />
+              </div>
+              <div className="p-2 text-xs text-gray-600 bg-white max-h-16 overflow-y-auto">
+                {Object.entries(image.params)
+                  // Filter out nodeParams and other complex objects from display
+                  .filter(([paramName, value]) => 
+                    paramName !== 'nodeParams' && 
+                    typeof value !== 'object'
+                  )
+                  .map(([paramName, value]) => (
+                    <div key={paramName}>{paramName}: {String(value)}</div>
+                  ))
+                }
               </div>
             </div>
           );
