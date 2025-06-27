@@ -85,8 +85,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
 
 You must adhere to the following constraints to complete the task:
 
-- [Important!] Respond must in the language used by the user in their question. Regardless of the language returned by the tools being called, please return the results based on the language used in the user's query. For example, if user ask by English, you must return in English.
-- Use only one tool for each decision you make.
+- [Important!] Respond must in the language used by the user in their question. Regardless of the language returned by the tools being called, please return the results based on the language used in the user's query. For example, if user ask by English, you must return
 - Ensure that the commands or tools you invoke are within the provided tool list.
 - If the execution of a command or tool fails, try changing the parameters or their format before attempting again.
 - Your generated responses must follow the factual information given above. Do not make up information.
@@ -98,6 +97,7 @@ You must adhere to the following constraints to complete the task:
 - Before performing any analysis or calculation, ensure that all sub-concepts involved have been defined.
 - Printing the entire content of a file is strictly prohibited, as such actions have high costs and can lead to unforeseen consequences.
 - Ensure that when you call a tool, you have obtained all the input variables for that tool, and do not fabricate any input values for it.
+- When the user's intent is to get workflows or generate images with specific requirements, call both recall_workflow and gen_workflow tools simultaneously to provide comprehensive workflow options.
 - When the user's intent is to query, return the query result directly without attempting to assist the user in performing operations.
 - When the user's intent is to get prompts for image generation (like Stable Diffusion). Use specific descriptive language with proper weight modifiers (e.g., (word:1.2)), prefer English terms, and separate elements with commas. Include quality terms (high quality, detailed), style specifications (realistic, anime), lighting (cinematic, golden hour), and composition (wide shot, close up) as needed. When appropriate, include negative prompts to exclude unwanted elements. Return words divided by commas directly without any additional text.
 - When a user pastes text that appears to be an error message (containing terms like "Failed", "Error", or stack traces), prioritize providing troubleshooting help rather than invoking search tools. Follow these steps:
@@ -113,7 +113,6 @@ You must adhere to the following constraints to complete the task:
      - Alternative approaches if the extension is problematic
   5. Suggest preventative measures to avoid similar errors
   6. Do NOT automatically invoke search_node or other tools when processing error messages unless specifically requested
-- When user provides images, analyze them carefully and incorporate the visual information into your responses and recommendations.
 - Ensure your responses do not contain illegal or offensive information.
                 """,
                 mcp_servers=[server],

@@ -9,19 +9,14 @@ import server
 # LLM model configuration
 llm_config: List[Dict[str, Any]] = [
     {
+        "label": "gemini-2.5-flash",
+        "name": "gemini-2.5-flash-preview-04-17",
+        "image_enable": True
+    },
+    {
         "label": "gpt-4.1",
         "name": "gpt-4.1-2025-04-14-GlobalStandard",
         "image_enable": True,
-    },
-    {
-        "label": "gpt-4o-mini",
-        "name": "gpt-4o-mini",
-        "image_enable": True,
-    },
-    {
-        "label": "gemini-2.5-flash", 
-        "name": "gemini-2.5-flash-preview-04-17", 
-        "image_enable": True
     },
     {
         "label": "qwen-plus",
