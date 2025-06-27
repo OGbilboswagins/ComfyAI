@@ -1374,6 +1374,18 @@
   }
 }
 
+.hover\:\!overflow-visible:hover {
+  overflow: visible !important;
+}
+
+.hover\:\!whitespace-normal:hover {
+  white-space: normal !important;
+}
+
+.hover\:\!break-words:hover {
+  overflow-wrap: break-word !important;
+}
+
 .hover\:border-b-2:hover {
   border-bottom-width: 2px;
 }
@@ -1549,8 +1561,8 @@
   opacity: 0.5;
 }
 
-.group:hover .group-hover\:block {
-  display: block;
+.group:hover .group-hover\:\!block {
+  display: block !important;
 }
 
 .group:hover .group-hover\:translate-x-1 {
