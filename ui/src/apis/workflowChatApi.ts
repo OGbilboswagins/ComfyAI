@@ -551,17 +551,17 @@ export namespace WorkflowChatAPI {
   }
 
   export async function* streamDebugAgent(
-    errorData: any, 
     workflowData: any, 
     abortSignal?: AbortSignal
   ): AsyncGenerator<{ text: string; ext?: any }> {
     try {
       const { openaiApiKey, openaiBaseUrl } = getOpenAiConfig();
+      const session_id = localStorage.getItem("sessionId") || null;
       
       // Prepare headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'accept': 'text/plain',
+        'accept': 'application/json',
         'trace-id': generateUUID(),
       };
       
@@ -587,8 +587,8 @@ export namespace WorkflowChatAPI {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
-          error_data: errorData,
-          workflow_data: workflowData
+          session_id: session_id,
+          workflow_data: workflowData['output']
         }),
         signal: controller.signal
       });
@@ -605,7 +605,6 @@ export namespace WorkflowChatAPI {
         throw new Error('No response body');
       }
 
-      const decoder = new TextDecoder();
       let buffer = '';
 
       try {
@@ -613,17 +612,14 @@ export namespace WorkflowChatAPI {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+          buffer += new TextDecoder().decode(value);
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.trim()) {
               try {
-                const data = JSON.parse(line.slice(6));
-                if (data.error) {
-                  throw new Error(data.error);
-                }
+                const data = JSON.parse(line) as ChatResponse;
                 if (data.text) {
                   yield {
                     text: data.text,
@@ -631,19 +627,16 @@ export namespace WorkflowChatAPI {
                   };
                 }
               } catch (parseError) {
-                console.error('Error parsing SSE data:', parseError);
+                console.error('Error parsing debug response data:', parseError);
               }
             }
           }
         }
         
         // Process any remaining buffer content
-        if (buffer.trim() && buffer.startsWith('data: ')) {
+        if (buffer.trim()) {
           try {
-            const data = JSON.parse(buffer.slice(6));
-            if (data.error) {
-              throw new Error(data.error);
-            }
+            const data = JSON.parse(buffer) as ChatResponse;
             if (data.text) {
               yield {
                 text: data.text,
@@ -651,7 +644,7 @@ export namespace WorkflowChatAPI {
               };
             }
           } catch (parseError) {
-            console.error('Error parsing final SSE data:', parseError);
+            console.error('Error parsing final debug response data:', parseError);
           }
         }
       } finally {

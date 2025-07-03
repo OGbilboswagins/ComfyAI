@@ -30,38 +30,13 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
         setIsDebugging(true);
         
         try {
-            // Get current workflow
-            const prompt = await app.graphToPrompt();
-            console.log('Current workflow:', prompt);
-            
-            // Queue the prompt to check for errors
-            const queueResponse = await queuePrompt([]);
-            console.log('Queue response:', queueResponse);
-            
-            // Check if we received an error response (even if the request "succeeded")
-            if (queueResponse.error || queueResponse.node_errors) {
-                // Handle structured error response
-                await handleQueueError(queueResponse);
-            } else {
-                // If we get here without errors, the workflow is working fine
-                const successMessage = {
-                    id: generateUUID(),
-                    role: 'ai',
-                    content: JSON.stringify({
-                        text: 'Great! I tested your workflow and it appears to be working correctly. No errors were found during the validation process.',
-                        ext: []
-                    }),
-                    format: 'markdown',
-                    name: 'Assistant'
-                };
-                onAddMessage?.(successMessage);
-            }
+            await handleQueueError();
         } finally {
             setIsDebugging(false);
         }
     };
 
-    const handleQueueError = async (errorData: any) => {
+    const handleQueueError = async () => {
         try {
             // Get current workflow for context
             const prompt = await app.graphToPrompt();
@@ -70,7 +45,7 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
             let finalExt: any = null;
 
             // Use the streaming debug agent API
-            for await (const result of WorkflowChatAPI.streamDebugAgent(errorData, prompt)) {
+            for await (const result of WorkflowChatAPI.streamDebugAgent(prompt)) {
                 if (result.text) {
                     accumulatedText = result.text;
                     if (result.ext) {

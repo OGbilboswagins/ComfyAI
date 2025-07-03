@@ -16,6 +16,9 @@ import requests
 # Import the MCP client function
 import sys
 import os
+
+from custom_nodes.comfyui_copilot.backend.service.debug_agent import debug_workflow_errors
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'service'))
 try:
     # Try importing with underscore (Python module naming convention)
@@ -483,23 +486,6 @@ async def invoke_chat(request):
     return response
 
 
-# Import debug agent
-try:
-    from debug_agent import debug_workflow_errors
-except ImportError:
-    try:
-        import importlib.util
-        debug_agent_path = os.path.join(os.path.dirname(__file__), '..', 'service', 'debug_agent.py')
-        spec = importlib.util.spec_from_file_location("debug_agent", debug_agent_path)
-        debug_agent_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(debug_agent_module)
-        debug_workflow_errors = debug_agent_module.debug_workflow_errors
-    except Exception as e:
-        print(f"Warning: Could not import debug_workflow_errors: {e}")
-        async def debug_workflow_errors(error_data, workflow_data, config=None):
-            yield ("I apologize, but the debug agent is not available at the moment.", None)
-
-
 @server.PromptServer.instance.routes.post("/api/debug-agent")
 async def debug_agent_endpoint(request):
     """
@@ -507,59 +493,82 @@ async def debug_agent_endpoint(request):
     """
     print("Received debug-agent request")
     req_json = await request.json()
-    print("Debug request JSON:", req_json)
-
+    
     response = web.StreamResponse(
         status=200,
         reason='OK',
         headers={
-            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Type': 'application/json',
             'X-Content-Type-Options': 'nosniff'
         }
     )
     await response.prepare(request)
 
-    error_data = req_json.get('error_data')
+    session_id = req_json.get('session_id')
     workflow_data = req_json.get('workflow_data')
-
-    if not error_data or not workflow_data:
-        await response.write(b"data: {\"error\": \"Missing error_data or workflow_data\"}\n\n")
-        await response.write_eof()
-        return response
+    
+    # Get configuration from headers (OpenAI settings)
+    config = {
+        "session_id": session_id,
+        "model": "gemini-2.5-flash",  # Default model for debug agents
+        "openai_api_key": request.headers.get('Openai-Api-Key'),
+        "openai_base_url": request.headers.get('Openai-Base-Url', 'https://api.openai.com/v1'),
+    }
+    
+    print(f"Debug agent config: {config}")
+    print(f"Session ID: {session_id}")
+    print(f"Workflow nodes: {list(workflow_data.keys()) if workflow_data else 'None'}")
 
     try:
-        # Get config from headers if available
-        config = {
-            "openai_api_key": request.headers.get('Openai-Api-Key'),
-            "openai_base_url": request.headers.get('Openai-Base-Url'),
-            "model_select": request.headers.get('Model-Select')
-        }
-        print(f"Debug agent config: {config}")
+        # Call the debug agent with streaming response
+        accumulated_text = ""
+        ext_data = None
         
-        # Call debug agent with streaming response
-        async for result in debug_workflow_errors(error_data, workflow_data, config):
-            # The debug agent returns tuples (text, ext) similar to MCP client
-            if isinstance(result, tuple) and len(result) == 2:
-                text, ext = result
-                response_data = {
-                    "text": text,
-                    "ext": ext
-                }
-                await response.write(f"data: {json.dumps(response_data)}\n\n".encode())
-            else:
-                # Handle single text (backward compatibility)
-                response_data = {
-                    "text": result,
-                    "ext": None
-                }
-                await response.write(f"data: {json.dumps(response_data)}\n\n".encode())
+        async for text, ext in debug_workflow_errors(workflow_data, config):
+            # Stream the response
+            if isinstance(text, str):
+                accumulated_text = text  # text is already accumulated from debug agent
+                
+                # Create streaming response
+                chat_response = ChatResponse(
+                    session_id=session_id,
+                    text=accumulated_text,
+                    finished=False,
+                    type="debug",
+                    format="markdown",
+                    ext=ext if isinstance(ext, list) else ([{"type": "debug_info", "data": ext}] if ext else None)
+                )
+                
+                await response.write(json.dumps(chat_response).encode() + b"\n")
+                await asyncio.sleep(0.01)  # Small delay for streaming effect
+
+        # Send final response
+        final_response = ChatResponse(
+            session_id=session_id,
+            text=accumulated_text,
+            finished=True,
+            type="debug",
+            format="markdown",
+            ext=ext_data if isinstance(ext_data, list) else ([{"type": "debug_complete", "data": ext_data}] if ext_data else None)
+        )
+        
+        await response.write(json.dumps(final_response).encode() + b"\n")
+        print("Debug agent processing complete")
 
     except Exception as e:
-        print(f"Error in debug_agent_endpoint: {str(e)}")
-        error_response = {
-            "error": f"Debug agent error: {str(e)}"
-        }
-        await response.write(f"data: {json.dumps(error_response)}\n\n".encode())
+        print(f"Error in debug agent: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        error_response = ChatResponse(
+            session_id=session_id,
+            text=f"❌ Debug agent error: {str(e)}",
+            finished=True,
+            type="debug",
+            format="text",
+            ext=[{"type": "error", "data": {"error": str(e)}}]
+        )
+        await response.write(json.dumps(error_response).encode() + b"\n")
 
     await response.write_eof()
     return response

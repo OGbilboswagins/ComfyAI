@@ -2,90 +2,65 @@
 ComfyUI Gateway Utilities
 
 This module provides Python implementations of ComfyUI API functions,
-mirroring the functionality from the TypeScript frontend.
+directly calling ComfyUI internal functions instead of HTTP requests.
 """
 
 import json
-import requests
 import os
+import uuid
+import logging
 from typing import Dict, Any, Optional, List
-import urllib.parse
+
+# Import ComfyUI internal modules
+import nodes
+import execution
+import folder_paths
+
+
+def _get_server_instance():
+    """获取PromptServer实例，如果不存在则返回None"""
+    try:
+        # Import here to avoid circular imports
+        import server
+        return getattr(server, 'PromptServer', {}).get('instance', None)
+    except:
+        return None
 
 
 class ComfyGateway:
-    """ComfyUI API Gateway for Python backend"""
+    """ComfyUI API Gateway for Python backend - uses internal functions instead of HTTP requests"""
     
     def __init__(self, base_url: Optional[str] = None):
         """
         Initialize ComfyUI Gateway
         
         Args:
-            base_url: Base URL for ComfyUI API. If not provided, will try to detect from environment
+            base_url: Deprecated - no longer used since we call internal functions directly
         """
         if base_url:
-            self.base_url = base_url.rstrip('/')
-        else:
-            # Try to get from environment or use default ComfyUI address
-            self.base_url = os.environ.get('COMFYUI_BASE_URL', 'http://127.0.0.1:8188')
+            logging.warning("ComfyGateway: base_url parameter is deprecated when using internal calls")
         
-        self.session = requests.Session()
-        # Set reasonable timeout
-        self.session.timeout = 30
-    
-    def _make_request(self, endpoint: str, method: str = 'GET', data: Optional[Dict[str, Any]] = None) -> requests.Response:
-        """
-        Make HTTP request to ComfyUI API
-        
-        Args:
-            endpoint: API endpoint (e.g., '/prompt', '/object_info')
-            method: HTTP method
-            data: Request data for POST requests
-            
-        Returns:
-            requests.Response object
-            
-        Raises:
-            requests.RequestException: If request fails
-        """
-        url = f"{self.base_url}{endpoint}"
-        
-        try:
-            if method.upper() == 'GET':
-                response = self.session.get(url)
-            elif method.upper() == 'POST':
-                headers = {'Content-Type': 'application/json'}
-                response = self.session.post(url, json=data, headers=headers)
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
-            
-            response.raise_for_status()
-            return response
-            
-        except requests.RequestException as e:
-            print(f"Error making request to {url}: {e}")
-            raise
+        # Get server instance for operations that need it
+        self.server_instance = _get_server_instance()
 
     def run_prompt(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Run a prompt on ComfyUI - Python equivalent of the TypeScript runPrompt function
+        Validate and potentially queue a prompt on ComfyUI - direct internal call equivalent
         
-        This function sends a workflow/prompt to ComfyUI for execution.
+        This function validates a workflow/prompt using ComfyUI's internal validation.
         
         Args:
-            json_data: The prompt/workflow data to execute. Should contain:
+            json_data: The prompt/workflow data. Should contain:
                 - prompt: The workflow definition
                 - client_id: Optional client identifier
                 
         Returns:
-            Dict containing the response from ComfyUI API, typically includes:
-                - prompt_id: The ID of the queued prompt
-                - number: Queue position
+            Dict containing the validation/queue response, typically includes:
+                - prompt_id: The ID of the queued prompt (if valid)
+                - number: Queue position (if queued)
                 - node_errors: Any validation errors
+                - success: Whether the operation succeeded
         
-        Raises:
-            requests.RequestException: If the API request fails
-            ValueError: If the response format is invalid
-            
         Example:
             gateway = ComfyGateway()
             prompt_data = {
@@ -93,45 +68,161 @@ class ComfyGateway:
                 "client_id": "python-client"
             }
             result = gateway.run_prompt(prompt_data)
-            print(f"Prompt queued with ID: {result['prompt_id']}")
         """
         try:
-            response = self._make_request("/prompt", method="POST", data=json_data)
-            return response.json()
-        except requests.RequestException as e:
-            print(f"Error running prompt: {e}")
-            raise
-        except json.JSONDecodeError as e:
-            print(f"Error parsing response JSON: {e}")
-            raise ValueError("Invalid JSON response from ComfyUI API")
+            if "prompt" not in json_data:
+                return {
+                    "success": False,
+                    "error": {
+                        "type": "no_prompt",
+                        "message": "No prompt provided",
+                        "details": "No prompt provided"
+                    },
+                    "node_errors": {}
+                }
+            
+            prompt = json_data["prompt"]
+            
+            # Validate the prompt using internal function
+            valid = execution.validate_prompt(prompt)
+            
+            if valid[0]:  # Validation successful
+                # If we have a server instance and want to actually queue it
+                if self.server_instance and hasattr(self.server_instance, 'prompt_queue'):
+                    try:
+                        # Generate prompt_id and queue the prompt
+                        prompt_id = str(uuid.uuid4())
+                        
+                        # Handle numbering
+                        number = getattr(self.server_instance, 'number', 0)
+                        if "front" in json_data and json_data['front']:
+                            number = -number
+                        self.server_instance.number = getattr(self.server_instance, 'number', 0) + 1
+                        
+                        # Prepare extra data
+                        extra_data = json_data.get("extra_data", {})
+                        if "client_id" in json_data:
+                            extra_data["client_id"] = json_data["client_id"]
+                        
+                        # Queue the prompt
+                        outputs_to_execute = valid[2]
+                        self.server_instance.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
+                        
+                        return {
+                            "success": True,
+                            "prompt_id": prompt_id,
+                            "number": number,
+                            "node_errors": valid[3]
+                        }
+                    except Exception as e:
+                        logging.warning(f"Failed to queue prompt, returning validation only: {e}")
+                        # Fall back to just validation
+                        pass
+                
+                # Just return validation result without queueing
+                return {
+                    "success": True,
+                    "prompt_id": str(uuid.uuid4()),  # Generate ID for compatibility
+                    "node_errors": valid[3],
+                    "queued": False,
+                    "message": "Prompt validated successfully (not queued)"
+                }
+            else:
+                # Validation failed
+                return {
+                    "success": False,
+                    "error": valid[1],
+                    "node_errors": valid[3]
+                }
+                
+        except Exception as e:
+            logging.error(f"Error in run_prompt: {e}")
+            return {
+                "success": False,
+                "error": {
+                    "type": "internal_error",
+                    "message": f"Internal error: {str(e)}",
+                    "details": str(e)
+                },
+                "node_errors": {}
+            }
 
-    def get_object_info(self) -> Dict[str, Any]:
+    def get_object_info(self, node_class: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get ComfyUI node definitions - Python equivalent of getObjectInfo()
+        Get ComfyUI node definitions - direct internal call equivalent
         
         Returns:
             Dict containing all available node definitions and their parameters
         """
         try:
-            response = self._make_request("/object_info")
-            return response.json()
+            def node_info(node_class_name):
+                """Internal function to get node info - based on server.py logic"""
+                obj_class = nodes.NODE_CLASS_MAPPINGS[node_class_name]
+                info = {}
+                info['input'] = obj_class.INPUT_TYPES()
+                info['input_order'] = {key: list(value.keys()) for (key, value) in obj_class.INPUT_TYPES().items()}
+                info['output'] = obj_class.RETURN_TYPES
+                info['output_is_list'] = obj_class.OUTPUT_IS_LIST if hasattr(obj_class, 'OUTPUT_IS_LIST') else [False] * len(obj_class.RETURN_TYPES)
+                info['output_name'] = obj_class.RETURN_NAMES if hasattr(obj_class, 'RETURN_NAMES') else info['output']
+                info['name'] = node_class_name
+                info['display_name'] = nodes.NODE_DISPLAY_NAME_MAPPINGS.get(node_class_name, node_class_name)
+                info['description'] = obj_class.DESCRIPTION if hasattr(obj_class,'DESCRIPTION') else ''
+                info['python_module'] = getattr(obj_class, "RELATIVE_PYTHON_MODULE", "nodes")
+                info['category'] = 'sd'
+                if hasattr(obj_class, 'OUTPUT_NODE') and obj_class.OUTPUT_NODE == True:
+                    info['output_node'] = True
+                else:
+                    info['output_node'] = False
+
+                if hasattr(obj_class, 'CATEGORY'):
+                    info['category'] = obj_class.CATEGORY
+
+                if hasattr(obj_class, 'OUTPUT_TOOLTIPS'):
+                    info['output_tooltips'] = obj_class.OUTPUT_TOOLTIPS
+
+                if getattr(obj_class, "DEPRECATED", False):
+                    info['deprecated'] = True
+                if getattr(obj_class, "EXPERIMENTAL", False):
+                    info['experimental'] = True
+                return info
+            
+            if node_class:
+                # Get specific node info
+                if node_class in nodes.NODE_CLASS_MAPPINGS:
+                    return {node_class: node_info(node_class)}
+                else:
+                    return {}
+            else:
+                # Get all node info
+                with folder_paths.cache_helper:
+                    out = {}
+                    for x in nodes.NODE_CLASS_MAPPINGS:
+                        try:
+                            out[x] = node_info(x)
+                        except Exception as e:
+                            logging.error(f"[ERROR] An error occurred while retrieving information for the '{x}' node: {e}")
+                    return out
+                    
         except Exception as e:
-            print(f"Error fetching object info: {e}")
+            logging.error(f"Error getting object info: {e}")
             raise
 
     def get_installed_nodes(self) -> List[str]:
         """
-        Get list of installed node types - Python equivalent of getInstalledNodes()
+        Get list of installed node types - direct internal call equivalent
         
         Returns:
             List of installed node type names
         """
-        object_info = self.get_object_info()
-        return list(object_info.keys())
+        try:
+            return list(nodes.NODE_CLASS_MAPPINGS.keys())
+        except Exception as e:
+            logging.error(f"Error getting installed nodes: {e}")
+            return []
 
     def manage_queue(self, clear: bool = False, delete: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Clear the prompt queue or delete specific queue items - Python equivalent of manageQueue()
+        Clear the prompt queue or delete specific queue items - direct internal call equivalent
         
         Args:
             clear: If True, clears the entire queue
@@ -140,36 +231,41 @@ class ComfyGateway:
         Returns:
             Dict with the response from the queue management operation
         """
-        options = {}
-        if clear:
-            options["clear"] = True
-        if delete:
-            options["delete"] = delete
-            
         try:
-            response = self._make_request("/queue", method="POST", data=options)
-            return response.json() if response.content else {}
+            if not self.server_instance or not hasattr(self.server_instance, 'prompt_queue'):
+                return {"error": "Server instance or prompt queue not available"}
+            
+            if clear:
+                self.server_instance.prompt_queue.wipe_queue()
+                
+            if delete:
+                for id_to_delete in delete:
+                    delete_func = lambda a: a[1] == id_to_delete
+                    self.server_instance.prompt_queue.delete_queue_item(delete_func)
+            
+            return {"success": True}
+            
         except Exception as e:
-            print(f"Error managing queue: {e}")
-            raise
+            logging.error(f"Error managing queue: {e}")
+            return {"error": f"Failed to manage queue: {str(e)}"}
 
     def interrupt_processing(self) -> Dict[str, Any]:
         """
-        Interrupt the current processing/generation - Python equivalent of interruptProcessing()
+        Interrupt the current processing/generation - direct internal call equivalent
         
         Returns:
             Dict with the response from the interrupt operation
         """
         try:
-            response = self._make_request("/interrupt", method="POST")
-            return response.json() if response.content else {}
+            nodes.interrupt_processing()
+            return {"success": True}
         except Exception as e:
-            print(f"Error interrupting processing: {e}")
-            raise
+            logging.error(f"Error interrupting processing: {e}")
+            return {"error": f"Failed to interrupt processing: {str(e)}"}
 
     def get_history(self, prompt_id: str) -> Dict[str, Any]:
         """
-        Get execution history for a specific prompt - Python equivalent of getHistory()
+        Get execution history for a specific prompt - direct internal call equivalent
         
         Args:
             prompt_id: The ID of the prompt to get history for
@@ -178,11 +274,14 @@ class ComfyGateway:
             Dict containing the execution history and results
         """
         try:
-            response = self._make_request(f"/history/{prompt_id}")
-            return response.json()
+            if not self.server_instance or not hasattr(self.server_instance, 'prompt_queue'):
+                return {"error": "Server instance or prompt queue not available"}
+            
+            return self.server_instance.prompt_queue.get_history(prompt_id=prompt_id)
+            
         except Exception as e:
-            print(f"Error fetching history for prompt {prompt_id}: {e}")
-            raise
+            logging.error(f"Error fetching history for prompt {prompt_id}: {e}")
+            return {"error": f"Failed to get history: {str(e)}"}
 
 
 # Convenience functions for backward compatibility and easy importing
@@ -192,7 +291,7 @@ def run_prompt(json_data: Dict[str, Any], base_url: Optional[str] = None) -> Dic
     
     Args:
         json_data: The prompt/workflow data to execute
-        base_url: Optional ComfyUI base URL
+        base_url: Deprecated - no longer used
         
     Returns:
         Dict containing the API response
@@ -202,20 +301,31 @@ def run_prompt(json_data: Dict[str, Any], base_url: Optional[str] = None) -> Dic
 
 
 def get_object_info(base_url: Optional[str] = None) -> Dict[str, Any]:
-    """Standalone function to get object info"""
+    """Standalone function to get object info - direct internal call equivalent"""
+    if base_url:
+        logging.warning("get_object_info: base_url parameter is deprecated when using internal calls")
     gateway = ComfyGateway(base_url)
     return gateway.get_object_info()
 
+def get_object_info_by_class(node_class: str, base_url: Optional[str] = None) -> Dict[str, Any]:
+    """Standalone function to get object info for specific node class - direct internal call equivalent"""
+    if base_url:
+        logging.warning("get_object_info_by_class: base_url parameter is deprecated when using internal calls")
+    gateway = ComfyGateway(base_url)
+    return gateway.get_object_info(node_class)
+
 
 def get_installed_nodes(base_url: Optional[str] = None) -> List[str]:
-    """Standalone function to get installed nodes"""
+    """Standalone function to get installed nodes - direct internal call equivalent"""
+    if base_url:
+        logging.warning("get_installed_nodes: base_url parameter is deprecated when using internal calls")
     gateway = ComfyGateway(base_url)
     return gateway.get_installed_nodes()
 
 
 # Example usage
 if __name__ == "__main__":
-    # Example of how to use the ComfyGateway
+    # Example of how to use the ComfyGateway with internal calls
     gateway = ComfyGateway()
     
     # Example prompt structure (you would replace this with actual workflow data)
@@ -233,10 +343,10 @@ if __name__ == "__main__":
     
     try:
         # Get available nodes
-        nodes = gateway.get_installed_nodes()
-        print(f"Found {len(nodes)} installed nodes")
+        nodes_list = gateway.get_installed_nodes()
+        print(f"Found {len(nodes_list)} installed nodes")
         
-        # Run a prompt (uncomment to actually execute)
+        # Validate a prompt (uncomment to actually execute)
         # result = gateway.run_prompt(example_prompt)
         # print(f"Prompt result: {result}")
         

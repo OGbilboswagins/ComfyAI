@@ -2,15 +2,20 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-06-24 20:08:13
+LastEditTime: 2025-07-02 16:50:11
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
 import asyncio
 import os
 from typing import List, Dict, Any, Optional
-from agents import Agent, Runner, function_tool, set_default_openai_api, set_tracing_disabled, ItemHelpers
+
+from agents._config import set_default_openai_api
+from agents.agent import Agent
+from agents.items import ItemHelpers
 from agents.mcp import MCPServerSse
+from agents.run import Runner
+from agents.tracing import set_tracing_disabled
 from openai.types.responses import ResponseTextDeltaEvent
 
 # Load environment variables from server.env
@@ -31,9 +36,9 @@ load_env_config()
 set_default_openai_api("chat_completions")
 set_tracing_disabled(True)
 
-@function_tool
-def get_weather(city: str) -> str:
-    return f"The weather in {city} is sunny."
+# @function_tool
+# def get_weather(city: str) -> str:
+#     return f"The weather in {city} is sunny."
 
 class ImageData:
     """Image data structure to match reference implementation"""
@@ -65,10 +70,10 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             cache_tools_list=True,
             client_session_timeout_seconds=300.0
         ) as server:
-            tools = await server.list_tools()
+            # tools = await server.list_tools()
             
             # Get model from environment or use default
-            model_name = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+            model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
             if config and config.get("model_select") and config.get("model_select") != "":
                 model_name = config.get("model_select")
             if config and config.get("openai_api_key") and config.get("openai_api_key") != "":
