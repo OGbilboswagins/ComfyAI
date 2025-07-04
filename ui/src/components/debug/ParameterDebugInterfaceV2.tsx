@@ -49,7 +49,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       }
     };
   }, [props.visible, dispatch]);
-  
+
   // The original component handles most of the actual work
   return <OriginalParameterDebugInterface {...props} />;
 }; 

@@ -30,6 +30,7 @@ import rehypeExternalLinks from 'rehype-external-links';
 
 // Define the Tab type - We should import this from context to ensure consistency
 import type { TabType } from '../context/ChatContext';
+import { ParameterDebugInterface } from "../components/debug/ParameterDebugInterfaceV2";
 
 interface WorkflowChatProps {
     onClose?: () => void;
@@ -102,11 +103,11 @@ const ParameterDebugTab = () => {
     const { selectedNode, screenState } = state;
     const selectedNodes = selectedNode ? selectedNode : [];
     
-    const ParameterDebugInterface = React.lazy(() => 
-      import("../components/debug/ParameterDebugInterfaceV2").then(module => ({
-          default: module.ParameterDebugInterface
-      }))
-    );
+    // const ParameterDebugInterface = React.lazy(() => 
+    //   import("../components/debug/ParameterDebugInterfaceV2").then(module => ({
+    //       default: module.ParameterDebugInterface
+    //   }))
+    // );
     
     const handleCloseParameterDebug = () => {
         // Clear selected nodes and screen state
@@ -118,13 +119,11 @@ const ParameterDebugTab = () => {
     
     return (
         <div className="flex-1 flex flex-col overflow-y-auto">
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <ParameterDebugInterface 
-                    selectedNodes={selectedNodes} 
-                    visible={true} 
-                    onClose={handleCloseParameterDebug}
-                />
-            </React.Suspense>
+            <ParameterDebugInterface 
+                selectedNodes={selectedNodes} 
+                visible={true} 
+                onClose={handleCloseParameterDebug}
+            />
         </div>
     );
 };
@@ -643,10 +642,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
     return (
         <div 
-            className="flex flex-col h-full w-full bg-white"
+            className="flex flex-col h-full w-full bg-white relative"
             style={{ 
-                display: visible ? 'flex' : 'none',
-                height: '100%'
+                display: visible ? 'flex' : 'none'
             }}
         >
             <div
@@ -687,7 +685,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 
                 {/* Tab content - Both tabs are mounted but only the active one is displayed */}
                 <div 
-                    className="flex-1 overflow-y-auto p-4 scroll-smooth h-0"
+                    className="flex-1 min-h-0 p-4"
                     style={{ display: activeTab === 'chat' ? 'block' : 'none' }}
                     ref={messageDivRef}
                 >
