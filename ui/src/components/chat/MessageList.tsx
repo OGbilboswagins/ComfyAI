@@ -9,8 +9,7 @@ import { LoadingMessage } from "./messages/LoadingMessage";
 import { generateUUID } from "../../utils/uuid";
 import { app } from "../../utils/comfyapp";
 import { addNodeOnGraph } from "../../utils/graphUtils";
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Define types for ext items to avoid implicit any
 interface ExtItem {
@@ -45,12 +44,13 @@ interface MessageListProps {
     installedNodes: any[];
     onAddMessage: (message: Message) => void;
     loading?: boolean;
-    canScroll?: boolean;
 }
 
 const getAvatar = (name?: string) => {
     return `https://ui-avatars.com/api/?name=${name || 'User'}&background=random`;
 };
+
+type FinallyMessageProps = Message | LoadMoreButtonProps
 
 // Use lazy loading for components that are conditionally rendered
 const LazyWorkflowOption = lazy(() => import('./messages/WorkflowOption').then(m => ({ default: m.WorkflowOption })));
@@ -58,17 +58,17 @@ const LazyNodeSearch = lazy(() => import('./messages/NodeSearch').then(m => ({ d
 const LazyDownstreamSubgraphs = lazy(() => import('./messages/DownstreamSubgraphs').then(m => ({ default: m.DownstreamSubgraphs })));
 const LazyNodeInstallGuide = lazy(() => import('./messages/NodeInstallGuide').then(m => ({ default: m.NodeInstallGuide })));
 
-const OFFSET_COUNT = 2;
+// 默认显示3轮回答，也就是找到列表最后的3条role是ai的数据
+const DEFAULT_COUNT = 3;
 
-export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading, canScroll }: MessageListProps) {
-    const [currentIndex, setCurrentIndex] = useState<number>(1)
-    const [currentMessages, setCurrentMessages] = useState<(Message | LoadMoreButtonProps)[]>([])
-
-    const [pendingScroll, setPendingScroll] = useState<{index: number, offset: number} | null>(null);
+export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading }: MessageListProps) {
+    const [currentIndex, setCurrentIndex] = useState<number>(0)
+    const [currentMessages, setCurrentMessages] = useState<FinallyMessageProps[]>([])
 
     const parentRef = useRef<HTMLDivElement>(null)
-    const isInit = useRef<boolean>(true);
-    const offsetCount = useRef<number>(0)
+    const lastMessagesCount = useRef<number>(0)
+    const currentScrollHeight = useRef<number>(0) 
+    const isNewMessage = useRef<boolean>(false)
 
     // 渲染对应的消息组件
     const renderMessage = (message: Message) => {
@@ -222,7 +222,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     } else if (message.metadata?.pendingWorkflow) {
                                         const workflow = message.metadata.pendingWorkflow;
                                         const optimizedParams = message.metadata.optimizedParams;
-                                        
+                                       
                                         // 支持不同格式的工作流
                                         if(workflow.nodes) {
                                             app.loadGraphData(workflow);
@@ -371,75 +371,86 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     onClick={handleLoadMore}
                 >
                     Load more
-                </button> : <div className='w-full h-[24px] transition-colors' />
+                </button> : <div className='w-full h-[24px] bg-transparent' />
             }
         </div>
     }
-
-    const virtualizer = useVirtualizer({
-        count: currentMessages.length,
-        getScrollElement: () => parentRef.current,
-        estimateSize: () => 200,
-        overscan: 1,
-    })
 
     function isLoadMoreButtonProps(item: any): item is LoadMoreButtonProps {
         return item && typeof item === 'object' && item.buttonType === 'loadmore';
     }
 
-    const handleLoadMore = useCallback(() => {
-        console.log('-handleLoadMore->')
-        const virtualItems = virtualizer.getVirtualItems();
-        if (virtualItems.length > 0) {
-          setPendingScroll({
-            index: virtualItems[0].index,
-            offset: virtualItems[0].start
-          });
-        }
-        setCurrentIndex(index => index + 1); // 触发 prepend
-    }, [virtualizer])
+    const handleLoadMore = () => {
+        setCurrentIndex(index => index + 1);
+    }
 
-    useLayoutEffect(() => {
-        if (messages?.length >= currentIndex * OFFSET_COUNT) {
-            if (isLoadMoreButtonProps(currentMessages[0])) {
-                currentMessages[0].buttonStatus = LoadMoreStatus.USED;
-            }
-            const addMessages = messages?.slice(Math.max(0, messages?.length - currentIndex * OFFSET_COUNT), messages?.length - (currentIndex - 1) * OFFSET_COUNT);
-            const list: (Message | LoadMoreButtonProps)[] = [
-                ...addMessages,
-                ...currentMessages
-            ]
-            if (messages.length > currentIndex * OFFSET_COUNT) { 
-                list.unshift({
-                    id: `loadmore_${currentIndex}`,
-                    buttonType: 'loadmore', 
-                    buttonStatus: LoadMoreStatus.NOT_USED
+    useEffect(() => {
+        let list: FinallyMessageProps[] = []
+        if (lastMessagesCount.current > 0 && lastMessagesCount.current < messages.length) {
+            list = messages.slice(lastMessagesCount.current)
+            if (messages[lastMessagesCount.current].role === 'user') {
+                list.unshift({  
+                    id: `${messages[lastMessagesCount.current].id}_loadmore`,
+                    buttonType: 'loadmore',
+                    buttonStatus: LoadMoreStatus.USED
                 })
+                isNewMessage.current = true
             }
-            offsetCount.current = list.length - currentMessages.length;
-            setCurrentMessages(list)
+            setCurrentMessages(pre => [...pre, ...list]);
         } else {
-            setCurrentMessages(messages?.slice(0))
+            isNewMessage.current = false;
+            let count = 0;
+            let endIndex = messages?.length
+            for (let i = messages?.length - 1; i >= 0; i--) {
+                if (messages[i].role === 'ai') {
+                    if (count > DEFAULT_COUNT + currentIndex) {
+                        list.unshift({
+                            id: `${messages[i].id}_loadmore`,
+                            buttonType: 'loadmore',
+                            buttonStatus: LoadMoreStatus.NOT_USED
+                        })
+                        break;
+                    } else {
+                        count++;    
+                        if (endIndex < messages.length) {
+                            if (list?.length > 0) {
+                                list.unshift({
+                                    id: `${messages[i].id}_loadmore`,
+                                    buttonType: 'loadmore',
+                                    buttonStatus: LoadMoreStatus.USED
+                                })
+                            }
+                            list = [
+                                ...messages?.slice(Math.min(endIndex, i + 1), endIndex + 1), 
+                                ...list
+                            ];
+                        }
+                        endIndex = i;
+                    }
+                }
+            }
+            setCurrentMessages(list)
         }
+        lastMessagesCount.current = messages.length
     }, [messages, currentIndex])
 
-    useLayoutEffect(() => {
-        if (currentMessages?.length > 0) {
-            console.log('virtualizer?.getVirtualItems()--->', JSON.stringify(virtualizer?.getVirtualItems()))
-            if (isInit.current) {
-                virtualizer.scrollToIndex(currentMessages.length)
-                isInit.current = false;
-            } else if (pendingScroll) {
-                setTimeout(() => {
-                    const newIndex = pendingScroll.index + offsetCount.current;
-                    virtualizer.scrollToIndex(newIndex, {
-                        align: 'start'
-                    })
-                    setPendingScroll(null);
-                }, 200)
-            }
-        }
-   }, [currentMessages])
+    // useLayoutEffect(() => {
+    //     if (parentRef?.current) {
+    //         if (!isNewMessage.current) {
+    //             // 加载历史数据需要修改scrolltop保证当前视图不变
+    //             parentRef.current.scrollTop = parentRef.current.scrollHeight - currentScrollHeight.current
+    //         } else {
+    //             parentRef.current.scrollTop = parentRef.current.scrollHeight
+    //         }
+    //         currentScrollHeight.current = parentRef.current.scrollHeight
+    //     }
+    // }, [currentMessages])
+
+    // useEffect(() => {
+    //     if (parentRef?.current) {
+    //         parentRef.current.scrollTop = parentRef.current.scrollHeight
+    //     }
+    // }, [parentRef.current])
 
     return (
         <div className='h-full overflow-y-auto'>
@@ -450,33 +461,15 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     contain: "strict"
                 }}
             >
-                <div
-                    style={{
-                        height: virtualizer.getTotalSize(),
-                        position: "relative",
-                    }}
-                >
-                    {
-                        virtualizer.getVirtualItems().map((virtualRow) => (
-                            <div
-                                key={virtualRow.key}
-                                data-index={virtualRow.index}
-                                ref={virtualizer.measureElement}
-                                style={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    width: "100%",
-                                    transform: `translateY(${virtualRow.start}px)`,
-                                }}
-                            >
-                                {
-                                    !!currentMessages?.[virtualRow.index] && (isLoadMoreButtonProps(currentMessages?.[virtualRow.index]) ? renderLoadMore(currentMessages[virtualRow.index] as LoadMoreButtonProps) : renderMessage(currentMessages[virtualRow.index] as Message))
-                                }
-                            </div>
-                        ))
-                    }
-                </div>
+                {
+                    currentMessages?.map((message) => <div
+                        key={message.id}
+                    >
+                        {
+                            !!message && (isLoadMoreButtonProps(message) ? renderLoadMore(message as LoadMoreButtonProps) : renderMessage(message as Message))
+                        }
+                    </div>)
+                }
             </div>
             {loading && <LoadingMessage />}
         </div>
