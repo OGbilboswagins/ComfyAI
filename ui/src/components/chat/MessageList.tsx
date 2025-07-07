@@ -68,7 +68,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     const parentRef = useRef<HTMLDivElement>(null)
     const lastMessagesCount = useRef<number>(0)
     const currentScrollHeight = useRef<number>(0) 
-    const isNewMessage = useRef<boolean>(false)
+    const isLoadHistory = useRef<boolean>(false)
 
     // 渲染对应的消息组件
     const renderMessage = (message: Message) => {
@@ -381,6 +381,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }
 
     const handleLoadMore = () => {
+        isLoadHistory.current = true;
         setCurrentIndex(index => index + 1);
     }
 
@@ -394,11 +395,9 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     buttonType: 'loadmore',
                     buttonStatus: LoadMoreStatus.USED
                 })
-                isNewMessage.current = true
             }
             setCurrentMessages(pre => [...pre, ...list]);
         } else {
-            isNewMessage.current = false;
             let count = 0;
             let endIndex = messages?.length
             for (let i = messages?.length - 1; i >= 0; i--) {
@@ -434,43 +433,36 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         lastMessagesCount.current = messages.length
     }, [messages, currentIndex])
 
-    // useLayoutEffect(() => {
-    //     if (parentRef?.current) {
-    //         if (!isNewMessage.current) {
-    //             // 加载历史数据需要修改scrolltop保证当前视图不变
-    //             parentRef.current.scrollTop = parentRef.current.scrollHeight - currentScrollHeight.current
-    //         } else {
-    //             parentRef.current.scrollTop = parentRef.current.scrollHeight
-    //         }
-    //         currentScrollHeight.current = parentRef.current.scrollHeight
-    //     }
-    // }, [currentMessages])
-
-    // useEffect(() => {
-    //     if (parentRef?.current) {
-    //         parentRef.current.scrollTop = parentRef.current.scrollHeight
-    //     }
-    // }, [parentRef.current])
+    useLayoutEffect(() => {
+        if (parentRef?.current) {
+            if (isLoadHistory.current) {
+                // 加载历史数据需要修改scrolltop保证当前视图不变
+                parentRef.current.scrollTop = parentRef.current.scrollHeight - currentScrollHeight.current
+                isLoadHistory.current = false
+            } else {
+                parentRef.current.scrollTop = parentRef.current.scrollHeight
+            }
+            currentScrollHeight.current = parentRef.current.scrollHeight
+        }
+    }, [currentMessages])
 
     return (
-        <div className='h-full overflow-y-auto'>
-            <div 
-                className='h-full overflow-y-auto' 
-                ref={parentRef} 
-                style={{
-                    contain: "strict"
-                }}
-            >
-                {
-                    currentMessages?.map((message) => <div
-                        key={message.id}
-                    >
-                        {
-                            !!message && (isLoadMoreButtonProps(message) ? renderLoadMore(message as LoadMoreButtonProps) : renderMessage(message as Message))
-                        }
-                    </div>)
-                }
-            </div>
+        <div 
+            className='overflow-y-auto w-full h-full'
+            ref={parentRef} 
+            style={{
+                contain: "strict"
+            }}
+        >
+            {
+                currentMessages?.map((message) => <div
+                    key={message.id}
+                >
+                    {
+                        !!message && (isLoadMoreButtonProps(message) ? renderLoadMore(message as LoadMoreButtonProps) : renderMessage(message as Message))
+                    }
+                </div>)
+            }
             {loading && <LoadingMessage />}
         </div>
     );

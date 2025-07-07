@@ -641,9 +641,6 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         <ParameterDebugTab />
     ), []);
 
-    useEffect(() => {
-        console.log('useEffect messages-->', messages)
-    }, [messages])
     if (!visible) return null;
 
     return (
@@ -691,9 +688,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 
                 {/* Tab content - Both tabs are mounted but only the active one is displayed */}
                 <div 
-                    className="flex-1 min-h-0 p-4"
+                    className='flex-1 p-4'
                     style={{ display: activeTab === 'chat' ? 'block' : 'none' }}
-                    ref={messageDivRef}
+                    // ref={messageDivRef}
                 >
                     <MessageList 
                         messages={messages}
