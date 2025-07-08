@@ -177,11 +177,11 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
     // 使用自定义 hooks
 
-    useEffect(() => {
-        if (messageDivRef.current) {
-            messageDivRef.current.scrollTop = messageDivRef.current.scrollHeight
-        }
-    }, [messages])
+    // useEffect(() => {
+    //     if (messageDivRef.current) {
+    //         messageDivRef.current.scrollTop = messageDivRef.current.scrollHeight
+    //     }
+    // }, [messages])
 
     useEffect(() => {
         if (activeTab !== 'chat') return;
