@@ -11,7 +11,9 @@ export async function waitForApp() {
   try {
     await Promise.all([
       import(api_base + "/scripts/api.js").then((apiJs) => {
-        api = apiJs?.api;
+        if (!api) {
+          api = apiJs?.api;
+        }
       }),
 
       import(api_base + "/scripts/app.js").then((appJs) => {
