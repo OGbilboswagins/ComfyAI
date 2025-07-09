@@ -306,15 +306,26 @@ Start by validating the workflow to see its current state. If there are errors, 
         current_text = ''
         current_agent = "ComfyUI-Debug-Coordinator"
         
+        # 增加一个用于防止重复yield的机制
+        last_yielded_length = 0
+        
         async for event in result.stream_events():
+            # 构建基础的ext数据
+            ext_data = {
+                "current_agent": current_agent,
+                "event_type": event.type
+            }
+            
             # Handle different event types
             if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
                 # Stream text deltas for real-time response
                 delta_text = event.data.delta
                 if delta_text:
                     current_text += delta_text
-                    # Yield accumulated text for streaming
-                    yield (current_text, {"current_agent": current_agent})
+                    # 只有当文本有实际增长时才yield，提供更好的实时性
+                    if len(current_text) > last_yielded_length:
+                        last_yielded_length = len(current_text)
+                        yield (current_text, None)
                 
             elif event.type == "agent_updated_stream_event":
                 new_agent_name = event.new_agent.name
@@ -323,28 +334,83 @@ Start by validating the workflow to see its current state. If there are errors, 
                 # Add handoff information to the stream
                 handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
                 current_text += handoff_text
-                yield (current_text, {"current_agent": current_agent, "handoff": True})
+                last_yielded_length = len(current_text)
+                yield (current_text, {
+                    **ext_data,
+                    "current_agent": current_agent, 
+                    "type": "agent_handoff",
+                    "handoff": True,
+                    "to_agent": new_agent_name
+                })
                 
             elif event.type == "run_item_stream_event":
+                item_updated = False
+                
                 if event.item.type == "tool_call_item":
-                    # Try multiple methods to get the tool name
-                    tool_name = event.item.raw_item.name
+                    # 工具调用开始
+                    tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
                     
                     print(f"-- Tool called: {tool_name}")
                     # Add tool call information
-                    tool_text = f"\n🔧 *Using {tool_name}...*\n"
+                    tool_text = f"\n🔧 *{current_agent} 正在使用 {tool_name}...*\n"
                     current_text += tool_text
-                    yield (current_text, {"current_agent": current_agent, "tool": tool_name})
+                    item_updated = True
+                    
+                    yield (current_text, {
+                        **ext_data,
+                        "type": "tool_call", 
+                        "tool": tool_name
+                    })
+                    
+                elif event.item.type == "tool_call_output_item":
+                    # 工具调用结果
+                    output = str(event.item.output)
+                    # 限制输出长度以避免过长的显示
+                    output_preview = output[:200] + "..." if len(output) > 200 else output
+                    tool_result_text = f"✅ *工具执行完成*\n```\n{output_preview}\n```\n"
+                    current_text += tool_result_text
+                    item_updated = True
+                    
+                    yield (current_text, {
+                        **ext_data,
+                        "type": "tool_result",
+                        "output_preview": output_preview
+                    })
+                    
+                elif event.item.type == "message_output_item":
+                    # 消息输出完成
+                    try:
+                        message_content = ItemHelpers.text_message_output(event.item)
+                        if message_content and message_content.strip():
+                            # 避免重复添加相同的消息内容
+                            if message_content not in current_text:
+                                current_text += f"\n{message_content}\n"
+                                item_updated = True
+                                
+                                yield (current_text, {
+                                    **ext_data,
+                                    "type": "message_complete"
+                                })
+                    except Exception as e:
+                        print(f"Error processing message output: {str(e)}")
+                
+                # 更新已yield的长度
+                if item_updated:
+                    last_yielded_length = len(current_text)
 
         print("\n=== Debug process complete ===")
         
         # Final yield with complete text
-        yield (current_text, {"current_agent": current_agent, "complete": True})
+        yield (current_text, {
+            "current_agent": current_agent, 
+            "type": "complete",
+            "complete": True
+        })
             
     except Exception as e:
         print(f"Error in debug_workflow_errors: {str(e)}")
         error_message = f"❌ Error occurred during debugging: {str(e)}"
-        yield (error_message, {"error": True})
+        yield (error_message, {"type": "error", "error": True})
 
 
 # Test function

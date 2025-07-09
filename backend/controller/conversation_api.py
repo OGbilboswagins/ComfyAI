@@ -522,12 +522,16 @@ async def debug_agent_endpoint(request):
     try:
         # Call the debug agent with streaming response
         accumulated_text = ""
-        ext_data = None
+        final_ext_data = None
         
-        async for text, ext in debug_workflow_errors(workflow_data, config):
+        async for result in debug_workflow_errors(workflow_data, config):
             # Stream the response
-            if isinstance(text, str):
-                accumulated_text = text  # text is already accumulated from debug agent
+            if isinstance(result, tuple) and len(result) == 2:
+                text, ext = result
+                if text:
+                    accumulated_text = text  # text is already accumulated from debug agent
+                if ext:
+                    final_ext_data = ext
                 
                 # Create streaming response
                 chat_response = ChatResponse(
@@ -536,7 +540,7 @@ async def debug_agent_endpoint(request):
                     finished=False,
                     type="debug",
                     format="markdown",
-                    ext=ext if isinstance(ext, list) else ([{"type": "debug_info", "data": ext}] if ext else None)
+                    ext=ext
                 )
                 
                 await response.write(json.dumps(chat_response).encode() + b"\n")
@@ -549,7 +553,7 @@ async def debug_agent_endpoint(request):
             finished=True,
             type="debug",
             format="markdown",
-            ext=ext_data if isinstance(ext_data, list) else ([{"type": "debug_complete", "data": ext_data}] if ext_data else None)
+            ext=final_ext_data if final_ext_data else [{"type": "debug_complete", "data": {"status": "completed"}}]
         )
         
         await response.write(json.dumps(final_response).encode() + b"\n")
