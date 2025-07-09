@@ -14,7 +14,10 @@
     "build:prod": "npx tailwindcss -i ./src/scoped-tailwind.css -o ./src/output.css && VITE_API_BASE_URL=https://comfyui-copilot-server.onrender.com vite build && node scripts/post-build.js"
   },
   "dependencies": {
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@heroicons/react": "^2.2.0",
+    "@tanstack/react-virtual": "^3.13.12",
+    "ahooks": "^3.9.0",
     "dexie": "^3.2.4",
     "dexie-react-hooks": "^1.1.7",
     "fuse.js": "^7.0.0",
