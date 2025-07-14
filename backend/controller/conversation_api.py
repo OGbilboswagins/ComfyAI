@@ -410,6 +410,7 @@ async def invoke_chat(request):
         # Pass OpenAI-formatted messages and processed images to comfyui_agent_invoke
         accumulated_text = ""
         ext_data = None
+        finished = True  # Default to True
         has_sent_response = False
         previous_text_length = 0
         
@@ -422,15 +423,17 @@ async def invoke_chat(request):
         
         # Pass messages in OpenAI format and processed images to comfyui_agent_invoke
         async for result in comfyui_agent_invoke(openai_messages, processed_images if processed_images else None, config):
-            # The MCP client now returns tuples (text, ext) similar to facade.py
+            # The MCP client now returns tuples (text, ext_with_finished) where ext_with_finished includes finished status
             if isinstance(result, tuple) and len(result) == 2:
-                text, ext = result
+                text, ext_with_finished = result
                 if text:
                     accumulated_text = text  # text from MCP is already accumulated
                     print(f"-- Received text update, length: {len(accumulated_text)}")
-                if ext:
-                    ext_data = ext
-                    print(f"-- Received ext data: {ext_data}")
+                if ext_with_finished:
+                    # Extract ext data and finished status from the structured response
+                    ext_data = ext_with_finished.get("data")
+                    finished = ext_with_finished.get("finished", True)
+                    print(f"-- Received ext data: {ext_data}, finished: {finished}")
             else:
                 # Handle single text chunk (backward compatibility)
                 text_chunk = result
@@ -439,13 +442,13 @@ async def invoke_chat(request):
                     print(f"-- Received text chunk: '{text_chunk}', total length: {len(accumulated_text)}")
             
             # Send streaming response if we have new text content
-            # Send every time we get new text, regardless of ext_data status
+            # Only send intermediate responses during streaming (not the final one)
             if accumulated_text and len(accumulated_text) > previous_text_length:
                 print(f"-- Sending stream response: {len(accumulated_text)} chars (previous: {previous_text_length})")
                 chat_response = ChatResponse(
                     session_id=session_id,
                     text=accumulated_text,
-                    finished=False,
+                    finished=False,  # Always false during streaming
                     type="message",
                     format="markdown",
                     ext=None  # ext is only sent in final response
@@ -455,12 +458,13 @@ async def invoke_chat(request):
                 previous_text_length = len(accumulated_text)
                 await asyncio.sleep(0.01)  # Small delay for streaming effect
 
-        # Send final response with ext data (similar to facade.py final yield)
-        print(f"-- Sending final response: {len(accumulated_text)} chars, ext: {bool(ext_data)}")
+        # Send final response with proper finished logic from MCP client
+        print(f"-- Sending final response: {len(accumulated_text)} chars, ext: {bool(ext_data)}, finished: {finished}")
+        
         final_response = ChatResponse(
             session_id=session_id,
             text=accumulated_text,
-            finished=True,
+            finished=finished,  # Use finished status from MCP client
             type="message",
             format="markdown",
             ext=ext_data
@@ -475,7 +479,7 @@ async def invoke_chat(request):
         error_response = ChatResponse(
             session_id=session_id,
             text=f"I apologize, but an error occurred: {str(e)}",
-            finished=True,
+            finished=True,  # Always finish on error
             type="message",
             format="text",
             ext=None

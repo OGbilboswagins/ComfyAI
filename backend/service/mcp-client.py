@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-02 16:50:11
+LastEditTime: 2025-07-09 17:59:28
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -81,8 +81,6 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             print(f"Using model: {model_name}")
-            print(f"OpenAI API Base: {os.environ.get('OPENAI_BASE_URL', 'default')}")
-            print(f"OpenAI API Key: {os.environ.get('OPENAI_API_KEY', 'default')}")
             
             agent = Agent(
                 name="ComfyUI-Copilot",
@@ -138,8 +136,10 @@ You must adhere to the following constraints to complete the task:
             # Variables to track response state similar to reference facade.py
             current_text = ''
             ext = None
-            tool_output_data = None
+            tool_results = {}  # Store results from different tools
+            workflow_tools_called = set()  # Track called workflow tools
             last_yield_length = 0
+            current_tool_call = None  # Track current tool being called
             
             async for event in result.stream_events():
                 # Handle different event types similar to reference implementation
@@ -162,46 +162,167 @@ You must adhere to the following constraints to complete the task:
                     
                 elif event.type == "run_item_stream_event":
                     if event.item.type == "tool_call_item":
-                        print(f"-- Tool '{event.item.type}' was called")
+                        # Get tool name correctly using raw_item.name
+                        tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
+                        current_tool_call = tool_name  # Store current tool being called
+                        print(f"-- Tool '{tool_name}' was called")
+                        
+                        # Track workflow tools being called
+                        if tool_name in ["recall_workflow", "gen_workflow"]:
+                            workflow_tools_called.add(tool_name)
+                            print(f"-- Workflow tool '{tool_name}' added to tracking")
                     elif event.item.type == "tool_call_output_item":
                         print(f"-- Tool output: {event.item.output}")
                         # Store tool output for potential ext data processing
                         tool_output_data_str = event.item.output
+                        tool_name = current_tool_call or 'unknown_tool'  # Use the current tool being called
+                        
+                        if not current_tool_call:
+                            print(f"-- Warning: No current tool call tracked for output")
+                        
                         try:
                             import json
                             tool_output_data = json.loads(tool_output_data_str)
-                            if tool_output_data['text']:
+                            if tool_output_data.get('text'):
                                 parsed_output = json.loads(tool_output_data['text'])
-                                if 'ext' in parsed_output:
-                                    ext = parsed_output['ext']
-                                if 'answer' in parsed_output:
-                                    # If tool returns direct answer, add it to current text
-                                    answer_text = parsed_output['answer']
-                                    # yield (current_text, None)
-                        except (json.JSONDecodeError, TypeError):
+                                answer = parsed_output.get("answer")
+                                data = parsed_output.get("data")
+                                tool_ext = parsed_output.get("ext")
+                                
+                                # Store tool results similar to reference facade.py
+                                tool_results[tool_name] = {
+                                    "answer": answer,
+                                    "data": data,
+                                    "ext": tool_ext,
+                                    "content_dict": parsed_output
+                                }
+                                print(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
+                                
+                                # Track workflow tools that produced results
+                                if tool_name in ["recall_workflow", "gen_workflow"]:
+                                    print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
+                                    
+                        except (json.JSONDecodeError, TypeError) as e:
                             # If not JSON or parsing fails, treat as regular text
-                            pass
+                            print(f"-- Failed to parse tool output as JSON: {e}")
+                            tool_results[tool_name] = {
+                                "answer": tool_output_data_str,
+                                "data": None,
+                                "ext": None,
+                                "content_dict": None
+                            }
+                        
+                        # Reset current tool call after processing output
+                        current_tool_call = None
                             
                     elif event.item.type == "message_output_item":
                         # Handle message output - this is the main response text
-                        # This usually contains the final complete response, so we don't yield it here
-                        # to avoid overwriting the streaming text. We'll use it in the final yield.
                         text = ItemHelpers.text_message_output(event.item)
                         if text:
                             print(f"-- Message: {text}\n\n")
-                            # Store the complete message but don't yield it here to avoid interrupting stream
-                            # The final yield will use current_text which contains the streamed content
                     else:
                         pass  # Ignore other event types
 
             print("\n=== MCP Agent Run complete ===")
             
-            # Final yield with complete text and ext data - similar to facade.py pattern
-            yield (current_text, ext)
+            # Process workflow tools results integration similar to reference facade.py
+            workflow_tools_found = [tool for tool in ["recall_workflow", "gen_workflow"] if tool in tool_results]
+            finished = True  # Default finished state
+            
+            if workflow_tools_found:
+                print(f"Workflow tools called: {workflow_tools_found}")
+                
+                # Check if both workflow tools were called
+                if "recall_workflow" in tool_results and "gen_workflow" in tool_results:
+                    print("Both recall_workflow and gen_workflow were called, merging results")
+                    
+                    # Check each tool's success and merge results
+                    successful_workflows = []
+                    
+                    recall_result = tool_results["recall_workflow"]
+                    if recall_result["data"] and len(recall_result["data"]) > 0:
+                        successful_workflows.extend(recall_result["data"])
+                        print(f"recall_workflow succeeded with {len(recall_result['data'])} workflows")
+                    else:
+                        print("recall_workflow failed or returned no data")
+                    
+                    gen_result = tool_results["gen_workflow"]
+                    if gen_result["data"] and len(gen_result["data"]) > 0:
+                        successful_workflows.extend(gen_result["data"])
+                        print(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
+                    else:
+                        print("gen_workflow failed or returned no data")
+                    
+                    # Create final ext structure
+                    if successful_workflows:
+                        ext = [{
+                            "type": "workflow",
+                            "data": successful_workflows
+                        }]
+                        print(f"Returning {len(successful_workflows)} workflows from successful tools")
+                    else:
+                        ext = None
+                        print("No successful workflow data to return")
+                    
+                    # Both tools called, finished = True
+                    finished = True
+                        
+                elif "recall_workflow" in tool_results and "gen_workflow" not in tool_results:
+                    # Only recall_workflow was called, don't return ext, keep finished=false
+                    print("Only recall_workflow was called, waiting for gen_workflow, not returning ext")
+                    ext = None
+                    finished = False  # This is the key: keep finished=false to wait for gen_workflow
+                    
+                elif "gen_workflow" in tool_results and "recall_workflow" not in tool_results:
+                    # Only gen_workflow was called, return its result normally
+                    print("Only gen_workflow was called, returning its result")
+                    gen_result = tool_results["gen_workflow"]
+                    if gen_result["data"] and len(gen_result["data"]) > 0:
+                        ext = [{
+                            "type": "workflow",
+                            "data": gen_result["data"]
+                        }]
+                        print(f"Returning {len(gen_result['data'])} workflows from gen_workflow")
+                    else:
+                        ext = None
+                        print("gen_workflow failed or returned no data")
+                    
+                    # Only gen_workflow called, finished = True
+                    finished = True
+            else:
+                # No workflow tools called, check if other tools returned ext
+                for tool_name, result in tool_results.items():
+                    if result["ext"]:
+                        ext = result["ext"]
+                        print(f"Using ext from {tool_name}")
+                        break
+                
+                # No workflow tools, finished = True
+                finished = True
+            
+            # Final yield with complete text, ext data, and finished status
+            # Return as tuple (text, ext_with_finished) where ext_with_finished includes finished info
+            if ext:
+                # Add finished status to ext structure
+                ext_with_finished = {
+                    "data": ext,
+                    "finished": finished
+                }
+            else:
+                ext_with_finished = {
+                    "data": None,
+                    "finished": finished
+                }
+            
+            yield (current_text, ext_with_finished)
             
     except Exception as e:
         print(f"Error in comfyui_agent_invoke: {str(e)}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
-        # Yield error as tuple to maintain consistency
-        yield (error_message, None)
+        # Yield error as tuple with finished=True
+        error_ext = {
+            "data": None,
+            "finished": True
+        }
+        yield (error_message, error_ext)
 

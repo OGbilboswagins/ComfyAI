@@ -68,24 +68,21 @@ export function ChatInput({
             } catch (error) {
                 console.error('Failed to load models:', error);
                 // Fallback to default models if API fails
-                setModels([
-                    {
-                        "name": "gpt-4o",
-                        "image_enable": true
-                    },
-                    {
-                        "name": "gpt-4o-mini",
-                        "image_enable": true
-                    },
-                    {
-                        "name": "qwen-plus",
-                        "image_enable": false
-                    },
-                    {
-                        "name": "DeepSeek-V3",
-                        "image_enable": false
-                    }
-                ]);
+                setModels([{
+                    "label": "gemini-2.5-flash",
+                    "name": "gemini-2.5-flash-preview-04-17",
+                    "image_enable": true
+                },
+                {
+                    "label": "gpt-4.1",
+                    "name": "gpt-4.1-2025-04-14-GlobalStandard",
+                    "image_enable": true,
+                },
+                {
+                    "label": "qwen-plus",
+                    "name": "qwen-plus",
+                    "image_enable": false,
+                }]);
             }
         };
 

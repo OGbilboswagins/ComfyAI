@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-24 18:38:20
+ * @LastEditTime: 2025-07-09 17:53:31
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -534,7 +534,7 @@ export namespace WorkflowChatAPI {
     throw lastError;
   }
 
-  export async function listModels(): Promise<{ models: { name: string; image_enable: boolean }[] }> {
+  export async function listModels(): Promise<{ models: {label: string; name: string; image_enable: boolean }[] }> {
     
     const response = await fetch('/api/model_config', {
       method: 'GET',

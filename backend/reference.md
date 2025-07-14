@@ -15,8 +15,9 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from context import get_user_id
 from logger import logger
 from psycopg_pool import ConnectionPool
-from agent.llms import llm_4_chatbot, llm_4o, llm_deepseek, llm_4o_mini, llm_dashscope, llm_volcengine, get_openai_client, llm_dashscope_deepseek_v3, llm_qwen3, llm_4_1
-from agent.tools.workflow_recall_tool import recall_workflow, generate_workflow_step2
+from agent.llms import llm_4_chatbot, llm_4o, llm_deepseek, llm_4o_mini, llm_dashscope, get_openai_client, llm_dashscope_deepseek_v3, llm_qwen3, llm_4_1, llm_gemini2_5_flash
+from agent.tools.workflow_recall_tool import recall_workflow
+from agent.tools.gen_workflow_tool import gen_workflow
 from agent.tools.model_search_tool import search_model
 from initializer.db_initializer import Session, db_url
 from utils.os_util import get_root_path
@@ -26,6 +27,7 @@ from dao.workflow_dao import Workflow
 
 tools = [
     recall_workflow,  # 工作流召回
+    gen_workflow,  # 工作流生成
     search_node,  # 节点搜索
     search_model,  # 模型召回
     explain_node,  # 节点解释
@@ -41,13 +43,23 @@ connection_kwargs = {
     "prepare_threshold": 0,
 }
 
+# with ConnectionPool(
+#     conninfo=db_url,
+#     max_size=20,
+#     kwargs=connection_kwargs,
+# ) as pool:
 pool = ConnectionPool(db_url, max_size=50, kwargs=connection_kwargs)
 checkpointer = PostgresSaver(pool)
 checkpointer.setup()
 
+# checkpointer = MemorySaver()
 
 # 修改 LLM 映射字典，使用正确的配置方式
 llm_config: Dict = {
+    "gemini-2.5-flash": {
+        "client":llm_gemini2_5_flash,
+        "image_enable":True,
+    },
     "gpt-4o": {
         "client":llm_4_1,
         "image_enable":True,
@@ -56,18 +68,10 @@ llm_config: Dict = {
         "client":llm_4_1,
         "image_enable":True,
     },
-    "gpt-4o-mini": {
-        "client":llm_4o_mini,
-        "image_enable":True,
-    },
-    "DeepSeek-V3": {
-        "client":llm_deepseek,
-        "image_enable":False,
-    },
     "qwen-plus": {
         "client":llm_dashscope,
         "image_enable":False,
-    }
+    },
 }
 
 llm_mapping = {k: llm_config[k]["client"] for k in llm_config}
@@ -184,9 +188,11 @@ def chat(
         "session_id": session_id,
         "sub_session_id": str(uuid.uuid4()).replace('-', ''),
     }
+    
+    model = config.get("model") if config else None
 
     with Session() as session:
-        Message.create(session, **common_info, source=MessageSource.USER.value, content=query)
+        Message.create(session, **common_info, source=MessageSource.USER.value, content=query, attributes={"model": model})
 
     if config and config.get("images"):
         images = config["images"]
@@ -209,7 +215,7 @@ def chat(
         # 使用客户端管理器获取客户端
         custom_llm_mapping = {
             "gpt-4o": get_openai_client("gpt-4o", custom_api_key, custom_base_url),
-            "gpt-4o-mini": get_openai_client("gpt-4o-mini", custom_api_key, custom_base_url),
+            # "gpt-4o-mini": get_openai_client("gpt-4o-mini", custom_api_key, custom_base_url),
         }
         # 对于其他模型，使用默认实例
         custom_llm_mapping.update({
@@ -233,7 +239,8 @@ def chat(
         current_text = ''
         # data = None
         ext = None
-        recall_workflow_data = None
+        tool_results = {}  # 存储不同工具的结果
+        workflow_tools_called = set()  # 跟踪调用的工作流工具
         
         for chunk, _ in agent_response:
             content = chunk.content
@@ -245,6 +252,7 @@ def chat(
                 tool_name = chunk.name
                 attributes = {
                     "tool_name": tool_name,
+                    "model": model,
                 }
                 with Session() as session:
                     Message.create(session, **common_info, source=MessageSource.TOOL.value, content=content, attributes=attributes)
@@ -253,77 +261,115 @@ def chat(
                     content_dict = json.loads(content)
                     answer = content_dict.get("answer")
                     data = content_dict.get("data")
-                    ext = content_dict.get("ext")
+                    tool_ext = content_dict.get("ext")
                     
-                    # 检查是否是 recall_workflow 的第一步响应
-                    step = content_dict.get("step")
-                    if tool_name == "recall_workflow" and step == 1:
-                        # 保存第一步数据以便后续处理
-                        recall_workflow_data = {
-                            "instruction": content_dict.get("instruction"),
-                            "keywords": content_dict.get("keywords"),
-                            "workflows": data
-                        }
+                    # 存储工具结果
+                    tool_results[tool_name] = {
+                        "answer": answer,
+                        "data": data,
+                        "ext": tool_ext,
+                        "content_dict": content_dict
+                    }
+                    
+                    # 跟踪工作流相关工具的调用
+                    if tool_name in ["recall_workflow", "gen_workflow"]:
+                        workflow_tools_called.add(tool_name)
                         
                 else:
                     answer = content
                     data = None
-                    ext = None
+                    tool_ext = None
+                    tool_results[tool_name] = {
+                        "answer": answer,
+                        "data": data,
+                        "ext": tool_ext,
+                        "content_dict": None
+                    }
+                    
+                    # 跟踪工作流相关工具的调用
+                    if tool_name in ["recall_workflow", "gen_workflow"]:
+                        workflow_tools_called.add(tool_name)
 
                 if is_return_direct_tool(chunk.name):
                     logger.info(f"agent response answer: {answer}")
-                    if ext:
-                        logger.info(f"agent response ext: {ext}")
-                    yield answer, ext
+                    if tool_ext:
+                        logger.info(f"agent response ext: {tool_ext}")
+                    yield answer, tool_ext
                     return
             elif chunk_type == 'AIMessageChunk':
                 current_text += content
                 if not debug:
                     yield current_text, None
 
-        # 处理完第一步后，如果有 recall_workflow 的数据，执行第二步
-        if recall_workflow_data:
-            logger.info("Executing step 2 of recall_workflow")
-            workflow_values = []
-            with Session() as session:
-                # 获取原始工作流数据
-                if recall_workflow_data["workflows"]:
-                    workflow_ids = [w.get("id") for w in recall_workflow_data["workflows"]]
-                    workflow_dos = Workflow.query_workflow_by_ids(session, workflow_ids)
-                    workflow_values = [workflow_do.to_dict().get('workflow') for workflow_do in workflow_dos]
+        # 处理工作流工具的结果合并
+        workflow_tools_found = [tool for tool in ["recall_workflow", "gen_workflow"] if tool in tool_results]
+        
+        if workflow_tools_found:
+            logger.info(f"Workflow tools called: {workflow_tools_found}")
             
-            # 执行步骤二：生成工作流
-            if workflow_values:
-                try:
-                    step2_result = generate_workflow_step2(
-                        recall_workflow_data["instruction"],
-                        recall_workflow_data["keywords"],
-                        workflow_values
-                    )
+            # 检查是否同时调用了两个工作流工具
+            if "recall_workflow" in tool_results and "gen_workflow" in tool_results:
+                logger.info("Both recall_workflow and gen_workflow were called, merging results")
+                
+                # 检查每个工具是否成功执行
+                successful_workflows = []
+                
+                recall_result = tool_results["recall_workflow"]
+                if recall_result["data"] and len(recall_result["data"]) > 0:
+                    successful_workflows.extend(recall_result["data"])
+                    logger.info(f"recall_workflow succeeded with {len(recall_result['data'])} workflows")
+                else:
+                    logger.info("recall_workflow failed or returned no data")
+                
+                gen_result = tool_results["gen_workflow"]
+                if gen_result["data"] and len(gen_result["data"]) > 0:
+                    successful_workflows.extend(gen_result["data"])
+                    logger.info(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
+                else:
+                    logger.info("gen_workflow failed or returned no data")
+                
+                # 创建最终的ext
+                if successful_workflows:
+                    ext = [{
+                        "type": "workflow",
+                        "data": successful_workflows
+                    }]
+                    logger.info(f"Returning {len(successful_workflows)} workflows from successful tools")
+                else:
+                    ext = None
+                    logger.info("No successful workflow data to return")
                     
-                    # 将步骤二的结果添加到原有数据中
-                    if recall_workflow_data["workflows"]:
-                        recall_workflow_data["workflows"].append(step2_result)
-                    else:
-                        recall_workflow_data["workflows"] = [step2_result]
-                except Exception as e:
-                    logger.error(f"Error in step 2 of recall_workflow: {str(e)}", exc_info=True)
-                    # 如果步骤2执行过程中报错，就直接使用原始workflows
+            elif "recall_workflow" in tool_results and "gen_workflow" not in tool_results:
+                # 只调用了recall_workflow，不返回ext，保持finished=false
+                logger.info("Only recall_workflow was called, waiting for gen_workflow, not returning ext")
+                ext = None
                 
-                # 创建新的ext数据
-                if ext and isinstance(ext, list):
-                    for item in ext:
-                        if item.get("type") == "workflow":
-                            item["data"] = recall_workflow_data["workflows"]
-                
-                # 返回完整结果
-                yield current_text, ext
+            elif "gen_workflow" in tool_results and "recall_workflow" not in tool_results:
+                # 只调用了gen_workflow的情况，正常返回结果
+                logger.info("Only gen_workflow was called, returning its result")
+                gen_result = tool_results["gen_workflow"]
+                if gen_result["data"] and len(gen_result["data"]) > 0:
+                    ext = [{
+                        "type": "workflow",
+                        "data": gen_result["data"]
+                    }]
+                    logger.info(f"Returning {len(gen_result['data'])} workflows from gen_workflow")
+                else:
+                    ext = None
+                    logger.info("gen_workflow failed or returned no data")
+        else:
+            # 没有调用工作流工具，检查是否有其他工具返回了ext
+            for tool_name, result in tool_results.items():
+                if result["ext"]:
+                    ext = result["ext"]
+                    logger.info(f"Using ext from {tool_name}")
+                    break
 
         with Session() as session:
             filtered_images = []
             if config and config.get("images"):
                 filtered_images = [{k: v for k, v in img.dict().items() if k != 'data'} for img in config["images"]] if config["images"] else []
-            Message.create(session, **common_info, source=MessageSource.AI.value, content=current_text, attributes={"ext": ext, "images": filtered_images})
+            Message.create(session, **common_info, source=MessageSource.AI.value, content=current_text, attributes={"ext": ext, "images": filtered_images, "model": model})
 
         logger.info(f"agent response answer: {current_text}")
         if ext:
@@ -331,129 +377,16 @@ def chat(
         yield current_text, ext
     except TimeoutError:
         logger.error("Agent execution timed out", exc_info=True)
-        if config and config.get("model") and config["model"] == "DeepSeek-V3":
-            yield "I apologize, but our DeepSeek service provider is currently unstable. Please try using GPT-4 instead.", None
-        else:
-            yield "I apologize, but the request timed out. Please try again or rephrase your question.", None
+        yield "I apologize, but the request timed out. Please try again or rephrase your question.", None
         return
     except Exception as e:
         logger.error(f"Agent execution failed: {str(e)}", exc_info=True)
         yield f"I apologize, but an error occurred: {str(e)}", None
         return
-
 ```
 
-为了能跟理解原始的架构，展示一recall_workflow的代码：
+接口调用侧代码如下：
 ```python
-from hashlib import md5
-import json
-from typing import List, Dict, Any
-
-from langchain_core.tools import tool
-from pydantic import BaseModel, Field
-
-from agent.tools.tool_funcs.recall_workflow import query_workflows_from_db, generate_workflow_step2, summary
-from logger import logger
-
-class RecallWorkflowParamSchema(BaseModel):
-    name: str = Field(
-        description='''
-        Extract the core intent, key technical terms from user input.
-        ''')
-    description: str = Field(
-        description='''
-        Concisely describe the user's core requirements, no extra words, including:
-        1. Performance requirements (e.g. low VRAM, fast generation)
-        2. Source preferences (e.g. official workflows)
-        3. Technical specifications and constraints
-        4. Model requirements
-        ''')
-
-    keywords: List[str] = Field(
-        description='''
-        Extract all core keywords from user input, make keywords shorter.
-        Do not include too generic keywords, like "workflow"|"model"|"apply"|"工作流"|"模型".
-        ''')
-
-    instruction: str = Field(
-        description='''
-    Convert the user's question into a non-technical problem statement from a user-centric perspective, reply use English.
-    It articulates the desired functionality or outcome the user wishes to achieve, often in layman terms, 
-    without specifying technical or implementation details. The instruction should:
-    1. State a concrete creative or computational goal.
-    2. Specify input requirements (e.g., "a photo of my cat").
-    3. Define desired output characteristics (e.g., "watercolor painting style").
-    4. Avoid implementation terms such as nodes, models, or parameters.
-    5. Be phrased as a natural language request rather than a technical specification.
-    Example: Build a workflow that turns my portrait photos into vintage comic book art. It should preserve facial features accurately while applying bold ink outlines and halftone shading effects.
-        ''')
-
-@tool(args_schema=RecallWorkflowParamSchema, return_direct=False)
-def recall_workflow(name: str, description: str, keywords: List[str], instruction: str) -> str:
-    """
-    Recall_workflow Tool is designed to select the most suitable workflow from a pool of candidate workflows based on user requirements.
-    Call this tool when the user's intent is to want a workflow or to generate an image with specific requirements.
-    Respond in the language used by the user in their question.
-    For each workflow, only one representative image will be returned to avoid excessive image data.
-    Must add a respond to the last: "You can choose from the recommended workflows above, or let AI generate a personalized solution based on your input (approximately 20 seconds, please wait). If generation fails, the new solution will be automatically hidden."
-    """
-    # keywords = ['LTX', 'Videos', '高质量']
-    logger.info(f"recall_workflow args: {name}| {description} | {keywords}")
-    
-    # 步骤一：召回工作流
-    workflows = query_workflows_from_db(f'{name} | {description}', keywords)
-    answer = summary(workflows)
-
-    # Format the response
-    if workflows:
-        workflow_list = [{
-            "type": "workflow",
-            "data": workflows
-        }]
-        ext_items = workflow_list
-    else:
-        ext_items = None
-
-    return json.dumps({
-        "answer": answer,
-        "data": workflows,
-        "ext": ext_items,
-        "instruction": instruction,
-        "keywords": keywords,
-        "step": 1
-    }, ensure_ascii=False)
-
-# 原来的函数内容已经移到 tool_funcs/recall_workflow.py
-# 这里只保留对tool的定义和调用
-
-# 导出函数以保持与facade.py的兼容性
-__all__ = ['recall_workflow', 'generate_workflow_step2']
-```
-
-接口实现层如下：
-```python
-import base64
-from typing import List, Generator
-from agent import facade
-from agent.intent_call import intent_call
-from agent.tools.workflow_param_optimize2 import get_optimized_params
-from fastapi import APIRouter
-from starlette.requests import Request
-from starlette.responses import StreamingResponse
-import time
-
-from base.core import app
-from logger import logger
-
-from base.result import Result
-
-from model.chat import *
-from agent.facade import chat
-from utils import oss_util, crypto_util
-import requests
-import openai
-from dao.track_dao import Track
-from initializer.db_initializer import Session
 
 router = APIRouter()
 # conversations: dict[str, any] = {}
@@ -557,84 +490,4 @@ For first-time visitors, please visit [link](https://form.typeform.com/to/tkg91K
         config["model"] = model
         
     return do_invoke(request, config)
-
-
-def do_invoke(request: ChatRequest, params: dict = None) -> StreamingResponse:
-    logger.info(f"chat request: {request.model_dump_json()}")
-
-    session_id = request.session_id
-    prompt = request.prompt
-
-    if request.mock:
-        return StreamingResponse(mock_response(session_id))
-    
-    if not request.prompt or request.prompt.strip() == "":
-        return StreamingResponse(iter([]))
-
-    func_chat = chat
-    config = {
-        "configurable": {
-            "thread_id": session_id,
-        }
-    }
-    
-    # Add language from Accept-Language header if available
-    if params:
-        config.update(params)
-    
-    if request.images and len(request.images) > 0:
-        for image in request.images:
-            image_data = image.data
-            # Extract base64 data after the comma if it's a data URL
-            if image_data.startswith('data:'):
-                image_data = image_data.split(',')[1]
-            image_data = image_data.encode('utf-8')
-            image_data = base64.b64decode(image_data)
-            image_url = oss_util.upload_data(image_data, image.filename)
-            image.url = image_url
-        config["images"] = request.images
-    
-    if request.ext and isinstance(request.ext, list):
-        for ext_item in request.ext:
-            if ext_item.type == "model_select" and len(ext_item.data) > 0:
-                config["model"] = ext_item.data[0]
-    
-    if request.intent and request.intent != "":
-        config = {"intent": request.intent, "ext": request.ext, "language": config.get("language", "zh-CN")}
-        func_chat = intent_call
-
-    def response_generator():
-        last_text = None
-        ext = None
-        for text, ext in func_chat(prompt, config, session_id=session_id):
-            response = ChatResponse(
-                session_id=session_id,
-                text=text,
-                finished=ext is not None
-            )
-            
-            # If we have ext information, convert it to list[ExtItem] if needed
-            if ext:
-                if isinstance(ext, dict):
-                    ext = [ExtItem(**ext)]
-                elif isinstance(ext, list):
-                    ext = [item if isinstance(item, ExtItem) else ExtItem(**item) for item in ext]
-                response.ext = ext
-
-            last_text = text
-            yield response.model_dump_json()
-            yield '\n'
-
-        # Send final response with finished=True if we haven't already
-        if not ext:
-            final_response = ChatResponse(
-                session_id=session_id,
-                text=last_text,
-                finished=True
-            )
-            yield final_response.model_dump_json()
-            yield '\n'
-
-    return StreamingResponse(response_generator())
-
 ```

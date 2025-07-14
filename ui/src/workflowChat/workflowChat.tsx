@@ -2,7 +2,7 @@
  * @Author: ai-business-hql ai.bussiness.hql@gmail.com
  * @Date: 2025-03-20 15:15:20
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-24 15:59:59
+ * @LastEditTime: 2025-07-09 17:52:29
  * @FilePath: /comfyui_copilot/ui/src/workflowChat/workflowChat.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -161,7 +161,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     const [width, setWidth] = useState(window.innerWidth / 3);
     const [isResizing, setIsResizing] = useState(false);
     const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-    const [selectedModel, setSelectedModel] = useState<string>("gpt-4o-mini");
+    const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
     const [height, setHeight] = useState<number>(window.innerHeight);
     const [topPosition, setTopPosition] = useState<number>(0);
     // 添加公告状态
