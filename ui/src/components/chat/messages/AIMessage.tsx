@@ -3,6 +3,7 @@
 // Copyright (C) 2025 ComfyUI-Copilot Authors
 // Licensed under the MIT License.
 
+import React from 'react'
 import { MemoizedReactMarkdown } from "../../markdown";
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -26,16 +27,16 @@ interface AIMessageProps {
 // Card component for node explanation intent
 const NodeExplainCard = ({ content }: { content: React.ReactNode }) => {
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 p-1 shadow-sm">
+    <div className="rounded-lg shadow-sm">
       <div className="flex items-center mb-1">
-        <div className="bg-blue-100 rounded-full p-1 mr-1">
-          <svg className="h-4 w-4 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="rounded-full mr-1">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h3 className="text-sm font-medium text-blue-800">Node Usage Guide</h3>
+        <h3 className="text-base font-bold">Node Usage Guide</h3>
       </div>
-      <div className="markdown-content text-blue-900">
+      <div className="markdown-content">
         {content}
       </div>
     </div>
@@ -63,7 +64,7 @@ const NodeParamsCard = ({ content }: { content: React.ReactNode }) => {
 };
 
 export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata }: AIMessageProps) {
-  const markdownWrapper = useRef<HTMLDivElement | null>()
+  const markdownWrapper = useRef<HTMLDivElement | null>(null)
   
   // Renders markdown content with customized styles and components
   const renderMarkdown = (text: string, specialClass?: string) => {
