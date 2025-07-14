@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-07-09 17:53:31
+ * @LastEditTime: 2025-07-14 17:48:45
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -163,9 +163,6 @@ export namespace WorkflowChatAPI {
       // Add OpenAI configuration headers if available
       if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
         try {
-          // const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
-          // headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
-          // headers['Openai-Api-Key'] = openaiApiKey;
           headers['Openai-Base-Url'] = openaiBaseUrl;
         } catch (error) {
           console.error('Error encrypting OpenAI API key:', error);

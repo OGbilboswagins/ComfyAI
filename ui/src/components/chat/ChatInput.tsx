@@ -70,7 +70,7 @@ export function ChatInput({
                 // Fallback to default models if API fails
                 setModels([{
                     "label": "gemini-2.5-flash",
-                    "name": "gemini-2.5-flash-preview-04-17",
+                    "name": "gemini-2.5-flash",
                     "image_enable": true
                 },
                 {
