@@ -302,27 +302,22 @@ Start by validating the workflow to see its current state. If there are errors, 
         )
         print("=== Debug Coordinator starting ===")
         
-        # Variables to track response state
+        # Variables to track response state similar to mcp-client
         current_text = ''
         current_agent = "ComfyUI-Debug-Coordinator"
-        
-        # 增加一个用于防止重复yield的机制
         last_yielded_length = 0
         
+        # Collect debug events for final ext data
+        debug_events = []
+        
         async for event in result.stream_events():
-            # 构建基础的ext数据
-            ext_data = {
-                "current_agent": current_agent,
-                "event_type": event.type
-            }
-            
-            # Handle different event types
+            # Handle different event types according to OpenAI Agents documentation
             if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
                 # Stream text deltas for real-time response
                 delta_text = event.data.delta
                 if delta_text:
                     current_text += delta_text
-                    # 只有当文本有实际增长时才yield，提供更好的实时性
+                    # Only yield text updates during streaming, similar to mcp-client
                     if len(current_text) > last_yielded_length:
                         last_yielded_length = len(current_text)
                         yield (current_text, None)
@@ -335,19 +330,23 @@ Start by validating the workflow to see its current state. If there are errors, 
                 handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
                 current_text += handoff_text
                 last_yielded_length = len(current_text)
-                yield (current_text, {
-                    **ext_data,
-                    "current_agent": current_agent, 
+                
+                # Collect debug event data
+                debug_events.append({
                     "type": "agent_handoff",
-                    "handoff": True,
-                    "to_agent": new_agent_name
+                    "current_agent": current_agent,
+                    "to_agent": new_agent_name,
+                    "timestamp": len(current_text)
                 })
+                
+                # Yield text update only
+                yield (current_text, None)
                 
             elif event.type == "run_item_stream_event":
                 item_updated = False
                 
                 if event.item.type == "tool_call_item":
-                    # 工具调用开始
+                    # Tool call started
                     tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
                     
                     print(f"-- Tool called: {tool_name}")
@@ -356,61 +355,93 @@ Start by validating the workflow to see its current state. If there are errors, 
                     current_text += tool_text
                     item_updated = True
                     
-                    yield (current_text, {
-                        **ext_data,
-                        "type": "tool_call", 
-                        "tool": tool_name
+                    # Collect debug event data
+                    debug_events.append({
+                        "type": "tool_call",
+                        "tool": tool_name,
+                        "agent": current_agent,
+                        "timestamp": len(current_text)
                     })
                     
                 elif event.item.type == "tool_call_output_item":
-                    # 工具调用结果
+                    # Tool call result
                     output = str(event.item.output)
-                    # 限制输出长度以避免过长的显示
+                    # Limit output length to avoid too long display
                     output_preview = output[:200] + "..." if len(output) > 200 else output
                     tool_result_text = f"✅ *工具执行完成*\n```\n{output_preview}\n```\n"
                     current_text += tool_result_text
                     item_updated = True
                     
-                    yield (current_text, {
-                        **ext_data,
+                    # Collect debug event data
+                    debug_events.append({
                         "type": "tool_result",
-                        "output_preview": output_preview
+                        "output_preview": output_preview,
+                        "agent": current_agent,
+                        "timestamp": len(current_text)
                     })
                     
                 elif event.item.type == "message_output_item":
-                    # 消息输出完成
+                    # Message output completed
                     try:
                         message_content = ItemHelpers.text_message_output(event.item)
                         if message_content and message_content.strip():
-                            # 避免重复添加相同的消息内容
+                            # Avoid adding duplicate message content
                             if message_content not in current_text:
                                 current_text += f"\n{message_content}\n"
                                 item_updated = True
                                 
-                                yield (current_text, {
-                                    **ext_data,
-                                    "type": "message_complete"
+                                # Collect debug event data
+                                debug_events.append({
+                                    "type": "message_complete",
+                                    "content_length": len(message_content),
+                                    "agent": current_agent,
+                                    "timestamp": len(current_text)
                                 })
                     except Exception as e:
                         print(f"Error processing message output: {str(e)}")
                 
-                # 更新已yield的长度
+                # Update yielded length and yield text updates only
                 if item_updated:
                     last_yielded_length = len(current_text)
+                    yield (current_text, None)
 
         print("\n=== Debug process complete ===")
         
-        # Final yield with complete text
-        yield (current_text, {
-            "current_agent": current_agent, 
-            "type": "complete",
-            "complete": True
-        })
+        # Final yield with complete text and debug ext data, matching mcp-client format
+        debug_ext = [{
+            "type": "debug_complete",
+            "data": {
+                "status": "completed",
+                "final_agent": current_agent,
+                "events": debug_events,
+                "total_events": len(debug_events)
+            }
+        }]
+        
+        # Return format matching mcp-client: {"data": ext, "finished": finished}
+        ext_with_finished = {
+            "data": debug_ext,
+            "finished": True
+        }
+        yield (current_text, ext_with_finished)
             
     except Exception as e:
         print(f"Error in debug_workflow_errors: {str(e)}")
         error_message = f"❌ Error occurred during debugging: {str(e)}"
-        yield (error_message, {"type": "error", "error": True})
+        # Return error format matching mcp-client: {"data": ext, "finished": finished}
+        error_ext = [{
+            "type": "error",
+            "data": {
+                "error": True,
+                "message": str(e),
+                "error_type": "debug_agent_error"
+            }
+        }]
+        error_ext_with_finished = {
+            "data": error_ext,
+            "finished": True
+        }
+        yield (error_message, error_ext_with_finished)
 
 
 # Test function

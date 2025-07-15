@@ -491,7 +491,7 @@ async def invoke_chat(request):
 
 
 @server.PromptServer.instance.routes.post("/api/debug-agent")
-async def debug_agent_endpoint(request):
+async def invoke_debug(request):
     """
     Debug agent endpoint for analyzing ComfyUI workflow errors
     """
@@ -527,6 +527,7 @@ async def debug_agent_endpoint(request):
         # Call the debug agent with streaming response
         accumulated_text = ""
         final_ext_data = None
+        finished = False
         
         async for result in debug_workflow_errors(workflow_data, config):
             # Stream the response
@@ -534,20 +535,52 @@ async def debug_agent_endpoint(request):
                 text, ext = result
                 if text:
                     accumulated_text = text  # text is already accumulated from debug agent
+                
+                # Handle new ext format from debug_agent matching mcp-client
                 if ext:
-                    final_ext_data = ext
+                    if isinstance(ext, dict) and "data" in ext and "finished" in ext:
+                        # New format: {"data": ext, "finished": finished}
+                        final_ext_data = ext["data"]
+                        finished = ext["finished"]
+                        
+                        # Only send intermediate response if not finished
+                        if not finished:
+                            chat_response = ChatResponse(
+                                session_id=session_id,
+                                text=accumulated_text,
+                                finished=False,
+                                type="message",
+                                format="markdown",
+                                ext=None  # Don't send ext data in intermediate responses
+                            )
+                            await response.write(json.dumps(chat_response).encode() + b"\n")
+                    else:
+                        # Legacy format: direct ext data (for backward compatibility)
+                        final_ext_data = ext
+                        finished = False
+                        
+                        # Create streaming response
+                        chat_response = ChatResponse(
+                            session_id=session_id,
+                            text=accumulated_text,
+                            finished=False,
+                            type="message",
+                            format="markdown",
+                            ext=ext
+                        )
+                        await response.write(json.dumps(chat_response).encode() + b"\n")
+                else:
+                    # No ext data, just text streaming
+                    chat_response = ChatResponse(
+                        session_id=session_id,
+                        text=accumulated_text,
+                        finished=False,
+                        type="message",
+                        format="markdown",
+                        ext=None
+                    )
+                    await response.write(json.dumps(chat_response).encode() + b"\n")
                 
-                # Create streaming response
-                chat_response = ChatResponse(
-                    session_id=session_id,
-                    text=accumulated_text,
-                    finished=False,
-                    type="debug",
-                    format="markdown",
-                    ext=ext
-                )
-                
-                await response.write(json.dumps(chat_response).encode() + b"\n")
                 await asyncio.sleep(0.01)  # Small delay for streaming effect
 
         # Send final response
@@ -555,7 +588,7 @@ async def debug_agent_endpoint(request):
             session_id=session_id,
             text=accumulated_text,
             finished=True,
-            type="debug",
+            type="message",
             format="markdown",
             ext=final_ext_data if final_ext_data else [{"type": "debug_complete", "data": {"status": "completed"}}]
         )
@@ -572,7 +605,7 @@ async def debug_agent_endpoint(request):
             session_id=session_id,
             text=f"❌ Debug agent error: {str(e)}",
             finished=True,
-            type="debug",
+            type="message",
             format="text",
             ext=[{"type": "error", "data": {"error": str(e)}}]
         )
