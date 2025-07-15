@@ -78,8 +78,30 @@
           ]
     },
     {
+        "type": "chat",
+        "tool": "prompt",
+        "name": "基于我的描述生成prompt",
+        "messages": [
+            {
+              "id": "showcase4-1",
+              "role": "user",
+              "content": "请为我生成英文prompt: \"一个红衣女子在海边跳舞，笑容很灿烂\"",
+              "trace_id": "showcase4"
+            },
+            {
+              "id": "showcase4-2",
+              "role": "ai",
+              "content": "{\"session_id\":\"6272c460-04da-4b30-9090-1c05406f46e3\",\"text\":\"woman in a red dress dancing by the seaside, bright smile, high quality, cinematic lighting, detailed, realistic, wide shot\",\"finished\":true,\"format\":\"markdown\",\"ext\":null,\"message_id\":\"13f0a58e-8670-4457-97da-cbad7a7d7530\"}",
+              "format": "markdown",
+              "finished": true,
+              "name": "Assistant"
+            }
+          ]
+    },
+    {
         "type": "genlab",
         "tool": "genlab_prompt",
-        "name": "我想根据我的诉求生成3个prompt，各自生图"
+        "name": "根据我的诉求生成3个prompt，各自生图查看效果",
+        "path": "https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b"
     }
 ]
