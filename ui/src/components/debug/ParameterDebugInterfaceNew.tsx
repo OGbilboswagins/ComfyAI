@@ -192,7 +192,6 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   const pollingSessionIdRef = useRef<string | null>(null);
   const isInitial = useRef<boolean>(true)
   
-  const id = useRef<string>(generateUUID());
   // Add loading state after other state declarations
   const [isLoading, setIsLoading] = useState(() => visible); // Initialize loading based on visibility
   const [isGetLocalstorage, setIsGetLocalstorage] = useState(false);
@@ -513,7 +512,6 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       
       try {
         const savedState = localStorage.getItem(PARAM_DEBUG_STORAGE_KEY);
-        console.log("savedState--->", savedState, selectedNodes, Date.now(), id.current)
         if (savedState) {
           const parsedState = JSON.parse(savedState);
 
@@ -680,14 +678,6 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   //   currentPage,
   //   textInputs
   // ]);
-
-  useEffect(() => {
-    console.log('useEffect isCompleted--->', isCompleted, id.current)
-  }, [isCompleted])
-
-  useEffect(() => {
-    console.log('useEffect completedCount--->', completedCount, id.current)
-  }, [completedCount])
 
   // Navigate to next screen
   const handleNext = (event?: React.MouseEvent) => {
