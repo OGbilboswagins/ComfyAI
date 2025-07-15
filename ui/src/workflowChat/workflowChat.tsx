@@ -637,9 +637,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     };
 
     // Initialize the parameter debug tab component with lazy loading
-    const parameterDebugTabComponent = React.useMemo(() => (
-        <ParameterDebugTab />
-    ), []);
+    // const parameterDebugTabComponent = React.useMemo(() => (
+    //     <ParameterDebugTab />
+    // ), []);
 
     if (!visible) return null;
 
@@ -702,7 +702,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                         isActive={activeTab === 'chat'}
                     />
                 {/* </div> */}
-
+                
                 <div 
                     className="border-t px-4 py-3 border-gray-200 bg-white sticky bottom-0"
                     style={{ display: activeTab === 'chat' ? 'block' : 'none' }}
@@ -736,7 +736,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     className="flex-1 flex flex-col h-0"
                     style={{ display: activeTab === 'parameter-debug' ? 'flex' : 'none' }}
                 >
-                    {parameterDebugTabComponent}
+                    <ParameterDebugTab />
                 </div>
             </div>
         </div>

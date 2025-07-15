@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 import React, { createContext, useContext, useReducer, Dispatch } from 'react';
 import { Message } from '../types/types';
+import { app } from '../utils/comfyapp';
 
 // Add tab type definition
 export type TabType = 'chat' | 'parameter-debug';
@@ -39,7 +40,7 @@ type ChatAction =
 
 const initialState: ChatState = {
   messages: [],
-  selectedNode: null,
+  selectedNode: Object.keys(app?.canvas?.selected_nodes ?? {})?.length ? Object.values(app?.canvas?.selected_nodes) : null,
   installedNodes: [],
   loading: false,
   sessionId: null,
