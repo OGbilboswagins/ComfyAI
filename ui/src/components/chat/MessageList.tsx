@@ -9,7 +9,7 @@ import { LoadingMessage } from "./messages/LoadingMessage";
 import { generateUUID } from "../../utils/uuid";
 import { app } from "../../utils/comfyapp";
 import { addNodeOnGraph } from "../../utils/graphUtils";
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Define types for ext items to avoid implicit any
 interface ExtItem {
@@ -27,6 +27,16 @@ interface NodeWithPosition {
     pos: [number, number];
 }
 
+const enum LoadMoreStatus {
+    USED = 'used',
+    NOT_USED = 'not_used'
+}
+interface LoadMoreButtonProps {
+    id?: string
+    buttonType?: 'loadmore';
+    buttonStatus?: LoadMoreStatus
+}
+
 interface MessageListProps {
     messages: Message[];
     onOptionClick: (option: string) => void;
@@ -34,11 +44,14 @@ interface MessageListProps {
     installedNodes: any[];
     onAddMessage: (message: Message) => void;
     loading?: boolean;
+    isActive?: boolean;
 }
 
 const getAvatar = (name?: string) => {
     return `https://ui-avatars.com/api/?name=${name || 'User'}&background=random`;
 };
+
+type FinallyMessageProps = Message | LoadMoreButtonProps
 
 // Use lazy loading for components that are conditionally rendered
 const LazyWorkflowOption = lazy(() => import('./messages/WorkflowOption').then(m => ({ default: m.WorkflowOption })));
@@ -47,9 +60,26 @@ const LazyDownstreamSubgraphs = lazy(() => import('./messages/DownstreamSubgraph
 const LazyNodeInstallGuide = lazy(() => import('./messages/NodeInstallGuide').then(m => ({ default: m.NodeInstallGuide })));
 const LazyDebugGuide = lazy(() => import('./messages/DebugGuide').then(m => ({ default: m.DebugGuide })));
 
-export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading }: MessageListProps) {
-    // 使用useMemo缓存renderMessage函数
-    const renderMessage = React.useMemo(() => (message: Message) => {
+// 默认显示3轮回答，也就是找到列表最后的3条role是ai的数据
+const DEFAULT_COUNT = 3;
+
+export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading, isActive }: MessageListProps) {
+    const [currentIndex, setCurrentIndex] = useState<number>(0)
+    const [currentMessages, setCurrentMessages] = useState<FinallyMessageProps[]>([])
+
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const lastMessagesCount = useRef<number>(0)
+    const currentScrollHeight = useRef<number>(0) 
+    const isLoadHistory = useRef<boolean>(false)
+
+    const onFinishLoad = () => {
+        if (!!scrollRef?.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }
+
+    // 渲染对应的消息组件
+    const renderMessage = (message: Message) => {
         // 移除频繁的日志输出
         // console.log('[MessageList] Rendering message:', message);
         
@@ -99,6 +129,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 latestInput={latestInput}
                                 installedNodes={installedNodes}
                                 onAddMessage={onAddMessage}
+                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -110,6 +141,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 name={message.name}
                                 avatar={avatar}
                                 installedNodes={installedNodes}
+                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -121,6 +153,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 name={message.name}
                                 avatar={avatar}
                                 onAddMessage={onAddMessage}
+                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -203,7 +236,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     } else if (message.metadata?.pendingWorkflow) {
                                         const workflow = message.metadata.pendingWorkflow;
                                         const optimizedParams = message.metadata.optimizedParams;
-                                        
+                                       
                                         // 支持不同格式的工作流
                                         if(workflow.nodes) {
                                             app.loadGraphData(workflow);
@@ -284,6 +317,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                         onAddMessage?.(successMessage);
                                     }
                                 }}
+                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -358,17 +392,104 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         }
 
         return null;
-    }, [installedNodes, onOptionClick, onAddMessage, latestInput]); // Added dependencies that are used inside the function
+    }
 
-    // 使用useMemo缓存消息列表
-    const messageElements = React.useMemo(() => 
-        messages?.map(renderMessage),
-        [messages, renderMessage]
-    );
+    const renderLoadMore = (message: LoadMoreButtonProps) => {
+        const isNotUsed = message?.buttonStatus === LoadMoreStatus.NOT_USED
+        return <div 
+            key={message.id}
+            className='flex justify-center items-center'
+        >
+            {
+                isNotUsed ? <button 
+                    className='w-full h-[24px] text-gray-700 text-xs bg-transparent hover:!bg-gray-100 px-2 py-1 rounded-md'
+                    onClick={handleLoadMore}
+                >
+                    Load more
+                </button> : <div className='w-full h-[24px] bg-transparent' />
+            }
+        </div>
+    }
+
+    function isLoadMoreButtonProps(item: any): item is LoadMoreButtonProps {
+        return item && typeof item === 'object' && item.buttonType === 'loadmore';
+    }
+
+    const handleLoadMore = () => {
+        isLoadHistory.current = true;
+        setCurrentIndex(index => index + 1);
+    }
+
+    useEffect(() => {
+        let list: FinallyMessageProps[] = []
+        if (lastMessagesCount.current > 0 && lastMessagesCount.current < messages.length) {
+            list = messages.slice(lastMessagesCount.current)
+            if (messages[lastMessagesCount.current].role === 'user') {
+                list.unshift({  
+                    id: `${messages[lastMessagesCount.current].id}_loadmore`,
+                    buttonType: 'loadmore',
+                    buttonStatus: LoadMoreStatus.USED
+                })
+            }
+            setCurrentMessages(pre => [...pre, ...list]);
+        } else {
+            let count = 0;
+            let endIndex = messages?.length
+            for (let i = messages?.length - 1; i >= 0; i--) {
+                if (messages[i].role === 'ai' || i === 0) {
+                    if (count > DEFAULT_COUNT + currentIndex) {
+                        list.unshift({
+                            id: `${messages[i].id}_loadmore`,
+                            buttonType: 'loadmore',
+                            buttonStatus: LoadMoreStatus.NOT_USED
+                        })
+                        break;
+                    } else {
+                        count++;    
+                        if (list?.length > 0) {
+                            list.unshift({
+                                id: `${messages[i].id}_loadmore`,
+                                buttonType: 'loadmore',
+                                buttonStatus: LoadMoreStatus.USED
+                            })
+                        }
+                        list = [
+                            ...messages?.slice(Math.min(endIndex, i === 0 ? i : i + 1), endIndex + 1), 
+                            ...list
+                        ];
+                        endIndex = i;
+                    }
+                }
+            }
+            setCurrentMessages(list)
+        }
+        lastMessagesCount.current = messages.length
+    }, [messages, currentIndex])
+
+    useLayoutEffect(() => {
+        if (!!scrollRef?.current) {
+            if (isLoadHistory.current) {
+                // 加载历史数据需要修改scrolltop保证当前视图不变
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
+                isLoadHistory.current = false
+            } else {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+            }
+            currentScrollHeight.current = scrollRef.current.scrollHeight
+        }
+    }, [currentMessages])
 
     return (
-        <div className="flex flex-col gap-4 w-full">
-            {messageElements}
+        <div 
+            className='flex-1 flex-col overflow-y-auto p-4 h-0'
+            ref={scrollRef} 
+            style={{
+                display: isActive ? 'block' : 'none',
+            }}
+        >
+            {
+                currentMessages?.map((message) => !!message && (isLoadMoreButtonProps(message) ? renderLoadMore(message as LoadMoreButtonProps) : renderMessage(message as Message)))
+            }
             {loading && <LoadingMessage />}
         </div>
     );

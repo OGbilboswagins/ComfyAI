@@ -11,3 +11,5 @@ openai-agents
 # For development and testing
 pytest>=6.0.0
 pytest-asyncio>=0.18.0 
+openai-agents
+fastmcp
