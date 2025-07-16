@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-07-14 17:48:45
+ * @LastEditTime: 2025-07-15 20:37:58
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -550,7 +550,7 @@ export namespace WorkflowChatAPI {
   export async function* streamDebugAgent(
     workflowData: any, 
     abortSignal?: AbortSignal
-  ): AsyncGenerator<{ text: string; ext?: any }> {
+  ): AsyncGenerator<ChatResponse> {
     try {
       const { openaiApiKey, openaiBaseUrl } = getOpenAiConfig();
       const session_id = localStorage.getItem("sessionId") || null;
@@ -603,7 +603,7 @@ export namespace WorkflowChatAPI {
       }
 
       let buffer = '';
-
+      const messageId = generateUUID();
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -612,20 +612,13 @@ export namespace WorkflowChatAPI {
           buffer += new TextDecoder().decode(value);
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
-
+          
           for (const line of lines) {
             if (line.trim()) {
-              try {
-                const data = JSON.parse(line) as ChatResponse;
-                if (data.text) {
-                  yield {
-                    text: data.text,
-                    ext: data.ext
-                  };
-                }
-              } catch (parseError) {
-                console.error('Error parsing debug response data:', parseError);
-              }
+              yield {
+                ...JSON.parse(line) as ChatResponse,
+                message_id: messageId
+              };
             }
           }
         }
@@ -633,13 +626,10 @@ export namespace WorkflowChatAPI {
         // Process any remaining buffer content
         if (buffer.trim()) {
           try {
-            const data = JSON.parse(buffer) as ChatResponse;
-            if (data.text) {
-              yield {
-                text: data.text,
-                ext: data.ext
-              };
-            }
+            yield {
+              ...JSON.parse(buffer) as ChatResponse,
+              message_id: messageId
+            };
           } catch (parseError) {
             console.error('Error parsing final debug response data:', parseError);
           }

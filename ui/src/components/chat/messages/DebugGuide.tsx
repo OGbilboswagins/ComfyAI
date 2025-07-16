@@ -14,6 +14,8 @@ interface DebugGuideProps {
 
 export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }: DebugGuideProps) {
     const [isDebugging, setIsDebugging] = useState(false);
+    const [streamingText, setStreamingText] = useState('');
+    const [showStreamingMessage, setShowStreamingMessage] = useState(false);
     
     // Parse the message content
     let response;
@@ -28,6 +30,8 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
         if (isDebugging) return;
         
         setIsDebugging(true);
+        setShowStreamingMessage(true);
+        setStreamingText('🔍 Starting workflow analysis...\n');
         
         try {
             await handleQueueError();
@@ -48,14 +52,16 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
             for await (const result of WorkflowChatAPI.streamDebugAgent(prompt)) {
                 if (result.text) {
                     accumulatedText = result.text;
+                    setStreamingText(accumulatedText); // Update streaming text in real-time
                     if (result.ext) {
                         finalExt = result.ext;
                     }
-                    // Don't add message here - wait for completion
                 }
             }
 
-            // Only add the final complete message after streaming is done
+            // Hide streaming message and add final complete message
+            setShowStreamingMessage(false);
+            
             if (accumulatedText) {
                 const debugMessage = {
                     id: generateUUID(),
@@ -72,6 +78,7 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
 
         } catch (error: unknown) {
             console.error('Error calling debug agent:', error);
+            setShowStreamingMessage(false);
             const errorObj = error as any;
             const errorMessage = {
                 id: generateUUID(),
@@ -87,32 +94,61 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
         }
     };
 
+    const handleQueuePrompt = async () => {
+        const result = await queuePrompt([]);
+        console.log('Queue result:', result);
+    };
+
     return (
-        <BaseMessage name={name}>
-            <div className="space-y-3">
-                <div className="text-sm text-gray-600 mb-3">
-                    {response.text}
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex-1">
-                        <p className="text-sm text-blue-800">
-                            Would you like me to help debug this workflow?
-                        </p>
+        <div className="w-full space-y-4">
+            {/* Original message */}
+            <BaseMessage name={name}>
+                <div className="space-y-3">
+                    <p className="text-gray-700 text-sm">
+                        {response.text}
+                    </p>
+                    
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleQueuePrompt}
+                            className="px-4 py-2 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 transition-colors"
+                        >
+                            Queue Prompt
+                        </button>
+                        
+                        <button
+                            onClick={handleDebugClick}
+                            disabled={isDebugging}
+                            className={`px-4 py-2 text-white text-sm rounded-md transition-colors ${
+                                isDebugging 
+                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                    : 'bg-blue-500 hover:bg-blue-600'
+                            }`}
+                        >
+                            {isDebugging ? 'Analyzing...' : 'Debug Errors'}
+                        </button>
                     </div>
-                    <button
-                        onClick={handleDebugClick}
-                        disabled={isDebugging}
-                        className={`px-4 py-2 rounded-md transition-colors text-sm font-medium ${
-                            isDebugging 
-                                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
-                        }`}
-                    >
-                        {isDebugging ? 'Debugging...' : 'Debug'}
-                    </button>
                 </div>
-            </div>
-        </BaseMessage>
+            </BaseMessage>
+
+            {/* Streaming message */}
+            {showStreamingMessage && (
+                <BaseMessage name="Assistant">
+                    <div className="space-y-3">
+                        <div className="prose prose-sm max-w-none">
+                            <pre className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">
+                                {streamingText}
+                            </pre>
+                        </div>
+                        {isDebugging && (
+                            <div className="flex items-center gap-2 text-blue-500 text-sm">
+                                <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                Analyzing workflow...
+                            </div>
+                        )}
+                    </div>
+                </BaseMessage>
+            )}
+        </div>
     );
 }
