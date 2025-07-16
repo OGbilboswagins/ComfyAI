@@ -112,12 +112,11 @@
             {
                 "id": "showcase5-2",
                 "role": "ai",
-                "content": "请根据下面的演示，使用Genlab来实现您的调试prompt的诉求。",
+                "content": "{\"text\":\"请根据下面的演示，使用Genlab来实现您的调试prompt的诉求。\\n ![](https://aib-vision-hz.oss-accelerate.aliyuncs.com/mood_board%2Finput%2F2025-07-16%2Fab89513606fd4966b0362f95f3f1ab86.gif?OSSAccessKeyId=LTAI5tQyhnsJhtiinV3B1gfV&Expires=2068018398&Signature=3XUgadQjjsGRu46S1fRxA7iDWJU%3D)\"}",
                 "format": "markdown",
                 "finished": true,
                 "name": "Assistant"
             }
-        ],
-        "path": "https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b"
+        ]
     }
 ]
