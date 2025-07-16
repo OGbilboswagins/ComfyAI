@@ -102,6 +102,22 @@
         "type": "genlab",
         "tool": "genlab_prompt",
         "name": "根据我的诉求生成3个prompt，各自生图查看效果",
+        "messages": [
+            {
+                "id": "showcase5-1",
+                "role": "user",
+                "content": "根据我的诉求生成3个prompt，各自生图查看效果",
+                "trace_id": "showcase5"
+            },
+            {
+                "id": "showcase5-2",
+                "role": "ai",
+                "content": "请根据下面的演示，使用Genlab来实现您的调试prompt的诉求。",
+                "format": "markdown",
+                "finished": true,
+                "name": "Assistant"
+            }
+        ],
         "path": "https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b"
     }
 ]
