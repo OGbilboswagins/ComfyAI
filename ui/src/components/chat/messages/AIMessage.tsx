@@ -168,8 +168,13 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
           pre: ({ children }) => {
             return <pre className="text-xs bg-gray-100 text-gray-800 rounded p-2 overflow-x-auto">{children}</pre>
           },
-          img: ({ node, ...props }) => (
-            <div className="w-1/2 mx-auto">
+          img: ({ node, ...props }) => {
+            let isGif = false;
+            const srcStrs = props.src?.split('?');
+            if (srcStrs && srcStrs.length > 0) {
+              isGif = srcStrs[0]?.endsWith('.gif') || srcStrs[0]?.endsWith('.webp');
+            }
+            return (<div className={`${isGif ? '' : 'w-1/2'} mx-auto`}>
               <img
                 {...props}
                 loading="lazy"
@@ -179,8 +184,8 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
                   e.currentTarget.style.opacity = '0';
                 }}
               />
-            </div>
-          ),
+            </div>)
+          },
           a: ({ href, children }) => {
             let messageType = 'markdown';
             let messageId = null;

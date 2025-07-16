@@ -284,13 +284,20 @@ export function WorkflowOption({ content, name = 'Assistant', avatar, latestInpu
 
     const loadWorkflowItemV2 = (workflow: Workflow, index: number) => {
         const workflowId = workflow.id ? String(workflow.id) : '';
+        console.log('workflow--->', workflow)
+        const isAIGenerated = workflow?.source === 'AI Generated'
         return (
             <div 
                 key={index} 
-                className="flex flex-col items-center gap-4 p-2 rounded-lg border border-gray-200 hover:bg-gray-50"
+                className={`relative flex flex-col items-center gap-4 p-2 rounded-lg border ${isAIGenerated ? 'shadow-[0_0_12px_2px_#3b82f6] shadow-[0_0_0_4px_rgba(59,130,246,0.15)]' : 'border-gray-200'} hover:bg-gray-50`}
             >
+                {
+                    isAIGenerated && <div className='absolute left-1/2 top-[-12px] -translate-x-1/2 rounded-lg flex bg-white'>
+                        <svg t="1752667348457" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="25237" width="24" height="24"><path d="M938.656 256A170.656 170.656 0 0 0 768 85.344H256A170.656 170.656 0 0 0 85.344 256v512A170.656 170.656 0 0 0 256 938.656h512A170.656 170.656 0 0 0 938.656 768V256zM256 170.656h512l6.368 0.256A85.344 85.344 0 0 1 853.312 256v512l-0.224 6.4A85.344 85.344 0 0 1 768 853.312H256l-6.336-0.256A85.344 85.344 0 0 1 170.656 768V256l0.224-6.368A85.344 85.344 0 0 1 256 170.656z" p-id="25238" fill="#1296db"></path><path d="M633.12 718.464h-95.392l-34.368-95.68h-160.288l-34.336 95.68H213.344l154.56-419.808h110.656l154.56 419.808z m-209.888-333.888l-61.056 177.696h120.192l-59.136-177.696z" p-id="25239" fill="#1296db"></path><path d="M682.656 298.656m0 0l85.344 0q0 0 0 0l0 426.656q0 0 0 0l-85.344 0q0 0 0 0l0-426.656q0 0 0 0Z" p-id="25240" fill="#1296db"></path></svg>
+                    </div>
+                }
                 <div className='flex flex-row'>
-                    <h3 className="flex-1 font-medium text-sm line-clamp-2 h-10 overflow-hidden">{workflow.name}</h3>
+                    <h3 className="flex-1 font-medium text-sm line-clamp-2 break-all h-10 overflow-hidden">{workflow.name}</h3>
                     <div className='flex items-start'>
                         {workflow.description && <Tooltip
                             arrow={false}

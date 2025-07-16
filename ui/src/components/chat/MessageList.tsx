@@ -69,7 +69,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
     const [currentIndex, setCurrentIndex] = useState<number>(0)
     const [currentMessages, setCurrentMessages] = useState<FinallyMessageProps[]>([])
-
     const scrollRef = useRef<HTMLDivElement>(null)
     const lastMessagesCount = useRef<number>(0)
     const currentScrollHeight = useRef<number>(0) 
@@ -78,15 +77,16 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     useEffect(() => {
         const el = scrollRef.current
         if (!el) return;
-
+          
         const handleScroll = () => {
             if (!!scrollRef.current) {
-                isAutoScroll.current = scrollRef.current?.scrollHeight - scrollRef.current.scrollTop - scrollRef.current.clientHeight <= 10
+                isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 10
             }
+            currentScrollHeight.current = el.scrollHeight
         };
 
         el.addEventListener('scroll', handleScroll);
-        return () => el.removeEventListener('scroll', handleScroll);    
+        return () => el.removeEventListener('scroll', handleScroll);
     }, [])
 
     const onFinishLoad = () => {
@@ -472,6 +472,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         if (!!scrollRef?.current) {
             if (isLoadHistory.current) {
                 // 加载历史数据需要修改scrolltop保证当前视图不变
+                console.log('scrollRef.current.scrollHeight--->', scrollRef.current.scrollHeight, currentScrollHeight.current)
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
                 isLoadHistory.current = false
             } else {
