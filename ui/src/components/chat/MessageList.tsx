@@ -468,11 +468,10 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }, [messages, currentIndex])
 
     useLayoutEffect(() => {
-        console.log('-currentMessages-->', currentMessages)
         if (!!scrollRef?.current) {
             if (isLoadHistory.current) {
                 // 加载历史数据需要修改scrolltop保证当前视图不变
-                console.log('scrollRef.current.scrollHeight--->', scrollRef.current.scrollHeight, currentScrollHeight.current)
+                // console.log('scrollRef.current.scrollHeight--->', scrollRef.current.scrollHeight, currentScrollHeight.current)
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
                 isLoadHistory.current = false
             } else {

@@ -44,8 +44,6 @@ app.registerExtension({
         {
             id: COPILOT_TOOLBOX_IDS.USAGE,
             label: "Usage",
-            title: "Usage",
-            tooltip: "Usage",
             icon: 'pi pi-info-circle',
             function: () => {
                 window.dispatchEvent(new CustomEvent(COPILOT_EVENTS.TOOLBOX_USAGE, {
@@ -56,8 +54,6 @@ app.registerExtension({
         {
             id: COPILOT_TOOLBOX_IDS.PARAMETERS,
             label: 'Parameters',
-            title: "Parameters",
-            tooltip: "Parameters",
             icon: 'pi pi-objects-column',
             function: () => {
                 window.dispatchEvent(new CustomEvent(COPILOT_EVENTS.TOOLBOX_PARAMETERS, {
@@ -68,8 +64,6 @@ app.registerExtension({
         {
             id: COPILOT_TOOLBOX_IDS.DOWNSTREAMNODES,
             label: 'Downstream Nodes',
-            title: "Downstream Nodes",
-            tooltip: "Downstream Nodes",
             icon: 'pi pi-arrow-circle-right',
             function: () => {
                 window.dispatchEvent(new CustomEvent(COPILOT_EVENTS.TOOLBOX_DOWNSTREAMNODES, {

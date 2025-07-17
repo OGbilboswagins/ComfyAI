@@ -284,7 +284,6 @@ export function WorkflowOption({ content, name = 'Assistant', avatar, latestInpu
 
     const loadWorkflowItemV2 = (workflow: Workflow, index: number) => {
         const workflowId = workflow.id ? String(workflow.id) : '';
-        console.log('workflow--->', workflow)
         const isAIGenerated = workflow?.source === 'AI Generated'
         return (
             <div 
