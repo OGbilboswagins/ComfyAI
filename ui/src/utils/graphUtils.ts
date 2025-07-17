@@ -1,3 +1,11 @@
+/*
+ * @Author: ai-business-hql qingli.hql@alibaba-inc.com
+ * @Date: 2025-02-17 20:53:45
+ * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
+ * @LastEditTime: 2025-07-16 17:15:54
+ * @FilePath: /comfyui_copilot/ui/src/utils/graphUtils.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
@@ -27,128 +35,85 @@ export function addNodeOnGraph(type: string, options: any = {}) {
     return node;
 }
 
-// interface ParsedWorkflow {
-//   nodes?: any[];
-//   groups?: any[];
-//   reroutes?: any[];
-//   links?: any[];
-// }
+/**
+ * 应用节点参数修改到画布
+ * @param nodeParams - 节点参数对象，格式: { nodeId: { paramName: value } }
+ * @returns 是否成功应用参数
+ */
+export function applyNodeParameters(nodeParams: Record<string, Record<string, any>>): boolean {
+    try {
+        if (!app.graph || !nodeParams) {
+            console.warn('[graphUtils] Invalid graph or nodeParams');
+            return false;
+        }
 
-// interface LoadResults {
-//   created: (LGraphNode | LGraphGroup)[];
-//   nodes: Map<number, LGraphNode>;
-//   links: Map<number, any>;
-//   reroutes: Map<number, any>;
-// }
+        let hasChanges = false;
 
-// export function loadSubGraphData(jsonObject: string | object, graph: LGraph, mousePos: [number, number]): LoadResults {
-//   // Parse JSON if string is provided
-//   const parsed: ParsedWorkflow = typeof jsonObject === 'string' ? JSON.parse(jsonObject) : jsonObject;
+        // 遍历所有节点参数
+        Object.entries(nodeParams).forEach(([nodeId, params]) => {
+            // 获取节点
+            const node = app.graph._nodes_by_id[nodeId];
+            if (!node || !node.widgets) {
+                console.warn(`[graphUtils] Node ${nodeId} not found or has no widgets`);
+                return;
+            }
+            
+            // 遍历节点参数
+            Object.entries(params).forEach(([paramName, value]) => {
+                // 在节点的widgets中查找对应的widget
+                for (const widget of node.widgets) {
+                    if (widget.name === paramName) {
+                        // 设置widget的值
+                        if (widget.value !== value) {
+                            widget.value = value;
+                            hasChanges = true;
+                            console.log(`[graphUtils] Updated node ${nodeId}, parameter ${paramName} to:`, value);
+                        }
+                        break;
+                    }
+                }
+            });
+        });
 
-//   // Initialize arrays if they don't exist
-//   parsed.nodes ??= [];
-//   parsed.groups ??= [];
-//   parsed.reroutes ??= [];
-//   parsed.links ??= [];
+        // 如果有修改，标记画布为dirty并触发重新渲染
+        if (hasChanges) {
+            app.graph.setDirtyCanvas(false, true);
+            console.log('[graphUtils] Applied node parameters and marked canvas as dirty');
+        }
 
-//   // Find minimum offsets
-//   let offsetX = Infinity;
-//   let offsetY = Infinity;
+        return hasChanges;
+    } catch (error) {
+        console.error('[graphUtils] Error applying node parameters:', error);
+        return false;
+    }
+}
 
-//   // Check nodes and reroutes positions
-//   for (const item of [...parsed.nodes, ...parsed.reroutes]) {
-//     if (item.pos[0] < offsetX) offsetX = item.pos[0];
-//     if (item.pos[1] < offsetY) offsetY = item.pos[1];
-//   }
+/**
+ * 应用参数修改列表到画布
+ * @param changes - 参数修改列表，每个元素包含 node_id, parameter, new_value
+ * @returns 是否成功应用参数
+ */
+export function applyParameterChanges(changes: Array<{ node_id: string; parameter: string; new_value: any }>): boolean {
+    try {
+        if (!changes || changes.length === 0) {
+            console.warn('[graphUtils] No changes to apply');
+            return false;
+        }
 
-//   // Check group positions
-//   if (parsed.groups) {
-//     for (const group of parsed.groups) {
-//       if (group.bounding[0] < offsetX) offsetX = group.bounding[0];
-//       if (group.bounding[1] < offsetY) offsetY = group.bounding[1];
-//     }
-//   }
+        // 将changes列表转换为nodeParams格式
+        const nodeParams: Record<string, Record<string, any>> = {};
+        
+        changes.forEach(change => {
+            if (!nodeParams[change.node_id]) {
+                nodeParams[change.node_id] = {};
+            }
+            nodeParams[change.node_id][change.parameter] = change.new_value;
+        });
 
-//   // Initialize results
-//   const results: LoadResults = {
-//     created: [],
-//     nodes: new Map(),
-//     links: new Map(),
-//     reroutes: new Map()
-//   };
+        return applyNodeParameters(nodeParams);
+    } catch (error) {
+        console.error('[graphUtils] Error applying parameter changes:', error);
+        return false;
+    }
+}
 
-//   const { created, nodes, links, reroutes } = results;
-
-//   // Add groups
-//   for (const info of parsed.groups) {
-//     info.id = undefined;
-//     const group = new LGraphGroup();
-//     group.configure(info);
-//     graph.add(group);
-//     created.push(group);
-//   }
-
-//   // Add nodes
-//   for (const info of parsed.nodes) {
-//     const node = LiteGraph.createNode(info.type);
-//     if (!node) continue;
-    
-//     nodes.set(info.id, node);
-//     info.id = undefined;
-//     node.configure(info);
-//     graph.add(node);
-//     created.push(node);
-//   }
-
-//   // Add reroutes
-//   for (const info of parsed.reroutes) {
-//     const { id } = info;
-//     info.id = undefined;
-//     const reroute = graph.setReroute(info);
-//     created.push(reroute);
-//     reroutes.set(id, reroute);
-//   }
-
-//   // Update reroute parent IDs
-//   for (const reroute of reroutes.values()) {
-//     const mapped = reroutes.get(reroute.parentId);
-//     if (mapped) reroute.parentId = mapped.id;
-//   }
-
-//   // Add links
-//   for (const info of parsed.links) {
-//     const outNode = nodes.get(info.origin_id);
-//     const inNode = nodes.get(info.target_id);
-//     const afterRerouteId = reroutes.get(info.parentId)?.id;
-
-//     if (inNode) {
-//       const link = outNode?.connect(
-//         info.origin_slot,
-//         inNode,
-//         info.target_slot,
-//         afterRerouteId
-//       );
-//       if (link) links.set(info.id, link);
-//     }
-//   }
-
-//   // Validate and update reroutes
-//   for (const reroute of reroutes.values()) {
-//     const ids = [...reroute.linkIds].map(x => links.get(x)?.id ?? x);
-//     reroute.update(reroute.parentId, undefined, ids);
-//     if (!reroute.validateLinks(graph.links)) {
-//       graph.removeReroute(reroute.id);
-//     }
-//   }
-
-//   // Adjust positions relative to mouse position
-//   for (const item of created) {
-//     item.pos[0] += mousePos[0] - offsetX;
-//     item.pos[1] += mousePos[1] - offsetY;
-//   }
-
-//   // Update graph
-//   graph.afterChange();
-
-//   return results;
-// }

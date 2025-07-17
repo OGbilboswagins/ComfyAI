@@ -766,6 +766,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                         selectedModel={selectedModel}
                         onModelChange={setSelectedModel}
                         onStop={handleStop}
+                        onAddDebugMessage={handleAddMessage}
                     />
                 </div>
 

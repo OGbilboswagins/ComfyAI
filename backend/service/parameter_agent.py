@@ -122,7 +122,7 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
                     "original_value": current_value
                 })
             
-            # 4. 如果都没有匹配，返回所有可用选项
+            # TODO: 4. 如果都没有匹配，返回所有可用选项
             return json.dumps({
                 "found_match": False,
                 "recommended_value": available_values[0] if available_values else None,
@@ -363,13 +363,14 @@ def update_workflow_parameter(session_id: str, node_id: str, param_name: str, ne
         old_value = workflow_data[node_id]["inputs"].get(param_name, "not set")
         workflow_data[node_id]["inputs"][param_name] = new_value
         
-        # 保存更新后的工作流
-        version_id = save_workflow_data(
-            session_id, 
-            workflow_data, 
+        # 保存更新的工作流到数据库
+        save_workflow_data(
+            session_id,
+            workflow_data,
+            workflow_data_ui=None,  # UI format not available here
             attributes={
+                "action": "parameter_update", 
                 "description": f"Updated {param_name} in node {node_id}",
-                "action": "parameter_update",
                 "changes": {
                     "node_id": node_id,
                     "parameter": param_name,
@@ -381,12 +382,26 @@ def update_workflow_parameter(session_id: str, node_id: str, param_name: str, ne
         
         return json.dumps({
             "success": True,
-            "version_id": version_id,
+            "answer": f"Successfully updated {param_name} from '{old_value}' to '{new_value}' in node {node_id}",
             "node_id": node_id,
             "parameter": param_name,
             "old_value": old_value,
             "new_value": new_value,
-            "message": f"Successfully updated {param_name} from '{old_value}' to '{new_value}' in node {node_id}"
+            "message": f"Successfully updated {param_name} from '{old_value}' to '{new_value}' in node {node_id}",
+            # 添加ext数据用于前端实时更新画布
+            "ext": [{
+                "type": "workflow_update",
+                "data": {
+                    "action": "parameter_update",
+                    "workflow_data": workflow_data,
+                    "changes": {
+                        "node_id": node_id,
+                        "parameter": param_name,
+                        "old_value": old_value,
+                        "new_value": new_value
+                    }
+                }
+            }]
         })
         
     except Exception as e:

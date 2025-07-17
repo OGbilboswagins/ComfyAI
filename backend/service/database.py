@@ -15,7 +15,8 @@ class WorkflowVersion(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(255), nullable=False)
-    workflow_data = Column(Text, nullable=False)  # JSON字符串
+    workflow_data = Column(Text, nullable=False)  # JSON字符串 api格式
+    workflow_data_ui = Column(Text, nullable=True)  # JSON字符串 ui格式
     attributes = Column(Text, nullable=True)  # JSON字符串，存储额外属性
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -50,13 +51,14 @@ class DatabaseManager:
         """获取数据库会话"""
         return self.SessionLocal()
     
-    def save_workflow_version(self, session_id: str, workflow_data: Dict[str, Any], attributes: Optional[Dict[str, Any]] = None) -> int:
+    def save_workflow_version(self, session_id: str, workflow_data: Dict[str, Any], workflow_data_ui: Dict[str, Any] = None, attributes: Optional[Dict[str, Any]] = None) -> int:
         """保存工作流版本，返回新版本的ID"""
         session = self.get_session()
         try:
             workflow_version = WorkflowVersion(
                 session_id=session_id,
                 workflow_data=json.dumps(workflow_data),
+                workflow_data_ui=json.dumps(workflow_data_ui) if workflow_data_ui else None,
                 attributes=json.dumps(attributes) if attributes else None
             )
             session.add(workflow_version)
@@ -93,7 +95,11 @@ class DatabaseManager:
                 .first()
             
             if version:
-                return version.to_dict()
+                result = version.to_dict()
+                # 添加UI格式的工作流数据
+                if version.workflow_data_ui:
+                    result['workflow_data_ui'] = json.loads(version.workflow_data_ui)
+                return result
             return None
         finally:
             session.close()
@@ -126,6 +132,10 @@ def get_workflow_data(session_id: str) -> Optional[Dict[str, Any]]:
     """获取当前session的工作流数据的便捷函数"""
     return db_manager.get_current_workflow_data(session_id)
 
-def save_workflow_data(session_id: str, workflow_data: Dict[str, Any], attributes: Optional[Dict[str, Any]] = None) -> int:
+def save_workflow_data(session_id: str, workflow_data: Dict[str, Any], workflow_data_ui: Dict[str, Any] = None, attributes: Optional[Dict[str, Any]] = None) -> int:
     """保存工作流数据的便捷函数"""
-    return db_manager.save_workflow_version(session_id, workflow_data, attributes) 
+    return db_manager.save_workflow_version(session_id, workflow_data, workflow_data_ui, attributes)
+
+def get_workflow_data_by_id(version_id: int) -> Optional[Dict[str, Any]]:
+    """根据版本ID获取工作流数据的便捷函数"""
+    return db_manager.get_workflow_version_by_id(version_id) 

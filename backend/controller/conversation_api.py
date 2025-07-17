@@ -18,6 +18,7 @@ import sys
 import os
 
 from custom_nodes.comfyui_copilot.backend.service.debug_agent import debug_workflow_errors
+from custom_nodes.comfyui_copilot.backend.service.database import save_workflow_data, get_workflow_data_by_id
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'service'))
 try:
@@ -490,6 +491,114 @@ async def invoke_chat(request):
     return response
 
 
+@server.PromptServer.instance.routes.post("/api/save-workflow-checkpoint")
+async def save_workflow_checkpoint(request):
+    """
+    Save workflow checkpoint for restore functionality
+    """
+    print("Received save-workflow-checkpoint request")
+    req_json = await request.json()
+    
+    try:
+        session_id = req_json.get('session_id')
+        workflow_api = req_json.get('workflow_api')  # API format workflow
+        workflow_ui = req_json.get('workflow_ui')    # UI format workflow  
+        checkpoint_type = req_json.get('checkpoint_type', 'debug_start')  # debug_start or debug_complete
+        
+        if not session_id or not workflow_api:
+            return web.json_response({
+                "success": False,
+                "message": "Missing required parameters: session_id and workflow_api"
+            })
+        
+        # Save workflow with checkpoint type in attributes
+        attributes = {
+            "checkpoint_type": checkpoint_type,
+            "description": f"Workflow checkpoint: {checkpoint_type}",
+            "timestamp": time.time()
+        }
+        
+        version_id = save_workflow_data(
+            session_id=session_id,
+            workflow_data=workflow_api,
+            workflow_data_ui=workflow_ui,
+            attributes=attributes
+        )
+        
+        print(f"Workflow checkpoint saved with version ID: {version_id}")
+        
+        return web.json_response({
+            "success": True,
+            "data": {
+                "version_id": version_id,
+                "checkpoint_type": checkpoint_type
+            },
+            "message": f"Workflow checkpoint saved successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error saving workflow checkpoint: {str(e)}")
+        return web.json_response({
+            "success": False,
+            "message": f"Failed to save workflow checkpoint: {str(e)}"
+        })
+
+
+@server.PromptServer.instance.routes.get("/api/restore-workflow-checkpoint")
+async def restore_workflow_checkpoint(request):
+    """
+    Restore workflow checkpoint by version ID
+    """
+    print("Received restore-workflow-checkpoint request")
+    
+    try:
+        version_id = request.query.get('version_id')
+        
+        if not version_id:
+            return web.json_response({
+                "success": False,
+                "message": "Missing required parameter: version_id"
+            })
+        
+        try:
+            version_id = int(version_id)
+        except ValueError:
+            return web.json_response({
+                "success": False,
+                "message": "Invalid version_id format"
+            })
+        
+        # Get workflow data by version ID
+        workflow_version = get_workflow_data_by_id(version_id)
+        
+        if not workflow_version:
+            return web.json_response({
+                "success": False,
+                "message": f"Workflow version {version_id} not found"
+            })
+        
+        print(f"Restored workflow checkpoint version ID: {version_id}")
+        
+        return web.json_response({
+            "success": True,
+            "data": {
+                "version_id": version_id,
+                "workflow_data": workflow_version.get('workflow_data'),
+                "workflow_data_ui": workflow_version.get('workflow_data_ui'),
+                "attributes": workflow_version.get('attributes'),
+                "created_at": workflow_version.get('created_at')
+            },
+            "message": f"Workflow checkpoint restored successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error restoring workflow checkpoint: {str(e)}")
+        return web.json_response({
+            "success": False,
+            "message": f"Failed to restore workflow checkpoint: {str(e)}"
+        })
+
+
 @server.PromptServer.instance.routes.post("/api/debug-agent")
 async def invoke_debug(request):
     """
@@ -592,6 +701,42 @@ async def invoke_debug(request):
             format="markdown",
             ext=final_ext_data if final_ext_data else [{"type": "debug_complete", "data": {"status": "completed"}}]
         )
+        
+        # Save workflow checkpoint after debug completion if we have workflow_data
+        if workflow_data and accumulated_text:
+            try:
+                checkpoint_id = save_workflow_data(
+                    session_id=session_id,
+                    workflow_data=workflow_data,
+                    workflow_data_ui=None,  # UI format not available in debug agent
+                    attributes={
+                        "checkpoint_type": "debug_complete",
+                        "description": "Workflow state after debug completion",
+                        "timestamp": time.time()
+                    }
+                )
+                
+                # Add checkpoint info to ext data
+                if final_response["ext"]:
+                    final_response["ext"].append({
+                        "type": "debug_checkpoint",
+                        "data": {
+                            "checkpoint_id": checkpoint_id,
+                            "checkpoint_type": "debug_complete"
+                        }
+                    })
+                else:
+                    final_response["ext"] = [{
+                        "type": "debug_checkpoint",
+                        "data": {
+                            "checkpoint_id": checkpoint_id,
+                            "checkpoint_type": "debug_complete"
+                        }
+                    }]
+                
+                print(f"Debug completion checkpoint saved with ID: {checkpoint_id}")
+            except Exception as checkpoint_error:
+                print(f"Failed to save debug completion checkpoint: {checkpoint_error}")
         
         await response.write(json.dumps(final_response).encode() + b"\n")
         print("Debug agent processing complete")

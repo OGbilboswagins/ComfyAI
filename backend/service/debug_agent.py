@@ -310,6 +310,9 @@ Start by validating the workflow to see its current state. If there are errors, 
         # Collect debug events for final ext data
         debug_events = []
         
+        # Collect workflow update ext data from tools
+        workflow_update_ext = None
+        
         async for event in result.stream_events():
             # Handle different event types according to OpenAI Agents documentation
             if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
@@ -372,6 +375,19 @@ Start by validating the workflow to see its current state. If there are errors, 
                     current_text += tool_result_text
                     item_updated = True
                     
+                    # Try to parse tool output and extract ext data
+                    try:
+                        tool_output_json = json.loads(output)
+                        if "ext" in tool_output_json and tool_output_json["ext"]:
+                            for ext_item in tool_output_json["ext"]:
+                                if ext_item.get("type") == "workflow_update":
+                                    workflow_update_ext = ext_item
+                                    print(f"-- Captured workflow_update ext from tool output")
+                                    break
+                    except (json.JSONDecodeError, TypeError):
+                        # Tool output is not JSON, continue normally
+                        pass
+                    
                     # Collect debug event data
                     debug_events.append({
                         "type": "tool_result",
@@ -407,6 +423,26 @@ Start by validating the workflow to see its current state. If there are errors, 
 
         print("\n=== Debug process complete ===")
         
+        # Save final workflow checkpoint after debugging completion
+        debug_completion_checkpoint_id = None
+        try:
+            current_workflow = get_workflow_data(session_id)
+            if current_workflow:
+                debug_completion_checkpoint_id = save_workflow_data(
+                    session_id, 
+                    current_workflow,
+                    workflow_data_ui=None,  # UI format not available here
+                    attributes={
+                        "checkpoint_type": "debug_complete",
+                        "description": "Workflow state after debug completion",
+                        "action": "debug_complete",
+                        "final_agent": current_agent
+                    }
+                )
+                print(f"Debug completion checkpoint saved with ID: {debug_completion_checkpoint_id}")
+        except Exception as checkpoint_error:
+            print(f"Failed to save debug completion checkpoint: {checkpoint_error}")
+        
         # Final yield with complete text and debug ext data, matching mcp-client format
         debug_ext = [{
             "type": "debug_complete",
@@ -418,9 +454,25 @@ Start by validating the workflow to see its current state. If there are errors, 
             }
         }]
         
+        # Add debug checkpoint info if successful
+        if debug_completion_checkpoint_id:
+            debug_ext.append({
+                "type": "debug_checkpoint",
+                "data": {
+                    "checkpoint_id": debug_completion_checkpoint_id,
+                    "checkpoint_type": "debug_complete"
+                }
+            })
+        
+        # Include workflow_update ext if captured from tools
+        final_ext = debug_ext
+        if workflow_update_ext:
+            final_ext = [workflow_update_ext] + debug_ext
+            print(f"-- Including workflow_update ext in final response")
+        
         # Return format matching mcp-client: {"data": ext, "finished": finished}
         ext_with_finished = {
-            "data": debug_ext,
+            "data": final_ext,
             "finished": True
         }
         yield (current_text, ext_with_finished)

@@ -59,6 +59,7 @@ const LazyNodeSearch = lazy(() => import('./messages/NodeSearch').then(m => ({ d
 const LazyDownstreamSubgraphs = lazy(() => import('./messages/DownstreamSubgraphs').then(m => ({ default: m.DownstreamSubgraphs })));
 const LazyNodeInstallGuide = lazy(() => import('./messages/NodeInstallGuide').then(m => ({ default: m.NodeInstallGuide })));
 const LazyDebugGuide = lazy(() => import('./messages/DebugGuide').then(m => ({ default: m.DebugGuide })));
+const LazyDebugResult = lazy(() => import('./messages/DebugResult').then(m => ({ default: m.DebugResult })));
 
 // 默认显示3轮回答，也就是找到列表最后的3条role是ai的数据
 const DEFAULT_COUNT = 3;
@@ -104,9 +105,48 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 const nodeExt = response.ext?.find((item: ExtItem) => item.type === 'node');
                 const downstreamSubgraphsExt = response.ext?.find((item: ExtItem) => item.type === 'downstream_subgraph_search');
                 const nodeInstallGuideExt = response.ext?.find((item: ExtItem) => item.type === 'node_install_guide');
+                const workflowUpdateExt = response.ext?.find((item: ExtItem) => item.type === 'workflow_update');
+                const debugCheckpointExt = response.ext?.find((item: ExtItem) => item.type === 'debug_checkpoint');
                 
                 // 检查是否是工作流成功加载的消息
                 const isWorkflowSuccessMessage = response.text === 'The workflow has been successfully loaded to the canvas';
+                
+                // 处理工作流更新：实时更新画布 
+                // "changes": [
+                //     {
+                //         "node_id": "4",
+                //         "parameter": "ckpt_name",
+                //         "old_value": "v1-5-pruned-emaonly-fp16.safetensors",
+                //         "new_value": "dreamshaperXL_v21TurboDPMSDE.safetensors"
+                //     }
+                // ]
+                if (workflowUpdateExt && workflowUpdateExt.data) {
+                    const { changes } = workflowUpdateExt.data;
+                    if (typeof window !== 'undefined' && (window as any).app && changes) {
+                        console.log('[MessageList] Applying parameter changes to canvas...');
+                        try {
+                            // 导入通用的参数修改函数
+                            import('../../utils/graphUtils').then(({ applyParameterChanges }) => {
+                                // 支持单个change对象或changes数组
+                                const changesList = Array.isArray(changes) ? changes : [changes];
+                                const success = applyParameterChanges(changesList);
+                                
+                                if (success) {
+                                    console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
+                                    changesList.forEach(change => {
+                                        console.log(`[MessageList] Updated parameter ${change.parameter} in node ${change.node_id} to:`, change.new_value);
+                                    });
+                                } else {
+                                    console.warn('[MessageList] Failed to apply some parameter changes');
+                                }
+                            }).catch(error => {
+                                console.error('[MessageList] Failed to import graphUtils:', error);
+                            });
+                        } catch (error) {
+                            console.error('[MessageList] Failed to update canvas:', error);
+                        }
+                    }
+                }
                 
                 // 移除频繁的日志输出
                 // console.log('[MessageList] Found extensions:', {
@@ -321,8 +361,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             />
                         </Suspense>
                     );
-                } else if (isWorkflowSuccessMessage) {
-                    // 使用DebugGuide组件来处理工作流成功加载的消息
+                } else if (isWorkflowSuccessMessage || message.format === 'debug_guide') {
+                    // 使用DebugGuide组件来处理工作流成功加载的消息或debug_guide格式的消息
                     ExtComponent = (
                         <Suspense fallback={<div>Loading...</div>}>
                             <LazyDebugGuide
@@ -333,10 +373,27 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             />
                         </Suspense>
                     );
+                } else if (debugCheckpointExt) {
+                    // 使用DebugResult组件来处理有debug checkpoint的消息
+                    ExtComponent = (
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <LazyDebugResult
+                                content={message.content}
+                                name={message.name}
+                                avatar={avatar}
+                                format={message.format}
+                            />
+                        </Suspense>
+                    );
                 }
 
-                // 如果是工作流成功消息，直接返回DebugGuide组件
-                if (isWorkflowSuccessMessage && ExtComponent) {
+                // 如果是工作流成功消息或debug_guide格式，直接返回DebugGuide组件
+                if ((isWorkflowSuccessMessage || message.format === 'debug_guide') && ExtComponent) {
+                    return ExtComponent;
+                }
+
+                // 如果有debug checkpoint，直接返回DebugResult组件
+                if (debugCheckpointExt && ExtComponent) {
                     return ExtComponent;
                 }
 

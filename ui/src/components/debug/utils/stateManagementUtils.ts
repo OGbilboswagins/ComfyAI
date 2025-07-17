@@ -4,6 +4,7 @@
 import { generateUUID } from '../../../utils/uuid';
 import { clearStateFromLocalStorage } from './localStorageUtils';
 import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
+import { applyNodeParameters } from '../../../utils/graphUtils';
 
 /**
  * 重置所有状态变量
@@ -165,35 +166,22 @@ export const handleApplySelected = async (
     
     // Use structured parameter format
     if (selectedParams.nodeParams) {
-      // Iterate over all node parameters
-      Object.entries(selectedParams.nodeParams).forEach(([nodeId, nodeParams]) => {
-        // Get node
-        const node = app.graph._nodes_by_id[nodeId];
-        if (!node || !node.widgets) return;
+      // 使用通用的节点参数应用函数
+      const success = applyNodeParameters(selectedParams.nodeParams);
+      
+      if (success) {
+        console.log('[stateManagementUtils] Successfully applied selected parameters to canvas');
         
-        // Iterate over node parameters
-        Object.entries(nodeParams as Record<string, any>).forEach(([paramName, value]) => {
-          // Find corresponding widget in node widgets
-          for (const widget of node.widgets) {
-            if (widget.name === paramName) {
-              // Set widget value
-              widget.value = value;
-              break;
-            }
-          }
-        });
-      });
-      
-      // Mark canvas as dirty, trigger re-render
-      app.graph.setDirtyCanvas(false, true);
-      
-      // Show notification message
-      setNotificationVisible(true);
-      
-      // Hide notification after 3 seconds
-      setTimeout(() => {
-        setNotificationVisible(false);
-      }, 3000);
+        // Show notification message
+        setNotificationVisible(true);
+        
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+          setNotificationVisible(false);
+        }, 3000);
+      } else {
+        console.warn('[stateManagementUtils] Failed to apply selected parameters to canvas');
+      }
     }
   }
 };

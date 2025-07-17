@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-07-15 20:37:58
+ * @LastEditTime: 2025-07-16 17:28:32
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -652,6 +652,68 @@ export namespace WorkflowChatAPI {
       } else {
         throw new Error(error instanceof Error ? error.message : 'An error occurred while debugging the workflow.');
       }
+    }
+  }
+
+  export async function saveWorkflowCheckpoint(
+    sessionId: string,
+    workflowApi: any,
+    workflowUi?: any,
+    checkpointType: 'debug_start' | 'debug_complete' = 'debug_start'
+  ): Promise<{ version_id: number; checkpoint_type: string }> {
+    try {
+      const response = await fetch('/api/save-workflow-checkpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'trace-id': generateUUID(),
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          workflow_api: workflowApi,
+          workflow_ui: workflowUi,
+          checkpoint_type: checkpointType
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to save workflow checkpoint');
+      }
+
+      return result.data;
+    } catch (error) {
+      console.error('Error saving workflow checkpoint:', error);
+      throw error;
+    }
+  }
+
+  export async function restoreWorkflowCheckpoint(
+    versionId: number
+  ): Promise<{
+    version_id: number;
+    workflow_data: any;
+    workflow_data_ui?: any;
+    attributes: any;
+    created_at: string;
+  }> {
+    try {
+      const response = await fetch(`/api/restore-workflow-checkpoint?version_id=${versionId}`, {
+        method: 'GET',
+        headers: {
+          'trace-id': generateUUID(),
+        },
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to restore workflow checkpoint');
+      }
+
+      return result.data;
+    } catch (error) {
+      console.error('Error restoring workflow checkpoint:', error);
+      throw error;
     }
   }
 }
