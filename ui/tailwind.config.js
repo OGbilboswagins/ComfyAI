@@ -38,6 +38,9 @@ export default {
           900: 'color-mix(in srgb, var(--p-text-color) 90%, transparent)',
         },
       },
+      backgroundImage: {
+        'showcase-bg': 'linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 5%, transparent) 20%, color-mix(in srgb, var(--p-text-color) 40%, transparent) 100%)',
+    },
       animation: {
         // bounce: 'bounce 1s infinite',
       }    
