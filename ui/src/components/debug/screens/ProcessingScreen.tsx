@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { manageQueue, interruptProcessing } from '../../../apis/comfyApiCustom';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 interface ProcessingScreenProps {
   selectedNodes: any[];
@@ -12,8 +13,7 @@ interface ProcessingScreenProps {
   completedCount: number;
   errorMessage: string | null;
   handleClose: (event?: React.MouseEvent) => void;
-  setIsProcessing: React.Dispatch<React.SetStateAction<boolean>>;
-  setCurrentScreen: React.Dispatch<React.SetStateAction<number>>;
+  updateState: (key: StateKey, value: any) => void;
   cleanupPolling?: () => void;
 }
 
@@ -25,8 +25,7 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
   completedCount,
   errorMessage,
   handleClose,
-  setIsProcessing,
-  setCurrentScreen,
+  updateState,
   cleanupPolling
 }) => {
   // 处理取消生成
@@ -38,8 +37,8 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
     if (cleanupPolling) {
       cleanupPolling();
     }
-    setIsProcessing(false);
-    setCurrentScreen(2);
+    updateState(StateKey.IsProcessing, false);
+    updateState(StateKey.CurrentSceen, 2);
   };
 
   return (

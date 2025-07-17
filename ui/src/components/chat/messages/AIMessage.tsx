@@ -75,7 +75,7 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
           rehypeKatex
         ]}
         remarkPlugins={[remarkGfm, remarkMath]}
-        className={`prose prose-xs prose-neutral prose-a:text-accent-foreground/50 break-words [&>*]:!my-1 leading-relaxed text-xs text-gray-800
+        className={`prose prose-xs prose-neutral prose-a:text-accent-foreground/50 break-words [&>*]:!my-1 leading-relaxed text-xs text-gray-700
                   prose-headings:font-semibold
                   prose-h1:text-base
                   prose-h2:text-sm
@@ -168,8 +168,13 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
           pre: ({ children }) => {
             return <pre className="text-xs bg-gray-100 text-gray-800 rounded p-2 overflow-x-auto">{children}</pre>
           },
-          img: ({ node, ...props }) => (
-            <div className="w-1/2 mx-auto">
+          img: ({ node, ...props }) => {
+            let isGif = false;
+            const srcStrs = props.src?.split('?');
+            if (srcStrs && srcStrs.length > 0) {
+              isGif = srcStrs[0]?.endsWith('.gif') || srcStrs[0]?.endsWith('.webp');
+            }
+            return (<div className={`${isGif ? '' : 'w-1/2'} mx-auto`}>
               <img
                 {...props}
                 loading="lazy"
@@ -179,8 +184,8 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
                   e.currentTarget.style.opacity = '0';
                 }}
               />
-            </div>
-          ),
+            </div>)
+          },
           a: ({ href, children }) => {
             let messageType = 'markdown';
             let messageId = null;
@@ -265,7 +270,7 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
               {guides.map((guide: string, index: number) => (
                 <button
                   key={index}
-                  className="px-3 py-1.5 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-[12px] w-[calc(50%-0.25rem)]"
+                  className="px-3 py-1.5 text-gray-700 rounded-md hover:!bg-gray-50 transition-colors text-[12px] w-[calc(50%-0.25rem)] border border-gray-700"
                   onClick={() => onOptionClick?.(guide)}
                 >
                   {guide}

@@ -10,6 +10,8 @@ import { generateUUID } from "../../utils/uuid";
 import { app } from "../../utils/comfyapp";
 import { addNodeOnGraph } from "../../utils/graphUtils";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import Showcase from "./messages/Showcase";
+import { useChatContext } from "../../context/ChatContext";
 
 // Define types for ext items to avoid implicit any
 interface ExtItem {
@@ -65,16 +67,32 @@ const LazyDebugResult = lazy(() => import('./messages/DebugResult').then(m => ({
 const DEFAULT_COUNT = 3;
 
 export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading, isActive }: MessageListProps) {
+    const { isAutoScroll } = useChatContext()
+
     const [currentIndex, setCurrentIndex] = useState<number>(0)
     const [currentMessages, setCurrentMessages] = useState<FinallyMessageProps[]>([])
-
     const scrollRef = useRef<HTMLDivElement>(null)
     const lastMessagesCount = useRef<number>(0)
     const currentScrollHeight = useRef<number>(0) 
     const isLoadHistory = useRef<boolean>(false)
+    
+    useEffect(() => {
+        const el = scrollRef.current
+        if (!el) return;
+          
+        const handleScroll = () => {
+            if (!!scrollRef.current) {
+                isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 10
+            }
+            currentScrollHeight.current = el.scrollHeight
+        };
+
+        el.addEventListener('scroll', handleScroll);
+        return () => el.removeEventListener('scroll', handleScroll);
+    }, [])
 
     const onFinishLoad = () => {
-        if (!!scrollRef?.current) {
+        if (!!scrollRef?.current && isAutoScroll.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }
@@ -90,6 +108,10 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 content={message.content} 
                 trace_id={message.trace_id} 
             />;
+        }
+
+        if (message.role === 'showcase') {
+            return <Showcase />
         }
 
         if (message.role === 'ai' || message.role === 'tool') {
@@ -527,10 +549,13 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         if (!!scrollRef?.current) {
             if (isLoadHistory.current) {
                 // 加载历史数据需要修改scrolltop保证当前视图不变
+                // console.log('scrollRef.current.scrollHeight--->', scrollRef.current.scrollHeight, currentScrollHeight.current)
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
                 isLoadHistory.current = false
             } else {
-                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+                if (isAutoScroll.current) {
+                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+                }
             }
             currentScrollHeight.current = scrollRef.current.scrollHeight
         }

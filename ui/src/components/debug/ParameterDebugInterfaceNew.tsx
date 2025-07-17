@@ -6,7 +6,7 @@ import { app } from '../../utils/comfyapp';
 import { useChatContext } from '../../context/ChatContext';
 import { InitialScreen } from './screens/InitialScreen';
 import { ConfigureParameterScreen } from './screens/ConfigureParameterScreen';
-import { ConfirmConfigurationScreen } from './screens/ConfirmConfigurationScreen';
+import { ComfyNode, ConfirmConfigurationScreen } from './screens/ConfirmConfigurationScreen';
 import { ProcessingScreen } from './screens/ProcessingScreen';
 import { ResultGalleryScreen } from './screens/ResultGalleryScreen';
 import { AIWritingModal } from './modals/AIWritingModal';
@@ -95,6 +95,22 @@ import {
 } from './utils/stateManagementUtils';
 
 // Note: Removed duplicate interface definitions to use imported types instead
+export const enum StateKey {
+  CurrentSceen = 'currentSceen',
+  SelectedParams = 'selectedParams',
+  TaskId = 'taskId',
+  IsProcessing = 'isProcessing',
+  IsCompleted = 'isCompleted',
+  CompletedCount = 'completedCount',
+  TotalCount = 'totalCount',
+  SelectedImageIndex = 'selectedImageIndex',
+  GeneratedImages = 'generatedImages',
+  ParamTestValues = 'paramTestValues',
+  SearchTerms = 'searchTerms',  
+  InputValues = 'inputValues',
+  CurrentPage = 'currentPage',
+  TextInputs = 'textInputs',
+}
 
 export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = ({
   selectedNodes,
@@ -174,9 +190,11 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Add a ref to track the current polling session ID
   const pollingSessionIdRef = useRef<string | null>(null);
+  const isInitial = useRef<boolean>(true)
   
   // Add loading state after other state declarations
   const [isLoading, setIsLoading] = useState(() => visible); // Initialize loading based on visibility
+  const [isGetLocalstorage, setIsGetLocalstorage] = useState(false);
 
   // Load history items when component loads or when isHistoryVisible changes
   useEffect(() => {
@@ -200,21 +218,21 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   
   // Add function to handle text input changes - Use imported utility
   const handleTextInputChange = (nodeId: string, paramName: string, index: number, value: string) => {
-    const currentTexts = utilsHandleTextInputChange(nodeId, paramName, index, value, textInputs, setTextInputs);
+    const currentTexts = utilsHandleTextInputChange(nodeId, paramName, index, value, textInputs, updateState);
     // Also update paramTestValues with the new value directly
     updateParamTestValues(nodeId, paramName, currentTexts);
   };
   
   // Add function to add a new text input - Use imported utility
   const handleAddTextInput = (nodeId: string, paramName: string) => {
-    const updatedTexts = utilsHandleAddTextInput(nodeId, paramName, textInputs, setTextInputs);
+    const updatedTexts = utilsHandleAddTextInput(nodeId, paramName, textInputs, updateState);
     // Also update paramTestValues
     updateParamTestValues(nodeId, paramName, updatedTexts);
   };
   
   // Add function to remove a text input - Use imported utility
   const handleRemoveTextInput = (nodeId: string, paramName: string, index: number) => {
-    const updatedTexts = utilsHandleRemoveTextInput(nodeId, paramName, index, textInputs, setTextInputs);
+    const updatedTexts = utilsHandleRemoveTextInput(nodeId, paramName, index, textInputs, updateState);
     // Also update paramTestValues
     updateParamTestValues(nodeId, paramName, updatedTexts);
   };
@@ -234,7 +252,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       aiWritingModalText,
       task_id,
       textInputs,
-      setTextInputs,
+      updateState,
       updateParamTestValues,
       setAiWritingModalVisible
     );
@@ -271,13 +289,13 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
     setIsHistoryVisible(false);
     
     // Set generated images from history item
-    setGeneratedImages(historyItem.generatedImages || []);
+    updateState(StateKey.GeneratedImages, historyItem.generatedImages || []);
     
     // Reset selected image index
-    setSelectedImageIndex(null);
+    updateState(StateKey.SelectedImageIndex, null);
     
     // Set current page to 1
-    setCurrentPage(1);
+    updateState(StateKey.CurrentPage, 1);
   };
 
   // Add function to close history item view
@@ -289,9 +307,83 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
     setSelectedHistoryItem(null);
   };
 
+  const doSaveState = (key: StateKey, value: any) => {
+    console.log('key--->', key, value)
+    const stateToSave = {
+      currentScreen,
+      selectedParams,
+      task_id,
+      isProcessing,
+      isCompleted,
+      completedCount,
+      totalCount,
+      selectedImageIndex,
+      generatedImages,
+      paramTestValues,
+      searchTerms,
+      inputValues,
+      currentPage,
+      textInputs
+    };
+    console.log('doSaveState-->', stateToSave)
+    saveStateToLocalStorage({
+      ...stateToSave,
+      [key]: value
+    });
+  }
+
+  const updateState = (key: StateKey, value: any) => {
+    switch(key) {
+      case StateKey.CurrentSceen:
+        setCurrentScreen(value)
+        break;
+      case StateKey.SelectedParams:
+        setSelectedParams(value)
+        break;
+      case StateKey.TaskId:   
+        setTask_id(value);
+        break;
+      case StateKey.IsProcessing:
+        setIsProcessing(value);
+        break;
+      case StateKey.IsCompleted:  
+        setIsCompleted(value);
+        break;
+      case StateKey.CompletedCount:
+        setCompletedCount(value);
+        break;
+      case StateKey.TotalCount:
+        setTotalCount(value);
+        break;
+      case StateKey.SelectedImageIndex:
+        setSelectedImageIndex(value);
+        break;
+      case StateKey.GeneratedImages:  
+        setGeneratedImages(value);  
+        break;
+      case StateKey.ParamTestValues:
+        setParamTestValues(value);
+        break;
+      case StateKey.SearchTerms:
+        setSearchTerms(value);
+        break;
+      case StateKey.InputValues:
+        setInputValues(value);
+        break;
+      case StateKey.CurrentPage:
+        setCurrentPage(value);
+        break;
+      case StateKey.TextInputs:
+        setTextInputs(value);
+        break;
+    }
+    // Save state to localStorage after each update
+    doSaveState(key, value);
+  }
+  
   // Add useEffect to initialize parameter test values when selectedNodes change
   useEffect(() => {
-    if (!selectedNodes || selectedNodes.length === 0) return;
+    if (!isGetLocalstorage || !selectedNodes || selectedNodes.length === 0) return;
     
     // Initialize empty parameter test values for any newly selected nodes
     const updatedParamTestValues = { ...paramTestValues };
@@ -317,9 +409,9 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
     
     // Update state if changes were made
     if (JSON.stringify(updatedParamTestValues) !== JSON.stringify(paramTestValues)) {
-      setParamTestValues(updatedParamTestValues);
+      updateState(StateKey.ParamTestValues, updatedParamTestValues);
     }
-  }, [selectedNodes, paramTestValues]);
+  }, [selectedNodes, paramTestValues, isGetLocalstorage]);
 
   // Add useEffect to update screen state in context when screen changes
   useEffect(() => {
@@ -379,11 +471,39 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       // Only generate a new task_id if we don't have one in localStorage
       const savedState = JSON.parse(localStorage.getItem(PARAM_DEBUG_STORAGE_KEY) || '{}');
       if (!savedState.task_id) {
-        setTask_id(generateUUID());
+        updateState(StateKey.TaskId, generateUUID());
       }
     }
   }, [visible]);
 
+  useEffect(() => {
+    if (!!isProcessing && !!isInitial.current) {
+      isInitial.current = false;
+      let selectedImageNodeId: number | undefined = 0;
+      const nodes = Object.values(app.graph._nodes_by_id) as ComfyNode[];
+      const saveNodeIds: number[] = [];
+      const previewNodeIds: number[] = [];
+      
+      for(const node of nodes) {
+        if(node.type === "SaveImage") {
+          saveNodeIds.push(node.id);
+        } else if(node.type === "PreviewImage") {
+          previewNodeIds.push(node.id);
+        }
+      }
+      
+      // Combine and set state
+      const allImageNodeIds = [...saveNodeIds, ...previewNodeIds];      
+      // If there's exactly one node, set it as selected
+      if(allImageNodeIds.length === 1) {
+        selectedImageNodeId = allImageNodeIds[0];
+      } else if(allImageNodeIds.length > 1) {
+        // If multiple nodes, enable selection warning
+        selectedImageNodeId = undefined
+      }
+      handleStartGeneration(undefined, selectedImageNodeId)
+    }
+  }, [isProcessing])
   // Modify the useEffect that loads state to handle loading state
   useEffect(() => {
     // Load state from localStorage when component becomes visible
@@ -394,7 +514,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
         const savedState = localStorage.getItem(PARAM_DEBUG_STORAGE_KEY);
         if (savedState) {
           const parsedState = JSON.parse(savedState);
-          
+
           // Only restore state if we have selected nodes
           if (!selectedNodes || selectedNodes.length === 0) {
             console.log("Not restoring parameter debug state: no nodes selected");
@@ -407,12 +527,14 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
           if (parsedState.selectedParams) setSelectedParams(parsedState.selectedParams);
           if (parsedState.task_id) setTask_id(parsedState.task_id);
           
+          setIsProcessing(parsedState?.isProcessing);
+
           // Don't restore processing state if it was interrupted (e.g., by page refresh)
           // Only restore isCompleted if we have generated images
           const hasImages = parsedState.generatedImages && parsedState.generatedImages.length > 0;
-          if (parsedState.isProcessing !== undefined && !parsedState.isProcessing) {
-            setIsProcessing(false);
-          }
+          // if (parsedState.isProcessing !== undefined && !parsedState.isProcessing) {
+          //   setIsProcessing(false);
+          // }
           if (parsedState.isCompleted !== undefined && hasImages) {
             setIsCompleted(parsedState.isCompleted);
           }
@@ -426,6 +548,9 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
           if (parsedState.inputValues) setInputValues(parsedState.inputValues);
           if (parsedState.currentPage !== undefined) setCurrentPage(parsedState.currentPage);
           if (parsedState.textInputs) setTextInputs(parsedState.textInputs);
+          if (!isGetLocalstorage) {
+            setIsGetLocalstorage(true)
+          }
         }
       } catch (error) {
         console.error('Error loading parameter debug state:', error);
@@ -439,31 +564,31 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       // Reset loading state when component becomes invisible
       setIsLoading(true);
     }
-    
+
     // Save current state when component becomes invisible but don't clear it
-    return () => {
-      if (!visible) return; // Don't do anything if already invisible
+    // return () => {
+    //   if (!visible) return; // Don't do anything if already invisible
       
-      const stateToSave = {
-        currentScreen,
-        selectedParams,
-        task_id,
-        isProcessing,
-        isCompleted,
-        completedCount,
-        totalCount,
-        selectedImageIndex,
-        generatedImages,
-        paramTestValues,
-        searchTerms,
-        inputValues,
-        currentPage,
-        textInputs
-      };
-      
-      saveStateToLocalStorage(stateToSave);
-    };
-  }, [visible]);
+    //   const stateToSave = {
+    //     currentScreen,
+    //     selectedParams,
+    //     task_id,
+    //     isProcessing,
+    //     isCompleted,
+    //     completedCount,
+    //     totalCount,
+    //     selectedImageIndex,
+    //     generatedImages,
+    //     paramTestValues,
+    //     searchTerms,
+    //     inputValues,
+    //     currentPage,
+    //     textInputs
+    //   };
+    //   console.log('saveStateToLocalStorage-->', stateToSave)
+    //   saveStateToLocalStorage(stateToSave);
+    // };
+  }, [visible, selectedNodes]);
 
   // Helper function to reset all state variables - Use imported localStorage utility
   const resetAllStates = (clearStorage = false) => {
@@ -504,66 +629,67 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
     setIsHistoryVisible(false);
     setSelectedHistoryItem(null);
   };
-  
+
   // Add useEffect to save state when relevant states change - Use imported localStorage utility
-  useEffect(() => {
-    if (!visible) return;
+  // useEffect(() => {
+  //   // if (!visible || !selectedNodes || selectedNodes?.length === 0) return;
     
-    // Use a timeout to debounce saves (only save after 500ms of no changes)
-    const saveTimeout = setTimeout(() => {
-      const stateToSave = {
-        currentScreen,
-        selectedParams,
-        task_id,
-        isProcessing,
-        isCompleted,
-        completedCount,
-        totalCount,
-        selectedImageIndex,
-        generatedImages,
-        paramTestValues,
-        searchTerms,
-        inputValues,
-        currentPage,
-        textInputs
-      };
-      
-      saveStateToLocalStorage(stateToSave);
-    }, 500);
+  //   // Use a timeout to debounce saves (only save after 500ms of no changes)
+  //   // const saveTimeout = setTimeout(() => {
+  //     if (!visible || !selectedNodes || selectedNodes?.length === 0) return;
+
+  //     const stateToSave = {
+  //       currentScreen,
+  //       selectedParams,
+  //       task_id,
+  //       isProcessing,
+  //       isCompleted,
+  //       completedCount,
+  //       totalCount,
+  //       selectedImageIndex,
+  //       generatedImages,
+  //       paramTestValues,
+  //       searchTerms,
+  //       inputValues,
+  //       currentPage,
+  //       textInputs
+  //     };
+  //     console.log('saveStateToLocalStorage-->', stateToSave)
+  //     // saveStateToLocalStorage(stateToSave);
+  //   // }, 500);
     
-    // Clear timeout if state changes again before it fires
-    return () => clearTimeout(saveTimeout);
-  }, [
-    visible,
-    currentScreen,
-    selectedParams,
-    task_id,
-    isProcessing,
-    isCompleted,
-    completedCount,
-    totalCount,
-    selectedImageIndex,
-    generatedImages,
-    paramTestValues,
-    searchTerms,
-    inputValues,
-    currentPage,
-    textInputs
-  ]);
+  //   // Clear timeout if state changes again before it fires
+  //   // return () => clearTimeout(saveTimeout);
+  // }, [
+  //   visible,
+  //   selectedNodes,
+  //   currentScreen,
+  //   selectedParams,
+  //   task_id,
+  //   isProcessing,
+  //   isCompleted,
+  //   completedCount,
+  //   totalCount,
+  //   selectedImageIndex,
+  //   generatedImages,
+  //   paramTestValues,
+  //   searchTerms,
+  //   inputValues,
+  //   currentPage,
+  //   textInputs
+  // ]);
 
   // Navigate to next screen
   const handleNext = (event?: React.MouseEvent) => {
     utilsHandleNext(
       currentScreen,
-      setCurrentScreen,
       selectedParams,
       paramTestValues,
-      setParamTestValues,
       textInputs,
       selectedNodes,
-      setTotalCount,
       setErrorMessage,
       generateParameterCombinations,
+      updateState,
       event
     );
   };
@@ -572,21 +698,19 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   const handlePrevious = (event?: React.MouseEvent) => {
     utilsHandlePrevious(
       currentScreen,
-      setCurrentScreen,
       selectedNodes,
       paramTestValues,
-      setParamTestValues,
       textInputs,
       isCompleted,
-      setIsCompleted,
       setErrorMessage,
+      updateState,
       event
     );
   };
 
   // Handle parameter selection
   const handleParamSelect = (param: string, event?: React.MouseEvent) => {
-    utilsHandleParamSelect(param, selectedParams, setSelectedParams, paramTestValues, setParamTestValues, event);
+    utilsHandleParamSelect(param, selectedParams, paramTestValues, updateState, event);
   };
   
   // Toggle dropdown open status - Use nodeId_paramName as key
@@ -596,17 +720,17 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   
   // Update parameter test values - Modify to support new parameter structure
   const updateParamTestValues = (nodeId: string, paramName: string, values: any[]) => {
-    utilsUpdateParamTestValues(nodeId, paramName, values, paramTestValues, setParamTestValues);
+    utilsUpdateParamTestValues(nodeId, paramName, values, paramTestValues, updateState);
   };
   
   // Handle selecting specific test values - Modify to support new parameter structure
   const handleTestValueSelect = (nodeId: string, paramName: string, value: any, event?: React.MouseEvent) => {
-    utilsHandleTestValueSelect(nodeId, paramName, value, paramTestValues, setParamTestValues, event);
+    utilsHandleTestValueSelect(nodeId, paramName, value, paramTestValues, updateState, event);
   };
 
   // Add processing search - Use nodeId_paramName as key
   const handleSearch = (nodeId: string, paramName: string, term: string) => {
-    utilsHandleSearch(nodeId, paramName, term, searchTerms, setSearchTerms);
+    utilsHandleSearch(nodeId, paramName, term, searchTerms, updateState);
   };
 
   // Add select all - Modify to support new parameter structure
@@ -620,7 +744,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       newPage,
       imagesPerPage,
       generatedImages,
-      setCurrentPage,
+      updateState,
       event
     );
   };
@@ -642,16 +766,12 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
     utilsHandleStartGeneration(
       paramTestValues,
       task_id,
-      setIsProcessing,
-      setCompletedCount,
       setErrorMessage,
-      setGeneratedImages,
-      setIsCompleted,
-      setCurrentPage,
       pollingSessionIdRef,
       pollingTimeoutRef,
       generateParameterCombinations,
       app,
+      updateState,
       event,
       selectedNodeId
     );
@@ -659,7 +779,12 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
 
   // Handle selecting an image
   const handleSelectImage = (index: number, event?: React.MouseEvent) => {
-    utilsHandleSelectImage(index, setSelectedImageIndex, event);
+    // utilsHandleSelectImage(index, setSelectedImageIndex, event);
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    updateState(StateKey.SelectedImageIndex, index);
   };
 
   // Add new function to open image modal
@@ -896,8 +1021,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
           completedCount={completedCount}
           errorMessage={errorMessage}
           handleClose={handleClose}
-          setIsProcessing={setIsProcessing}
-          setCurrentScreen={setCurrentScreen}
+          updateState={updateState}
           cleanupPolling={cleanupPolling}
         />
         
@@ -948,7 +1072,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
           handlePrevious={handlePrevious}
           handleClose={handleClose}
           inputValues={inputValues}
-          setInputValues={setInputValues}
+          updateState={updateState}
           textInputs={textInputs}
           handleTextInputChange={handleTextInputChange}
           handleAddTextInput={handleAddTextInput}

@@ -36,25 +36,29 @@ export default {
           700: 'color-mix(in srgb, var(--p-text-color) 70%, transparent)',
           800: 'color-mix(in srgb, var(--p-text-color) 80%, transparent)',
           900: 'color-mix(in srgb, var(--p-text-color) 90%, transparent)',
-        }
+        },
       },
+      backgroundImage: {
+        'showcase-bg': 'linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 5%, transparent) 20%, color-mix(in srgb, var(--p-text-color) 40%, transparent) 100%)',
+    },
       animation: {
         // bounce: 'bounce 1s infinite',
-      }    },
-      typography: {
-        DEFAULT: {
-          css: {
-            '--tw-prose-links': 'inherit',
-            '--tw-prose-headings': 'inherit',
-          },
+      }    
+    },
+    typography: {
+      DEFAULT: {
+        css: {
+          '--tw-prose-links': 'inherit',
+          '--tw-prose-headings': 'inherit',
         },
-        neutral: {
-          css: {
-            '--tw-prose-links': 'inherit',
-            '--tw-prose-headings': 'inherit',
-          },
-        }
       },
+      neutral: {
+        css: {
+          '--tw-prose-links': 'inherit',
+          '--tw-prose-headings': 'inherit',
+        },
+      }
+    },
   },
   plugins: [
     typography,

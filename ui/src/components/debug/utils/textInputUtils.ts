@@ -1,6 +1,8 @@
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
+import { StateKey } from "../ParameterDebugInterfaceNew";
+
 /**
  * Updates text input values in the state
  */
@@ -10,22 +12,18 @@ export const handleTextInputChange = (
   index: number, 
   value: string,
   textInputs: {[key: string]: string[]},
-  setTextInputs: React.Dispatch<React.SetStateAction<{[key: string]: string[]}>>
+  updateState: (key: StateKey, value: any) => void,
 ) => {
   const textKey = `${nodeId}_${paramName}`;
   
-  setTextInputs(prev => {
-    const currentTexts = [...(prev[textKey] || [])];
-    currentTexts[index] = value;
-    return {
-      ...prev,
-      [textKey]: currentTexts
-    };
-  });
-  
-  // Also return the current texts with the new value directly
   const currentTexts = [...(textInputs[textKey] || [])];
   currentTexts[index] = value;
+  updateState(StateKey.TextInputs, {
+    ...textInputs,
+    [textKey]: currentTexts.map((text, i) => (i === index ? value : text))
+  })
+  
+  // Also return the current texts with the new value directly
   return currentTexts;
 };
 
@@ -36,21 +34,20 @@ export const handleAddTextInput = (
   nodeId: string, 
   paramName: string,
   textInputs: {[key: string]: string[]},
-  setTextInputs: React.Dispatch<React.SetStateAction<{[key: string]: string[]}>>
+  updateState: (key: StateKey, value: any) => void,
 ) => {
   const textKey = `${nodeId}_${paramName}`;
   
-  setTextInputs(prev => {
-    const currentTexts = [...(prev[textKey] || [])];
-    currentTexts.push('');
-    return {
-      ...prev,
-      [textKey]: currentTexts
-    };
-  });
+  const currentTexts = [...(textInputs[textKey] || [])];
+  currentTexts.push('');
+
+  updateState(StateKey.TextInputs, {
+    ...textInputs,
+    [textKey]: currentTexts
+  })
   
   // Return the updated texts
-  return [...(textInputs[textKey] || []), ''];
+  return currentTexts
 };
 
 /**
@@ -61,21 +58,18 @@ export const handleRemoveTextInput = (
   paramName: string, 
   index: number,
   textInputs: {[key: string]: string[]},
-  setTextInputs: React.Dispatch<React.SetStateAction<{[key: string]: string[]}>>
+  updateState: (key: StateKey, value: any) => void,
 ) => {
   const textKey = `${nodeId}_${paramName}`;
   
-  setTextInputs(prev => {
-    const currentTexts = [...(prev[textKey] || [])];
-    currentTexts.splice(index, 1);
-    return {
-      ...prev,
-      [textKey]: currentTexts
-    };
-  });
+  const currentTexts = [...(textInputs[textKey] || [])];
+  currentTexts.splice(index, 1);
+
+  updateState(StateKey.TextInputs, {
+    ...textInputs,
+    [textKey]: currentTexts
+  })
   
   // Return the updated texts
-  const updatedTexts = [...(textInputs[textKey] || [])];
-  updatedTexts.splice(index, 1);
-  return updatedTexts;
+  return currentTexts;
 }; 

@@ -1,7 +1,8 @@
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
-import React, { createContext, useContext, useReducer, Dispatch } from 'react';
+import React, { createContext, useContext, useReducer, Dispatch, useRef } from 'react';
 import { Message } from '../types/types';
+import { app } from '../utils/comfyapp';
 
 // Add tab type definition
 export type TabType = 'chat' | 'parameter-debug';
@@ -22,6 +23,7 @@ interface ChatState {
   showChat: boolean;
   activeTab: TabType;
   screenState: ScreenState | null; // Add screen state
+  guiding: boolean;
 }
 
 type ChatAction = 
@@ -35,17 +37,19 @@ type ChatAction =
   | { type: 'SET_SHOW_CHAT'; payload: boolean }
   | { type: 'SET_ACTIVE_TAB'; payload: TabType }
   | { type: 'SET_SCREEN_STATE'; payload: ScreenState | null } // Add action for setting screen state
-  | { type: 'CLEAR_MESSAGES' };
+  | { type: 'SET_GUIDING', payload: boolean}
+  | { type: 'CLEAR_MESSAGES' }
 
 const initialState: ChatState = {
   messages: [],
-  selectedNode: null,
+  selectedNode: Object.keys(app?.canvas?.selected_nodes ?? {})?.length ? Object.values(app?.canvas?.selected_nodes) : null,
   installedNodes: [],
   loading: false,
   sessionId: null,
   showChat: false,
   activeTab: 'chat',
   screenState: null, // Initialize as null
+  guiding: false
 };
 
 function chatReducer(state: ChatState, action: ChatAction): ChatState {
@@ -75,6 +79,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, activeTab: action.payload };
     case 'SET_SCREEN_STATE':
       return { ...state, screenState: action.payload };
+    case 'SET_GUIDING':
+      return { ...state, guiding: action.payload };
     case 'CLEAR_MESSAGES':
       return { ...state, messages: [] };
     default:
@@ -85,10 +91,16 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 const ChatContext = createContext<{
   state: ChatState;
   dispatch: Dispatch<ChatAction>;
-}>({ state: initialState, dispatch: () => null });
+  isAutoScroll: React.MutableRefObject<boolean>;
+  showcasIng: React.MutableRefObject<boolean>;
+}>({ state: initialState, dispatch: () => null, isAutoScroll: {current: true}, showcasIng: {current: false} });
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
+
+  // 处理chat是否自动滚动-true: 表示会自动根据内容滚动到最下面，false: 表示不会自动滚动
+  const isAutoScroll = useRef<boolean>(true);
+  const showcasIng = useRef<boolean>(true);
 
   // Update localStorage cache when messages or sessionId changes
   React.useEffect(() => {
@@ -98,7 +110,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [state.messages, state.sessionId]);
 
   return (
-    <ChatContext.Provider value={{ state, dispatch }}>
+    <ChatContext.Provider value={{ state, dispatch, isAutoScroll, showcasIng }}>
       {children}
     </ChatContext.Provider>
   );

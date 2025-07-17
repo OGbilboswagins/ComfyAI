@@ -17,7 +17,7 @@ interface ConfirmConfigurationScreenProps {
 }
 
 // Define node interface for type safety
-interface ComfyNode {
+export interface ComfyNode {
   id: number;
   type: string;
   widgets?: any[];

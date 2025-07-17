@@ -2,7 +2,7 @@
  * @Author: ai-business-hql ai.bussiness.hql@gmail.com
  * @Date: 2025-03-20 15:15:20
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-07-09 17:52:29
+ * @LastEditTime: 2025-07-17 15:19:41
  * @FilePath: /comfyui_copilot/ui/src/workflowChat/workflowChat.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -32,12 +32,21 @@ import { indexedDBManager } from '../utils/indexedDB';
 // Define the Tab type - We should import this from context to ensure consistency
 import type { TabType } from '../context/ChatContext';
 import { ParameterDebugInterface } from "../components/debug/ParameterDebugInterfaceV2";
+import { COPILOT_EVENTS } from "../constants/events";
+import { app } from "../utils/comfyapp";
 
 interface WorkflowChatProps {
     onClose?: () => void;
     visible?: boolean;
     triggerUsage?: boolean;
     onUsageTriggered?: () => void;
+}
+
+const enum DispatchEventType {
+    NONE = 'None',
+    USAGE = 'Usage',
+    PARAMETERS = 'Parameters',
+    DOWNSTREAM_NODES = 'DownstreamNodes'
 }
 
 // 优化公告组件样式 - 更加美观和专业，支持Markdown
@@ -144,10 +153,10 @@ const TabButton = ({
 }) => (
     <button
         onClick={onClick}
-        className={`px-4 py-2 font-medium text-xs transition-colors duration-200 ${
+        className={`px-4 py-2 font-medium text-xs transition-colors duration-200 border-b-2 ${
             active 
-                ? "text-blue-600 border-b-2 border-blue-600" 
-                : "text-gray-600 hover:text-blue-500 hover:border-b-2 hover:border-blue-300"
+                ? "text-[#71A3F2] border-[#71A3F2]" 
+                : "text-gray-600 border-transparent hover:!text-[#71A3F2] hover:!border-[#71A3F2]"
         }`}
     >
         {children}
@@ -155,8 +164,8 @@ const TabButton = ({
 );
 
 export default function WorkflowChat({ onClose, visible = true, triggerUsage = false, onUsageTriggered }: WorkflowChatProps) {
-    const { state, dispatch } = useChatContext();
-    const { messages, installedNodes, loading, sessionId, selectedNode, activeTab } = state;
+    const { state, dispatch, isAutoScroll, showcasIng } = useChatContext();
+    const { messages, installedNodes, loading, sessionId, selectedNode, activeTab, guiding } = state;
     const messageDivRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState<string>('');
     const [latestInput, setLatestInput] = useState<string>('');
@@ -171,7 +180,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     const [showAnnouncement, setShowAnnouncement] = useState<boolean>(false);
     // 添加 AbortController 引用
     const abortControllerRef = useRef<AbortController | null>(null);
-
+    const currentSelectedNode = useRef<any>(selectedNode)
+    const [dispatchEventType, setDispatchEventType] = useState<DispatchEventType>(DispatchEventType.NONE);
     // 使用自定义 hooks，只在visible为true且activeTab为chat时启用
     useMousePosition(visible && activeTab === 'chat');
     useNodeSelection(visible);
@@ -195,6 +205,21 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     // }, [messages])
 
     useEffect(() => {
+        switch(dispatchEventType) {
+            case DispatchEventType.USAGE:
+                onUsage()
+            break;
+            case DispatchEventType.PARAMETERS:
+                onParameters()
+            break;
+            case DispatchEventType.DOWNSTREAM_NODES:
+                onDownstreamNodes();
+            break;
+        }
+        setDispatchEventType(DispatchEventType.NONE)
+    }, [dispatchEventType])
+
+    useEffect(() => {
         if (activeTab !== 'chat') return;
         
         const fetchInstalledNodes = async () => {
@@ -204,6 +229,17 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         };
         fetchInstalledNodes();
     }, [activeTab]);
+
+    const showGuide = () => {
+        dispatch({ type: 'SET_GUIDING', payload: true });
+        dispatch({ type: 'SET_MESSAGES', payload: [
+            {
+                id: generateUUID(),
+                role: 'showcase',
+                content: ''
+            }
+        ]})
+    }
 
     // 获取历史消息
     const fetchMessages = async (sid: string) => {
@@ -217,7 +253,11 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
             
             // If not found in IndexedDB, try API
             const data = await WorkflowChatAPI.fetchMessages(sid);
-            dispatch({ type: 'SET_MESSAGES', payload: data });
+            if (data?.length > 0) {
+                dispatch({ type: 'SET_MESSAGES', payload: data });
+            } else {
+                showGuide()
+            }
             // Note: The localStorage cache is already updated in the fetchMessages API function
         } catch (error) {
             console.error('Error fetching messages:', error);
@@ -250,6 +290,28 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         const savedScreenState = localStorage.getItem("screenState");
         if (savedScreenState) {
             dispatch({ type: 'SET_SCREEN_STATE', payload: JSON.parse(savedScreenState) });
+        }
+
+        const onToolBoxUsage = () => {
+            setDispatchEventType(DispatchEventType.USAGE);
+        }
+
+        const onToolBoxParameters = () => {
+            setDispatchEventType(DispatchEventType.PARAMETERS);
+        }
+
+        const onToolBoxDownstreamNodes = () => {
+            setDispatchEventType(DispatchEventType.DOWNSTREAM_NODES);
+        }
+
+        window.addEventListener(COPILOT_EVENTS.TOOLBOX_USAGE, onToolBoxUsage);
+        window.addEventListener(COPILOT_EVENTS.TOOLBOX_PARAMETERS, onToolBoxParameters);
+        window.addEventListener(COPILOT_EVENTS.TOOLBOX_DOWNSTREAMNODES, onToolBoxDownstreamNodes);
+
+        return () => {
+            window.removeEventListener(COPILOT_EVENTS.TOOLBOX_USAGE, onToolBoxUsage);
+            window.removeEventListener(COPILOT_EVENTS.TOOLBOX_PARAMETERS, onToolBoxParameters);
+            window.removeEventListener(COPILOT_EVENTS.TOOLBOX_DOWNSTREAMNODES, onToolBoxDownstreamNodes);
         }
     }, []);
     
@@ -309,6 +371,12 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     }
 
     const handleSendMessage = async () => {
+        if (guiding) {
+            dispatch({ type: 'SET_GUIDING', payload: false });
+            dispatch({ type: 'CLEAR_MESSAGES' });
+        }
+        isAutoScroll.current = true
+        showcasIng.current = false;
         dispatch({ type: 'SET_LOADING', payload: true });
         if ((input.trim() === "" && !selectedNode) || !sessionId) return;
         setLatestInput(input);
@@ -464,6 +532,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     }
 
     const handleClearMessages = () => {
+        showcasIng.current = false;
         dispatch({ type: 'CLEAR_MESSAGES' });
         // Remove old session data
         const oldSessionId = state.sessionId;
@@ -476,6 +545,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         const newSessionId = generateUUID();
         dispatch({ type: 'SET_SESSION_ID', payload: newSessionId });
         localStorage.setItem("sessionId", newSessionId);
+        setTimeout(() => {
+            showGuide()
+        }, 500)
     };
 
     const avatar = (name?: string) => {
@@ -566,7 +638,49 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         }
     };
 
-    // Utility function to update localStorage cache and IndexedDB for messages
+    
+    const onUsage = () => {
+        handleSendMessageWithContent(`Reply in ${navigator.language} language: How does the ${selectedNode?.[0]?.type} node work? I need its official usage guide.`)
+    }
+
+    const onParameters = () => {
+        handleSendMessageWithContent(`Reply in ${navigator.language} language: Show me the technical specifications for the ${selectedNode?.[0].type} node's inputs and outputs.`)
+    }
+
+    const getDownstreamSubgraphExt = () => {
+        const nodeTypeSet = new Set<string>();
+        
+        function findUpstreamNodes(node: any, depth: number) {
+            if (!node || depth >= 1) return;
+            
+            if (node.inputs) {
+                for (const input of Object.values(node.inputs)) {
+                    const linkId = (input as any).link;
+                    if (linkId && app.graph.links[linkId]) {
+                        const originId = app.graph.links[linkId].origin_id;
+                        const originNode = app.graph._nodes_by_id[originId];
+                        if (originNode) {
+                            nodeTypeSet.add(originNode.type);
+                            findUpstreamNodes(originNode, depth + 1);
+                        }
+                    }
+                }
+            }
+        }
+    
+        if (!!selectedNode[0]) {
+            findUpstreamNodes(selectedNode[0], 0);
+            return [{"type": "upstream_node_types", "data": Array.from(nodeTypeSet)}];
+        }
+    
+        return null;
+    }
+
+    const onDownstreamNodes = () => {
+        handleSendMessageWithIntent('downstream_subgraph_search', getDownstreamSubgraphExt())
+    }
+
+    // Utility function to update localStorage cache for messages
     const updateMessagesCache = async (messages: Message[]) => {
         if (state.sessionId) {
             localStorage.setItem(`messages_${state.sessionId}`, JSON.stringify(messages));
@@ -673,9 +787,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     };
 
     // Initialize the parameter debug tab component with lazy loading
-    const parameterDebugTabComponent = React.useMemo(() => (
-        <ParameterDebugTab />
-    ), []);
+    // const parameterDebugTabComponent = React.useMemo(() => (
+    //     <ParameterDebugTab />
+    // ), []);
 
     if (!visible) return null;
 
@@ -740,19 +854,19 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                         isActive={activeTab === 'chat'}
                     />
                 {/* </div> */}
-
+                
                 <div 
                     className="border-t px-4 py-3 border-gray-200 bg-white sticky bottom-0"
                     style={{ display: activeTab === 'chat' ? 'block' : 'none' }}
                 >
-                    {selectedNode && (
+                    {/* {selectedNode && (
                         <SelectedNodeInfo 
                             nodeInfo={selectedNode}
                             onSendWithIntent={handleSendMessageWithIntent}
                             loading={loading}
                             onSendWithContent={handleSendMessageWithContent}
                         />
-                    )}
+                    )} */}
 
                     <ChatInput 
                         input={input}
@@ -775,7 +889,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     className="flex-1 flex flex-col h-0"
                     style={{ display: activeTab === 'parameter-debug' ? 'flex' : 'none' }}
                 >
-                    {parameterDebugTabComponent}
+                    <ParameterDebugTab />
                 </div>
             </div>
         </div>

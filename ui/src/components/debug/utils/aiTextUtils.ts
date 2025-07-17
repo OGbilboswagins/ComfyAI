@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 /**
  * 处理AI文本生成
@@ -76,7 +77,7 @@ export const addSelectedTexts = (
   aiWritingModalText: string,
   task_id: string,
   textInputs: {[nodeId_paramName: string]: string[]},
-  setTextInputs: React.Dispatch<React.SetStateAction<{[nodeId_paramName: string]: string[]}>>,
+  updateState: (key: StateKey, value: any) => void,
   updateParamTestValues: (nodeId: string, paramName: string, values: any[]) => void,
   setAiWritingModalVisible: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
@@ -92,13 +93,11 @@ export const addSelectedTexts = (
     return;
   }
   
-  setTextInputs(prev => {
-    const currentTexts = [...(prev[textKey] || [])];
-    return {
-      ...prev,
-      [textKey]: [...currentTexts, ...selectedTexts]
-    };
-  });
+  const currentTexts = [...(textInputs[textKey] || [])];
+  updateState(StateKey.TextInputs, {
+    ...textInputs,
+    [textKey]: [...currentTexts, ...selectedTexts]
+  })
 
   // Send tracking event
   WorkflowChatAPI.trackEvent({
