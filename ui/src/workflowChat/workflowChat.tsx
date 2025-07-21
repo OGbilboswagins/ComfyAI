@@ -859,14 +859,14 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     className="border-t px-4 py-3 border-gray-200 bg-white sticky bottom-0"
                     style={{ display: activeTab === 'chat' ? 'block' : 'none' }}
                 >
-                    {/* {selectedNode && (
+                    {selectedNode && (
                         <SelectedNodeInfo 
                             nodeInfo={selectedNode}
                             onSendWithIntent={handleSendMessageWithIntent}
                             loading={loading}
                             onSendWithContent={handleSendMessageWithContent}
                         />
-                    )} */}
+                    )}
 
                     <ChatInput 
                         input={input}
