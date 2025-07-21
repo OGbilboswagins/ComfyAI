@@ -17,8 +17,8 @@ import requests
 import sys
 import os
 
-from custom_nodes.comfyui_copilot.backend.service.debug_agent import debug_workflow_errors
-from custom_nodes.comfyui_copilot.backend.service.database import save_workflow_data, get_workflow_data_by_id
+from ..service.debug_agent import debug_workflow_errors
+from ..service.database import save_workflow_data, get_workflow_data_by_id
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'service'))
 try:
