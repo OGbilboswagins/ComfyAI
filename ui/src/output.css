@@ -234,6 +234,9 @@
   .right-12 {
     right: 3rem;
   }
+  .right-14 {
+    right: 3.5rem;
+  }
   .right-2 {
     right: 0.5rem;
   }
@@ -559,6 +562,9 @@
   .max-w-lg {
     max-width: 32rem;
   }
+  .max-w-none {
+    max-width: none;
+  }
   .flex-1 {
     flex: 1 1 0%;
   }
@@ -809,6 +815,10 @@
   .border-blue-100 {
     --tw-border-opacity: 1;
     border-color: rgb(219 234 254 / var(--tw-border-opacity, 1));
+  }
+  .border-blue-200 {
+    --tw-border-opacity: 1;
+    border-color: rgb(191 219 254 / var(--tw-border-opacity, 1));
   }
   .border-blue-300 {
     --tw-border-opacity: 1;
