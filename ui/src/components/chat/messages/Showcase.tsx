@@ -99,7 +99,7 @@ const Showcase: React.FC = () => {
       </div>
       {
         getShowcaes()?.list?.map((item, index) => <div 
-          className='h-[50px] flex flex-row items-center mt-4 bg-showcase-bg shadow-[0_4px_24px_rgba(0,0,0,0.12)] hover:!shadow-[0_0_12px_2px_#3b82f6] hover:!shadow-[0_0_0_4px_rgba(59,130,246,0.15)] px-4 py-2 rounded-full'
+          className='min-h-[50px] flex flex-row items-center mt-4 bg-showcase-bg shadow-[0_4px_24px_rgba(0,0,0,0.12)] hover:!shadow-[0_0_12px_2px_#3b82f6] hover:!shadow-[0_0_0_4px_rgba(59,130,246,0.15)] px-4 py-2 rounded-full'
           key={index.toString()}
           onClick={() => {
             isAutoScroll.current = true
@@ -121,7 +121,7 @@ const Showcase: React.FC = () => {
           }}
         >
           {ICONS[index]}
-          <div className='text-sm text-gray-900 font-normal ml-4'>
+          <div className='flex-1 text-sm text-gray-900 font-normal ml-4'>
             {item.name}
           </div>
         </div>)
