@@ -10,7 +10,7 @@ from agents.items import ItemHelpers
 from agents.run import Runner
 from agents.tool import function_tool
 from agents.tracing import set_tracing_disabled
-from custom_nodes.comfyui_copilot.backend.service.workflow_rewrite_agent import workflow_rewrite_agent
+from ..service.workflow_rewrite_agent import workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
 
 from ..service.parameter_agent import parameter_agent
