@@ -2,7 +2,7 @@
  * @Author: 晴知 qingli.hql@alibaba-inc.com
  * @Date: 2024-11-28 10:19:07
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-05 15:01:55
+ * @LastEditTime: 2025-07-21 16:14:17
  * @FilePath: /comfyui_copilot/ui/src/components/chat/ChatHeader.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -46,7 +46,7 @@ export function ChatHeader({
     };
 
     const onFeedback = () => {
-        window.open('https://docs.google.com/forms/d/e/1FAIpQLSf_SeUpgrZh8sPGwVFXAlsviVXKpsQnyaevcB2VrIqUBYUMKg/viewform?usp=dialog', '_blank');
+        window.open('https://docs.google.com/forms/d/e/1FAIpQLSf_SeUpgrZh8sPGwVFXAlsviVXKpsQnyaevcB2VrIqUBYUMKg/viewform?usp=pp_url&entry.838321096=%23%23+%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF+%F0%9F%93%8B+Basic+Information%0A%0A%F0%9F%96%A5%EF%B8%8F+%E7%B3%BB%E7%BB%9F%E7%8E%AF%E5%A2%83+/+System+Environment%EF%BC%9A%0A%F0%9F%94%A7+ComfyUI%E7%89%88%E6%9C%AC+/+ComfyUI+Version%EF%BC%9A++%0A%F0%9F%8E%AF+%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF+/+Use+Case%EF%BC%9A%0A%0A%23%23+%E9%97%AE%E9%A2%98%E6%8F%8F%E8%BF%B0+%E2%9D%93+Problem+Description%0A%0A%F0%9F%90%9B+%E5%85%B7%E4%BD%93%E9%97%AE%E9%A2%98+/+Specific+Issue%EF%BC%9A%0A%F0%9F%94%84+%E5%A4%8D%E7%8E%B0%E6%AD%A5%E9%AA%A4+/+Steps+to+Reproduce%EF%BC%9A%0A%E2%9C%85+%E6%9C%9F%E6%9C%9B%E7%BB%93%E6%9E%9C+/+Expected+Result%EF%BC%9A%0A%E2%9D%8C+%E5%AE%9E%E9%99%85%E7%BB%93%E6%9E%9C+/+Actual+Result%EF%BC%9A%0A%0A%23%23+%E6%94%B9%E8%BF%9B%E5%BB%BA%E8%AE%AE+%F0%9F%92%A1+Improvement+Suggestions%0A%0A%E2%AD%90+%E5%8A%9F%E8%83%BD%E5%BB%BA%E8%AE%AE+/+Feature+Suggestions%EF%BC%9A%0A%F0%9F%8E%A8+%E4%BA%A4%E4%BA%92%E4%BC%98%E5%8C%96+/+UI/UX+Optimization%EF%BC%9A%0A%F0%9F%92%AD+%E5%85%B6%E4%BB%96%E6%84%8F%E8%A7%81+/+Other+Comments%EF%BC%9A', '_blank');
     }
 
     useEffect(() => {
