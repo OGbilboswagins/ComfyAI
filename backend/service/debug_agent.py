@@ -13,8 +13,8 @@ from agents.tracing import set_tracing_disabled
 from custom_nodes.comfyui_copilot.backend.service.workflow_rewrite_agent import workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
 
-from custom_nodes.comfyui_copilot.backend.service.parameter_agent import parameter_agent
-from custom_nodes.comfyui_copilot.backend.service.database import get_workflow_data, save_workflow_data
+from ..service.parameter_agent import parameter_agent
+from ..service.database import get_workflow_data, save_workflow_data
 
 # Import ComfyUI internal modules
 import execution

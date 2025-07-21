@@ -7,8 +7,8 @@ from pathlib import Path
 from agents.agent import Agent
 from agents.tool import function_tool
 
-from custom_nodes.comfyui_copilot.backend.utils.comfy_gateway import get_object_info, get_object_info_by_class
-from custom_nodes.comfyui_copilot.backend.service.database import get_workflow_data, save_workflow_data
+from ..utils.comfy_gateway import get_object_info, get_object_info_by_class
+from ..service.database import get_workflow_data, save_workflow_data
 
 @function_tool
 def get_node_parameters(node_name: str, param_name: str = "") -> str:

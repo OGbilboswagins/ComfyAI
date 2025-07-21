@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional, List
 from agents.agent import Agent
 from agents.tool import function_tool
 
-from custom_nodes.comfyui_copilot.backend.service.database import get_workflow_data, save_workflow_data
-from custom_nodes.comfyui_copilot.backend.utils.comfy_gateway import get_object_info
+from ..service.database import get_workflow_data, save_workflow_data
+from ..utils.comfy_gateway import get_object_info
 
 @function_tool
 def get_current_workflow(session_id: str) -> str:
