@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import React from 'react';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 /**
  * Process search input
@@ -11,13 +12,13 @@ export const handleSearch = (
   paramName: string, 
   term: string,
   searchTerms: {[key: string]: string},
-  setSearchTerms: React.Dispatch<React.SetStateAction<{[key: string]: string}>>
+  updateState: (key: StateKey, value: any) => void
 ) => {
   const searchKey = `${nodeId}_${paramName}`;
-  setSearchTerms(prev => ({
-    ...prev,
+  updateState(StateKey.SearchTerms, {
+    ...searchTerms,
     [searchKey]: term
-  }));
+  })
 };
 
 /**
@@ -53,9 +54,8 @@ export const handleSelectAll = (
 export const handleParamSelect = (
   param: string,
   selectedParams: {[key: string]: boolean},
-  setSelectedParams: React.Dispatch<React.SetStateAction<{[key: string]: boolean}>>,
   paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}},
-  setParamTestValues: React.Dispatch<React.SetStateAction<{[nodeId: string]: {[paramName: string]: any[]}}>>,
+  updateState: (key: StateKey, value: any) => void,
   event?: React.MouseEvent
 ) => {
   if (event) {
@@ -65,11 +65,10 @@ export const handleParamSelect = (
   
   const isCurrentlySelected = selectedParams[param];
   
-  // Update the selected params state
-  setSelectedParams(prev => ({
-    ...prev,
+  updateState(StateKey.SelectedParams, {
+    ...selectedParams,
     [param]: !isCurrentlySelected
-  }));
+  });
   
   // If we're deselecting a parameter, remove its values from paramTestValues
   if (isCurrentlySelected) {
@@ -85,6 +84,6 @@ export const handleParamSelect = (
     });
     
     // Update the state with cleaned up values
-    setParamTestValues(updatedParamTestValues);
+    updateState(StateKey.ParamTestValues, updatedParamTestValues);
   }
 }; 

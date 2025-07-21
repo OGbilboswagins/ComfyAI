@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import React from 'react';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 /**
  * Toggles dropdown open status
@@ -75,21 +76,16 @@ export const updateParamTestValues = (
   paramName: string, 
   values: any[],
   paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}},
-  setParamTestValues: React.Dispatch<React.SetStateAction<{[nodeId: string]: {[paramName: string]: any[]}}>>
+  updateState: (key: StateKey, value: any) => void,
 ) => {
-  setParamTestValues(prev => {
-    const updatedValues = { ...prev };
-    
-    // Ensure nodeID exists
-    if (!updatedValues[nodeId]) {
-      updatedValues[nodeId] = {};
-    }
-    
-    // Update specific node and parameter values
-    updatedValues[nodeId][paramName] = values;
-    
-    return updatedValues;
-  });
+  const updatedValues = { ...paramTestValues };
+  // Ensure nodeID exists
+  if (!updatedValues[nodeId]) {
+    updatedValues[nodeId] = {};
+  }
+  // Update specific node and parameter values
+  updatedValues[nodeId][paramName] = values;
+  updateState(StateKey.ParamTestValues, updatedValues);
 };
 
 /**
@@ -100,35 +96,30 @@ export const handleTestValueSelect = (
   paramName: string, 
   value: any, 
   paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}},
-  setParamTestValues: React.Dispatch<React.SetStateAction<{[nodeId: string]: {[paramName: string]: any[]}}>>,
+  updateState: (key: StateKey, value: any) => void,
   event?: React.MouseEvent
 ) => {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
+  const updatedValues = { ...paramTestValues };
+  // Ensure nodeID exists
+  if (!updatedValues[nodeId]) {
+    updatedValues[nodeId] = {};
+  }
   
-  setParamTestValues(prev => {
-    const updatedValues = { ...prev };
-    
-    // Ensure nodeID exists
-    if (!updatedValues[nodeId]) {
-      updatedValues[nodeId] = {};
-    }
-    
-    // Ensure parameter name exists
-    if (!updatedValues[nodeId][paramName]) {
-      updatedValues[nodeId][paramName] = [];
-    }
-    
-    const currentValues = updatedValues[nodeId][paramName];
-    
-    if (currentValues.includes(value)) {
-      updatedValues[nodeId][paramName] = currentValues.filter(v => v !== value);
-    } else {
-      updatedValues[nodeId][paramName] = [...currentValues, value];
-    }
-    
-    return updatedValues;
-  });
+  // Ensure parameter name exists
+  if (!updatedValues[nodeId][paramName]) {
+    updatedValues[nodeId][paramName] = [];
+  }
+  
+  const currentValues = updatedValues[nodeId][paramName];
+  
+  if (currentValues.includes(value)) {
+    updatedValues[nodeId][paramName] = currentValues.filter(v => v !== value);
+  } else {
+    updatedValues[nodeId][paramName] = [...currentValues, value];
+  }
+  updateState(StateKey.ParamTestValues, updatedValues);
 }; 

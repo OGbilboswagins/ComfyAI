@@ -21,7 +21,7 @@ export function useNodeSelection(enabled: boolean = true) {
       // and only when in parameter-debug tab
       const isParameterDebugTab = activeTab === 'parameter-debug';
       const isChatTab = activeTab === 'chat';
-      const isAllowedScreenParameterDebug = !screenState || screenState.currentScreen === 0;
+      const isAllowedScreenParameterDebug = true;//!screenState || screenState.currentScreen === 0;
       
       if ((isChatTab) || (isAllowedScreenParameterDebug && isParameterDebugTab)) {
         const selectedNodes = app.canvas.selected_nodes;

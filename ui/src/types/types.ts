@@ -61,6 +61,7 @@ export interface Workflow {
   name?: string;
   description?: string;
   image?: string;
+  source?: any;
 }
 
 export interface ExtItem {

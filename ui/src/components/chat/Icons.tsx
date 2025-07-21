@@ -8,5 +8,6 @@ export {
     Image as ImageIcon,
     Plus as PlusIcon,
     Settings as CogIcon,
-    StopCircle as StopIcon
+    StopCircle as StopIcon,
+    MessageCircleWarning as WarningIcon
 } from 'lucide-react'; 

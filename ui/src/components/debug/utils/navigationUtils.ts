@@ -2,22 +2,21 @@
 // Licensed under the MIT License.
 
 import React from 'react';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 /**
  * 处理页面跳转到下一步
  */
 export const handleNext = (
   currentScreen: number,
-  setCurrentScreen: React.Dispatch<React.SetStateAction<number>>,
   selectedParams: {[key: string]: boolean},
   paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}},
-  setParamTestValues: React.Dispatch<React.SetStateAction<{[nodeId: string]: {[paramName: string]: any[]}}>>,
   textInputs: {[nodeId_paramName: string]: string[]},
   selectedNodes: any[],
-  setTotalCount: React.Dispatch<React.SetStateAction<number>>,
   setErrorMessage: React.Dispatch<React.SetStateAction<string | null>>,
   generateParameterCombinations: (paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}}) => any[],
-  event?: React.MouseEvent
+  updateState: (key: StateKey, value: any) => void,
+  event?: React.MouseEvent,
 ) => {
   if (event) {
     event.preventDefault();
@@ -43,7 +42,8 @@ export const handleNext = (
     });
     
     // Update the state with cleaned up values
-    setParamTestValues(updatedParamTestValues);
+    // setParamTestValues(updatedParamTestValues);
+    updateState(StateKey.ParamTestValues, updatedParamTestValues);
   }
   
   // When moving to the confirmation screen, ensure all text values are properly synchronized
@@ -70,16 +70,16 @@ export const handleNext = (
     });
     
     // Update the state with synchronized values
-    setParamTestValues(updatedParamTestValues);
+    updateState(StateKey.ParamTestValues, updatedParamTestValues);
     
     // Update totalCount with parameter combinations
     const combinations = generateParameterCombinations(updatedParamTestValues);
-    setTotalCount(combinations.length);
+    updateState(StateKey.TotalCount, combinations.length);
   }
   
   // Clear error message
   setErrorMessage(null);
-  setCurrentScreen(prev => Math.min(prev + 1, 2));
+  updateState(StateKey.CurrentSceen, Math.min(currentScreen + 1, 2))
 };
 
 /**
@@ -87,14 +87,12 @@ export const handleNext = (
  */
 export const handlePrevious = (
   currentScreen: number,
-  setCurrentScreen: React.Dispatch<React.SetStateAction<number>>,
   selectedNodes: any[],
   paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}},
-  setParamTestValues: React.Dispatch<React.SetStateAction<{[nodeId: string]: {[paramName: string]: any[]}}>>,
   textInputs: {[nodeId_paramName: string]: string[]},
   isCompleted: boolean,
-  setIsCompleted: React.Dispatch<React.SetStateAction<boolean>>,
   setErrorMessage: React.Dispatch<React.SetStateAction<string | null>>,
+  updateState: (key: StateKey, value: any) => void,
   event?: React.MouseEvent
 ) => {
   if (event) {
@@ -105,7 +103,7 @@ export const handlePrevious = (
   setErrorMessage(null);
   // Reset completed state when going back
   if (isCompleted) {
-    setIsCompleted(false);
+    updateState(StateKey.IsCompleted, false)
   }
   
   // If going back from screen 1 to 0, clean up any paramTestValues for nodes that are no longer selected
@@ -121,7 +119,7 @@ export const handlePrevious = (
       }
     });
     
-    setParamTestValues(updatedParamTestValues);
+    updateState(StateKey.ParamTestValues, updatedParamTestValues);
   }
   
   // If returning from the result gallery or confirmation screen, ensure text values are maintained
@@ -146,11 +144,11 @@ export const handlePrevious = (
         updatedParamTestValues[nodeId][paramName] = texts;
       }
     });
-    
-    setParamTestValues(updatedParamTestValues);
+
+    updateState(StateKey.ParamTestValues, updatedParamTestValues);
   }
   
-  setCurrentScreen(prev => Math.max(prev - 1, 0));
+  updateState(StateKey.CurrentSceen, Math.max(currentScreen - 1, 0));
 };
 
 /**
@@ -160,7 +158,7 @@ export const handlePageChange = (
   newPage: number,
   imagesPerPage: number,
   generatedImages: any[],
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>,
+  updateState: (key: StateKey, value: any) => void,
   event?: React.MouseEvent
 ) => {
   if (event) {
@@ -168,5 +166,5 @@ export const handlePageChange = (
     event.stopPropagation();
   }
   
-  setCurrentPage(Math.max(1, Math.min(newPage, Math.ceil(generatedImages.length / imagesPerPage))));
+  updateState(StateKey.CurrentPage, Math.max(1, Math.min(newPage, Math.ceil(generatedImages.length / imagesPerPage))));
 }; 

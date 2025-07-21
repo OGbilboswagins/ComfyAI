@@ -1,0 +1,122 @@
+
+[
+    {
+        "type": "chat",
+        "tool": "workflow_generate",
+        "name": "给我一个SK波普风插画工作流",
+        "messages": [
+            {
+                "id": "showcase1-1",
+                "role": "user",
+                "content": "我需要一个创建SK波普风插画的工作流",
+                "trace_id": "showcase1"
+            },
+            {
+                "id": "showcase1-2",
+                "role": "ai",
+                "content": "{\"session_id\":\"3da22770-b7ba-46ff-851f-d43d4190ba35\",\"text\":\"我为您找到了一些相关的SK波普风插画工作流：\\n\\n1. **SK波普风插画工作流**\\n   - 描述: SK波普风插画工作流v2\\n   - 图片: ![SK波普风插画工作流](https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||9b6dee1eb02e454b8b9f90047f67fdcf||00d68f37853c540b8a179f890056cbdf.jpg)\\n\\n2. **SK清新风插画出图工作流**\\n   - 描述: SK清新风插画F.1，推荐模型强度：1.4（0.8到1.4都有不同效果，自己尝试）\\n   - 图片: ![SK清新风插画出图工作流](https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||c469a538da36496b9bc299bbfe4dcbfb||2c7a058f219502bf7f7ab006717541a1.jpg)\\n\\n3. **SK点线艺术抽象插画蓝墨工作流**\\n   - 描述: SK点线艺术抽象插画 | 蓝墨效果。推荐使用ComfyUI生图，生成快、节省算力。点击在线ComfyUI生图，模型推荐强度：0.8~1.4。\\n   - 图片: ![SK点线艺术抽象插画蓝墨工作流](https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||5dea5dd339de4cdc9b77d755b9f0789a||22d21104ece72e8b034905e0fe436633.jpg)\\n\\n同时，我已经生成了一个定制的工作流：\\n\\n- **AI生成的工作流**\\n  - 描述: 将任何肖像或插图转换为SK波普艺术风格，保持鲜艳的色彩和大胆的几何形状。该工作流应优化低VRAM使用和快速渲染速度，使用稳定的官方模型。\\n  - 图片: ![AI生成的工作流](https://ppc-img.oss-ap-southeast-1.aliyuncs.com/AI_workflow_default.jpg)\\n\\n您可以选择以上推荐的工作流或使用AI生成的定制解决方案。\",\"finished\":true,\"format\":\"markdown\",\"ext\":[{\"type\":\"workflow\",\"data\":[{\"id\":29504,\"name\":\"AI Generated Workflow\",\"description\":\"Build a workflow that transforms any portrait or illustration into SK Pop Art style, maintaining vibrant colors and bold geometric shapes. The workflow should be optimized for low VRAM usage and quick rendering speeds, using stable and official models where possible.\",\"image\":\"https://ppc-img.oss-ap-southeast-1.aliyuncs.com/AI_workflow_default.jpg\",\"unique_id\":\"75f4dc64e8947aefc00451fd574dbdc8\",\"score\":null,\"source\":\"AI Generated\"}, {\"id\":3806,\"name\":\"SK_波普风插画_工作流\",\"description\":\"SK_波普风插画_工作流v2\",\"image\":\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||9b6dee1eb02e454b8b9f90047f67fdcf||00d68f37853c540b8a179f890056cbdf.jpg\",\"unique_id\":\"0d5f9aa415592f370ad05747594f851d\",\"score\":[0.7427938887126632,1]},{\"id\":4126,\"name\":\"SK_清新风插画_出图工作流\",\"description\":\"SK_清新风插画_F.1 建议模型强度：1.4 （0.81.4都有不同效果，自己尝试吧）\",\"image\":\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||c469a538da36496b9bc299bbfe4dcbfb||2c7a058f219502bf7f7ab006717541a1.jpg\",\"unique_id\":\"4c8f9233892a68aa1fdb7b0aa7d7eab0\",\"score\":[0.646644434532856,0.6666666666666666]},{\"id\":4904,\"name\":\"SK_点线艺术抽象插画_蓝墨_工作流\",\"description\":\"SK_点线艺术抽象插画 | 蓝墨效果 建议使用ComfyUI生图（以下是我搭建的工作流，出图快，省算力） 点击在线 ComfyUI 生图   大模型：F.1基础算法模型 模型强度建议：0.8~1.4，（每种强度有不同效果，快去尝试吧！） 基础魔法：SK,Stylish blue and white line paintings with radiating line patterns on the background,（1 girl） \",\"image\":\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||5dea5dd339de4cdc9b77d755b9f0789a||22d21104ece72e8b034905e0fe436633.jpg\",\"unique_id\":\"e0bf07efb70e4720347a571a3be8587d\",\"score\":[0.6317212205099343,0.6666666666666666]}]}],\"message_id\":\"277361b7-f5f7-4b2a-80b8-d88a75fa2687\"}",
+                "format": "markdown",
+                "finished": true,
+                "name": "Assistant"
+            }
+        ]
+    },
+    {
+        "type": "chat",
+        "tool": "node_recommend",
+        "name": "给我一个把多张图合并的节点",
+        "messages": [
+            {
+                "id": "showcase2-1",
+                "role": "user",
+                "content": "给我一个把多张图合并的节点",
+                "trace_id": "showcase2"
+            },
+            {
+                "id": "showcase2-2",
+                "role": "ai",
+                "content": "{\"session_id\":\"bbe71936-8402-4fd0-8bb4-69eecac5ee01\",\"text\":\"以下是可以合并多张图片的节点：\\n\\n1. **MonoMerge**  \\n   [GitHub链接](https://github.com/bmad4ever/comfyui_bmad_nodes): 将两张图片合并为单色图片，可选择在白色或黑色方向合并。\\n\\n2. **Concat Images (mtb)**  \\n   [GitHub链接](https://github.com/melMass/comfy_mtb): 可将多张图片合并成一个批次，适用于处理和操控图片集。\\n\\n3. **JoinImageBatch**  \\n   [GitHub链接](https://github.com/yolain/ComfyUI-Easy-Use): 合并批量图片成一张大图，支持水平或垂直拼接。\\n\\n4. **MergeLayers**  \\n   [GitHub链接](https://github.com/shadowcz007/comfyui-mixlab-nodes): 将多层图像合并为单张图片，支持指定的遮罩和混合选项。\\n\\n5. **Composite Images 🧅**  \\n   [GitHub链接](https://github.com/natto-maki/ComfyUI-NegiTools): 结合两张图片，支持多种复合方法，如乘法、划分、叠加等。\\n\\n6. **ImageContainerInheritanceSum**  \\n   [GitHub链接](https://github.com/Nourepide/ComfyUI-Allor): 通过总结图像维度以创建复合图像，适用于需要考虑输入图像总宽和高的情况。\\n\\n7. **Join Image Lists**  \\n   [GitHub链接](https://github.com/M1kep/Comfy_KepListStuff): 合并多张图片列表成为一个列表，同时提供原列表大小。\\n\\n8. **Merge Image List**  \\n   [GitHub链接](https://github.com/AInseven/ComfyUI-fastblend): 合并图像张量列表为一个单一张量，便于图像相关任务的批处理。\\n\\n根据你的具体需求选择合适的节点使用。\",\"finished\":true,\"format\":\"markdown\",\"ext\":[{\"type\":\"node\",\"data\":[{\"id\":28311,\"unique_id\":\"7cca1314298b9a9d4b785e009099ea28\",\"name\":\"MonoMerge\",\"name_oral\":\"MonoMerge\",\"description\":\"The MonoMerge node is designed to merge two images into a monochromatic image based on a target color scheme (either towards white or black). This process involves comparing the luminance (L component) of corresponding pixels from both images and selecting the higher or lower value depending on the target, resulting in an image that emphasizes either the lighter or darker aspects of the combined images.\",\"github_url\":\"https://github.com/bmad4ever/comfyui_bmad_nodes\",\"github_stars\":50,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":29658,\"unique_id\":\"e3a2782874d3bf8f99bb2b70c7090f74\",\"name\":\"Concat Images (mtb)\",\"name_oral\":\"Concat Images (mtb)\",\"description\":\"The Concat Images node is designed to merge multiple images into a single batch, allowing for efficient processing and manipulation of image collections. It provides flexibility in handling size mismatches through customizable strategies.\",\"github_url\":\"https://github.com/melMass/comfy_mtb\",\"github_stars\":350,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":29719,\"unique_id\":\"458e445b2f21e81111dc9a7d3fb8cb7b\",\"name\":\"easy joinImageBatch\",\"name_oral\":\"JoinImageBatch\",\"description\":\"This node is designed to merge a batch of images into a single large image, either by stacking them horizontally or vertically based on the specified mode. It abstracts the complexity of image manipulation and resizing, providing a straightforward way to create composite images from multiple inputs.\",\"github_url\":\"https://github.com/yolain/ComfyUI-Easy-Use\",\"github_stars\":510,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":32325,\"unique_id\":\"0ea3707eaaf8052e37630f95f4e5b72b\",\"name\":\"MergeLayers\",\"name_oral\":\"Merge Layers ♾️Mixlab\",\"description\":\"The MergeLayers node is designed to combine multiple image layers into a single image while applying specified masks and blending options. It facilitates the creation of complex images by layering and compositing various elements based on their defined properties.\",\"github_url\":\"https://github.com/shadowcz007/comfyui-mixlab-nodes\",\"github_stars\":null,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":32571,\"unique_id\":\"0bd39afd25f012f877c9676b3c9837a1\",\"name\":\"NegiTools_CompositeImages\",\"name_oral\":\"Composite Images 🧅\",\"description\":\"NegiTools_CompositeImages is a versatile node designed to combine two images using various compositing methods. This node allows you to blend images in multiple ways, such as multiplying, dividing, overlaying, and more, to achieve different visual effects.\",\"github_url\":\"https://github.com/natto-maki/ComfyUI-NegiTools\",\"github_stars\":30,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":32865,\"unique_id\":\"4e6b0fa27366545e19695c4e8931e270\",\"name\":\"ImageContainerInheritanceSum\",\"name_oral\":\"ImageContainerInheritanceSum\",\"description\":\"Efficiently combine and sum image dimensions for creating composite images with integrity and visual quality. This node is designed to facilitate the combination of multiple images by summing their dimensions. This node is particularly useful when you need to create a composite image that encompasses the total width and height of the input images.\",\"github_url\":\"https://github.com/Nourepide/ComfyUI-Allor\",\"github_stars\":200,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":72827,\"unique_id\":\"1c76ce5bcc2c5097bdf515bddd32fb0b\",\"name\":\"Join Image Lists\",\"name_oral\":\"Join Image Lists\",\"description\":\"This node is designed to combine multiple lists of images into a single list while also providing the sizes of the original lists. It facilitates the management of image data by allowing users to easily merge and track the number of images from various sources.\",\"github_url\":\"https://github.com/M1kep/Comfy_KepListStuff\",\"github_stars\":null,\"from_index\":0,\"to_index\":0,\"is_existed\":true},{\"id\":81206,\"unique_id\":\"1cc97ed3bc709de3f23c378eef1ce74e\",\"name\":\"Merge_Image_List\",\"name_oral\":\"Merge Image List\",\"description\":\"This node is designed to merge a list of image tensors into a single tensor, facilitating batch processing in image-related tasks. It efficiently concatenates the input images along a specified dimension, enabling seamless integration of multiple images for further processing.\",\"github_url\":\"https://github.com/AInseven/ComfyUI-fastblend\",\"github_stars\":null,\"from_index\":0,\"to_index\":0,\"is_existed\":true}]}],\"message_id\":\"f60c3cf2-0b54-47a3-97e3-f536fc992c81\"}",
+                "format": "markdown",
+                "finished": true,
+                "name": "Assistant"
+            }
+        ]
+    },
+    {
+        "type": "chat",
+        "tool": "model_recommend",
+        "name": "给我一个宫崎骏风格的lora",
+        "messages": [
+            {
+              "id": "showcase3-1",
+              "role": "user",
+              "content": "给我一个宫崎骏风格的lora",
+              "trace_id": "showcase3"
+            },
+            {
+              "id": "showcase3-2",
+              "role": "ai",
+              "content": "{\"session_id\":\"0b26efaf-e417-4344-9942-658fedbbc12c\",\"text\":\"请问您需要基于哪种基座模型的宫崎骏风格LORA？可选择以下基座模型：\\n\\n1. Stable Diffusion v1.5\\n2. Illustrious\\n3. Pony\\n4. Flux.1\\n5. Flux.1 D\\n6. Stable Diffusion XL 1.0\",\"finished\":true,\"format\":\"markdown\",\"ext\":[{\"type\":\"guides\",\"data\":[\"Stable Diffusion v1.5\",\"Illustrious\",\"Pony\",\"Flux.1\",\"Flux.1 D\",\"Stable Diffusion XL 1.0\"]}],\"message_id\":\"cfecdc29-5131-4afa-9807-9fe911e6b670\"}",
+              "format": "markdown",
+              "finished": true,
+              "name": "Assistant"
+            },
+            {
+              "id": "showcase3-3",
+              "role": "user",
+              "content": "Flux.1",
+              "trace_id": "showcase3"
+            },
+            {
+              "id": "showcase3-4",
+              "role": "ai",
+              "content": "{\"session_id\":\"0b26efaf-e417-4344-9942-658fedbbc12c\",\"text\":\"以下是几个基于Flux.1的宫崎骏风格LORA模型：\\n\\n1. **宫崎骏风格插画**  \\n   - 描述：此模型擅长创作灵感来自宫崎骏风格的插图，展示奇幻、细致的风景和幻想元素。它强调丰富的质感、鲜艳的色彩和复杂的自然环境，擅长营造充满生机和暖意的场景，以讲述具有特色的宫崎骏风格的故事。  \\n   - [获取链接](https://www.liblib.art/modelinfo/51b6a44f87b543a6b21dfbadc2952313)  \\n\\n2. **宫崎骏的现实主义**  \\n   - 描述：模型擅长生成吉卜力风格的梦幻景观，展现葱郁的绿地、鲜亮的蓝色以及自然与建筑之间的和谐融合。它捕捉梦幻般的场景，具有柔和的幻想氛围，体现出在宁静森林和空中城堡间的魔幻现实主义。  \\n   - ![示例图片1](https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||20d56a93ad9fd5daeaf043453766b60d.jpg)  \\n   - ![示例图片2](https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||4fca763050d3e8941193b4230e8e7410.jpg)  \\n   - [获取链接](https://www.liblib.art/modelinfo/c2ea3eebba764e388a3f08c2ca6eed3a)  \\n\\n3. **F.1-宫崎骏风格**  \\n   - 描述：模型擅长生成宫崎骏影响下的动漫风格图像，呈现鲜艳的色彩、富有想象力的构图和生动的表现。专注于生成年轻女孩在各种迷人环境中的场景，擅长渲染云的细节纹理和复杂的光影。 \\n   - [获取链接](https://www.liblib.art/modelinfo/5638cc813c264f899b43536e02abfc82)  \\n\\n您可以选择一个适合您需求的模型进行使用。\",\"finished\":true,\"format\":\"markdown\",\"ext\":[{\"type\":\"model\",\"data\":[{\"id\":375989,\"name\":\"宫崎骏风格插画\",\"description\":\"This model excels in creating illustrations inspired by Miyazaki's style, featuring whimsical, detailed landscapes and fantastical elements. It consistently captures scenes brimming with life and warmth, emphasizing lush textures, vibrant colors, and intricate natural settings. This model is adept at generating compositions that convey a sense of wonder and storytelling in a distinctively Miyazaki fashion.\",\"model_type\":\"LORA\",\"model_algorithm\":\"Flux.1\",\"model_pics\":[],\"source_url\":\"https://www.liblib.art/modelinfo/51b6a44f87b543a6b21dfbadc2952313\",\"unique_id\":\"c3123b5ab427eebeaae884a3f1fe10cc\"},{\"id\":378349,\"name\":\"宫崎骏的现实主义\",\"description\":\"The model excels in generating whimsical, serene landscapes with a Ghibli-inspired aesthetic, featuring lush greenery, vibrant blues, and harmonious nature-architecture integration. It captures dreamy sceneries with a soft, fantasy-like ambiance, demonstrating strengths in depicting tranquil forests, ethereal sky castles, and interactions between natural and man-made elements with a magical realism touch.\",\"model_type\":\"LORA\",\"model_algorithm\":\"Flux.1\",\"model_pics\":[\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||20d56a93ad9fd5daeaf043453766b60d.jpg\",\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||4fca763050d3e8941193b4230e8e7410.jpg\",\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||b782cc39b8d159cb2c52fbb31b0c51b8.jpg\",\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||cddb9c4648639e78805dd2c088f3f039.jpg\",\"https://aib-data-sg.oss-ap-southeast-1.aliyuncs.com/ext-img/comuify/liblib||505b51e94736455c9d78ebe38afc3148||ef8b418d2ad9c6092c14c17e4aa1b051.jpg\"],\"source_url\":\"https://www.liblib.art/modelinfo/c2ea3eebba764e388a3f08c2ca6eed3a\",\"unique_id\":\"256ec6894dd15b42eb60c91fde22b61b\"},{\"id\":385880,\"name\":\"F.1-宫崎骏风格\",\"description\":\"The model excels in generating whimsical anime-style images influenced by Miyazaki's distinct aesthetic, characterized by vibrant colors, playful compositions, and lively expressions. It specializes in scenes featuring young girls in varied enchanting settings, demonstrating strong skills in rendering detailed textures like clouds and intricate lighting. Notably adept at creating charming and imaginative animated environments.\",\"model_type\":\"LORA\",\"model_algorithm\":\"Flux.1\",\"model_pics\":[],\"source_url\":\"https://www.liblib.art/modelinfo/5638cc813c264f899b43536e02abfc82\",\"unique_id\":\"cbcbc993133822bccd46f16d49f5a4db\"}]}],\"message_id\":\"6903403f-cd32-447e-a9a6-a9247ab77c15\"}",
+              "format": "markdown",
+              "finished": true,
+              "name": "Assistant"
+            }
+          ]
+    },
+    {
+        "type": "chat",
+        "tool": "prompt",
+        "name": "基于我的描述生成prompt",
+        "messages": [
+            {
+              "id": "showcase4-1",
+              "role": "user",
+              "content": "请为我生成英文prompt: \"一个红衣女子在海边跳舞，笑容很灿烂\"",
+              "trace_id": "showcase4"
+            },
+            {
+              "id": "showcase4-2",
+              "role": "ai",
+              "content": "{\"session_id\":\"6272c460-04da-4b30-9090-1c05406f46e3\",\"text\":\"woman in a red dress dancing by the seaside, bright smile, high quality, cinematic lighting, detailed, realistic, wide shot\",\"finished\":true,\"format\":\"markdown\",\"ext\":null,\"message_id\":\"13f0a58e-8670-4457-97da-cbad7a7d7530\"}",
+              "format": "markdown",
+              "finished": true,
+              "name": "Assistant"
+            }
+          ]
+    },
+    {
+        "type": "genlab",
+        "tool": "genlab_prompt",
+        "name": "根据我的诉求生成3个prompt，各自生图查看效果",
+        "messages": [
+            {
+                "id": "showcase5-1",
+                "role": "user",
+                "content": "根据我的诉求生成3个prompt，各自生图查看效果",
+                "trace_id": "showcase5"
+            },
+            {
+                "id": "showcase5-2",
+                "role": "ai",
+                "content": "{\"text\":\"请根据下面的演示，使用Genlab来实现您的调试prompt的诉求。\\n ![](https://aib-vision-hz.oss-accelerate.aliyuncs.com/mood_board%2Finput%2F2025-07-16%2Fab89513606fd4966b0362f95f3f1ab86.gif?OSSAccessKeyId=LTAI5tQyhnsJhtiinV3B1gfV&Expires=2068018398&Signature=3XUgadQjjsGRu46S1fRxA7iDWJU%3D)\"}",
+                "format": "markdown",
+                "finished": true,
+                "name": "Assistant"
+            }
+        ]
+    }
+]

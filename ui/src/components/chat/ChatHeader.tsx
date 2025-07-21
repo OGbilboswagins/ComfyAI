@@ -10,7 +10,7 @@
 // Licensed under the MIT License.
 
 import { useState, useEffect } from 'react';
-import { XIcon, TrashIcon, CogIcon } from './Icons';
+import { XIcon, TrashIcon, CogIcon, WarningIcon } from './Icons';
 import { ApiKeyModal } from './ApiKeyModal';
 import logoImage from '../../../../assets/logo.png';
 
@@ -44,6 +44,10 @@ export function ChatHeader({
         setIsResizing(true);
         e.preventDefault();
     };
+
+    const onFeedback = () => {
+        window.open('https://docs.google.com/forms/d/e/1FAIpQLSf_SeUpgrZh8sPGwVFXAlsviVXKpsQnyaevcB2VrIqUBYUMKg/viewform?usp=dialog', '_blank');
+    }
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -80,15 +84,25 @@ export function ChatHeader({
                     <h3 className="text-[14px] font-medium text-gray-800">{title}</h3>
                     <button
                         onClick={handleApiKeyClick}
-                        className="p-1 bg-white border-none hover:bg-gray-100 rounded text-gray-500"
+                        className="p-1 bg-white border-none hover:!bg-gray-100 rounded text-gray-500"
                     >
                         <CogIcon className="h-4 w-4" />
                     </button>
                 </div>
                 <div className="flex items-center gap-1">
                     <button
+                        className='inline-flex bg-white border-none items-center justify-center rounded-md p-1.5 text-gray-500 hover:!bg-gray-100'
+                        onClick={onFeedback}>
+                        {/* <svg className="h-4 w-4" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <g transform="scale(0.0234375)">
+                                <path d="M170.666667 896v0.021333c-0.426667 0.021333 0 0.426667 0 2.069334C170.666667 896.426667 170.24 896 170.666667 896z m682.666666-607.488V896H170.666667V170.666667h554.666666V128H170.474667C147.178667 128 128 146.176 128 168.576v729.514667C128 920.448 147.114667 938.666667 170.666667 938.666667h682.666666c23.68 0 42.666667-18.218667 42.666667-40.661334v-609.493333h-42.666667zM618.474667 519.701333a21.312 21.312 0 0 0 29.226666-7.530666l245.333334-416a21.354667 21.354667 0 0 0-36.757334-21.674667l-245.333333 416a21.333333 21.333333 0 0 0 7.530667 29.226667zM298.666667 384.021333h298.666666v-42.666666H298.666667v42.666666z m0 128h170.666666v-42.666666h-170.666666v42.666666z" />
+                            </g>
+                        </svg> */}
+                        <WarningIcon className="h-4 w-4"/>
+                    </button>
+                    <button
                         className={`inline-flex bg-white border-none items-center justify-center rounded-md p-1.5 
-                                 ${hasMessages ? 'text-gray-500 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
+                                 ${hasMessages ? 'text-gray-500 hover:!bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
                         disabled={!hasMessages}
                         onClick={onClear}>
                         <TrashIcon className="h-4 w-4" />

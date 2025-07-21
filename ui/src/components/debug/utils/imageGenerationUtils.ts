@@ -5,6 +5,7 @@ import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
 import { queuePrompt, getOutputImageByPromptId, getOnlyOneImageNode } from '../../../utils/queuePrompt';
 import { generateDynamicParams } from './parameterUtils';
 import { saveHistoryItem } from './historyUtils';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 /**
  * 处理启动图像生成过程
@@ -12,16 +13,12 @@ import { saveHistoryItem } from './historyUtils';
 export const handleStartGeneration = async (
   paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}},
   task_id: string,
-  setIsProcessing: React.Dispatch<React.SetStateAction<boolean>>,
-  setCompletedCount: React.Dispatch<React.SetStateAction<number>>,
   setErrorMessage: React.Dispatch<React.SetStateAction<string | null>>,
-  setGeneratedImages: React.Dispatch<React.SetStateAction<any[]>>,
-  setIsCompleted: React.Dispatch<React.SetStateAction<boolean>>,
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>,
   pollingSessionIdRef: React.MutableRefObject<string | null>,
   pollingTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
   generateParameterCombinations: (paramTestValues: {[nodeId: string]: {[paramName: string]: any[]}}) => any[],
   app: any,
+  updateState: (key: StateKey, value: any) => void,
   event?: React.MouseEvent,
   selectedNodeId?: number
 ) => {
@@ -44,8 +41,8 @@ export const handleStartGeneration = async (
   }
   
   setErrorMessage(null);
-  setIsProcessing(true);
-  setCompletedCount(0);
+  updateState(StateKey.IsProcessing, true);
+  updateState(StateKey.CompletedCount, 0)
   
   console.log("Generated parameter combinations:", paramCombinations);
 
@@ -72,7 +69,7 @@ export const handleStartGeneration = async (
   // If we have no combinations, show error and return
   if (paramCombinations.length === 0) {
     setErrorMessage("No valid parameter combinations found. Please check your parameter selections.");
-    setIsProcessing(false);
+    updateState(StateKey.IsProcessing, false);
     return;
   }
   
@@ -90,7 +87,7 @@ export const handleStartGeneration = async (
   // If showNodeId is null, we need user selection (handled in ConfirmConfigurationScreen)
   if (showNodeId === null) {
     setErrorMessage("Please select a SaveImage or PreviewImage node first.");
-    setIsProcessing(false);
+    updateState(StateKey.IsProcessing, false);
     return;
   }
   
@@ -132,8 +129,7 @@ export const handleStartGeneration = async (
     }));
     
     // Set initial images
-    setGeneratedImages(newImages);
-    
+    updateState(StateKey.GeneratedImages, newImages);
     // Track timeout
     const startTime = Date.now();
     const timeoutDuration = 5 * 60 * 1000; // 5 minutes
@@ -142,7 +138,7 @@ export const handleStartGeneration = async (
     // We use the first node from paramTestValues as the primary node name
     const primaryNodeId = Object.keys(paramTestValues)[0];
     const primaryNodeName = selectedNodeInfoMap[primaryNodeId] || "Unknown Node";
-    
+
     // Start polling for images
     pollForImages(
       prompt_ids,
@@ -153,11 +149,7 @@ export const handleStartGeneration = async (
       timeoutDuration,
       pollingSessionIdRef,
       pollingTimeoutRef,
-      setGeneratedImages,
-      setCompletedCount,
-      setIsProcessing,
-      setIsCompleted,
-      setCurrentPage,
+      updateState,
       primaryNodeName,
       paramTestValues,
       totalCombinations,
@@ -166,7 +158,7 @@ export const handleStartGeneration = async (
     );
   } catch (error) {
     console.error("Error generating images:", error);
-    setIsProcessing(false);
+    updateState(StateKey.IsProcessing, false);
   }
 };
 
@@ -182,11 +174,7 @@ export const pollForImages = async (
   timeoutDuration: number,
   pollingSessionIdRef: React.MutableRefObject<string | null>,
   pollingTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
-  setGeneratedImages: React.Dispatch<React.SetStateAction<any[]>>,
-  setCompletedCount: React.Dispatch<React.SetStateAction<number>>,
-  setIsProcessing: React.Dispatch<React.SetStateAction<boolean>>,
-  setIsCompleted: React.Dispatch<React.SetStateAction<boolean>>,
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>,
+  updateState: (key: StateKey, value: any) => void,
   nodeName?: string,
   paramTestValues?: {[nodeId: string]: {[paramName: string]: any[]}},
   totalCount?: number,
@@ -203,9 +191,9 @@ export const pollForImages = async (
   if (Date.now() - startTime > timeoutDuration) {
     console.log("Timeout reached while waiting for images");
     if (pollingSessionIdRef.current === sessionId) {
-      setIsProcessing(false);
-      setIsCompleted(true);
-      setCurrentPage(1);
+      updateState(StateKey.IsProcessing, false);
+      updateState(StateKey.IsCompleted, true);
+      updateState(StateKey.CurrentPage, 1);
       
       // Save to history even if timeout occurred
       if (newImages.length > 0 && nodeName && paramTestValues) {
@@ -256,16 +244,16 @@ export const pollForImages = async (
   }
   
   // Update state with newest images
-  setGeneratedImages([...newImages]);
-  setCompletedCount(completedImagesCount);
+  updateState(StateKey.GeneratedImages, [...newImages]);
+  updateState(StateKey.CompletedCount, completedImagesCount)
   
   // Check if all images are generated
   if (completedImagesCount === prompt_ids.length) {
     console.log("All images have been generated!");
     if (pollingSessionIdRef.current === sessionId) {
-      setIsProcessing(false);
-      setIsCompleted(true);
-      setCurrentPage(1);
+      updateState(StateKey.IsProcessing, false);
+      updateState(StateKey.IsCompleted, true);  
+      updateState(StateKey.CurrentPage, 1);
       
       // Save to history when all images are completed
       if (newImages.length > 0 && nodeName && paramTestValues) {
@@ -303,11 +291,7 @@ export const pollForImages = async (
         timeoutDuration,
         pollingSessionIdRef,
         pollingTimeoutRef,
-        setGeneratedImages,
-        setCompletedCount,
-        setIsProcessing,
-        setIsCompleted,
-        setCurrentPage,
+        updateState,
         nodeName,
         paramTestValues,
         totalCount,

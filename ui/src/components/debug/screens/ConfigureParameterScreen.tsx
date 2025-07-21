@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import React, { useEffect } from 'react';
+import { StateKey } from '../ParameterDebugInterfaceNew';
 
 interface ConfigureParameterScreenProps {
   selectedNodes: any[];
@@ -18,7 +19,7 @@ interface ConfigureParameterScreenProps {
   handlePrevious: (event?: React.MouseEvent) => void;
   handleClose: (event?: React.MouseEvent, nodeIndex?: number) => void;
   inputValues: {[nodeId_paramName: string]: {min?: string, max?: string, step?: string}};
-  setInputValues: React.Dispatch<React.SetStateAction<{[nodeId_paramName: string]: {min?: string, max?: string, step?: string}}>>;
+  updateState: (key: StateKey, value: any) => void
   textInputs: {[nodeId_paramName: string]: string[]};
   handleTextInputChange: (nodeId: string, paramName: string, index: number, value: string) => void;
   handleAddTextInput: (nodeId: string, paramName: string) => void;
@@ -41,7 +42,7 @@ export const ConfigureParameterScreen: React.FC<ConfigureParameterScreenProps> =
   handlePrevious,
   handleClose,
   inputValues,
-  setInputValues,
+  updateState,
   textInputs,
   handleTextInputChange,
   handleAddTextInput,
@@ -121,14 +122,14 @@ export const ConfigureParameterScreen: React.FC<ConfigureParameterScreenProps> =
             
             // Also update the input values state
             const inputKey = `${nodeId}_${paramName}`;
-            setInputValues(prev => ({
-              ...prev,
+            updateState(StateKey.InputValues, {
+              ...inputValues,
               [inputKey]: {
                 min: min.toString(),
                 max: max.toString(),
                 step: step.toString()
               }
-            }));
+            })
           }
         }
         
@@ -145,7 +146,7 @@ export const ConfigureParameterScreen: React.FC<ConfigureParameterScreenProps> =
         }
       });
     });
-  }, [selectedNodes, selectedParams, paramTestValues, textInputs, updateParamTestValues, setInputValues, generateNumericTestValues]);
+  }, [selectedNodes, selectedParams, paramTestValues, textInputs, updateParamTestValues, generateNumericTestValues]);
   
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -289,13 +290,13 @@ export const ConfigureParameterScreen: React.FC<ConfigureParameterScreenProps> =
                               const value = e.target.value;
                               
                               // 更新输入状态
-                              setInputValues(prev => ({
-                                ...prev,
+                              updateState(StateKey.InputValues, {
+                                ...inputValues,
                                 [inputKey]: {
-                                  ...prev[inputKey],
+                                  ...inputValues[inputKey],
                                   min: value
                                 }
-                              }));
+                              })
                               
                               // 只有当输入为空或有效时才更新参数值
                               if (value === '' || !isNaN(parseFloat(value))) {
@@ -323,13 +324,13 @@ export const ConfigureParameterScreen: React.FC<ConfigureParameterScreenProps> =
                               const value = e.target.value;
                               
                               // 更新输入状态
-                              setInputValues(prev => ({
-                                ...prev,
+                              updateState(StateKey.InputValues, {
+                                ...inputValues,
                                 [inputKey]: {
-                                  ...prev[inputKey],
+                                  ...inputValues[inputKey],
                                   max: value
                                 }
-                              }));
+                              })
                               
                               // 只有当输入为空或有效时才更新参数值
                               if (value === '' || !isNaN(parseFloat(value))) {
@@ -357,13 +358,13 @@ export const ConfigureParameterScreen: React.FC<ConfigureParameterScreenProps> =
                               const value = e.target.value;
                               
                               // 更新输入状态
-                              setInputValues(prev => ({
-                                ...prev,
+                              updateState(StateKey.InputValues, {
+                                ...inputValues,
                                 [inputKey]: {
-                                  ...prev[inputKey],
+                                  ...inputValues[inputKey],
                                   step: value
                                 }
-                              }));
+                              })
                               
                               // 只有当输入为空或有效时才更新参数值
                               if (value === '' || (!isNaN(parseFloat(value)) && parseFloat(value) > 0)) {
