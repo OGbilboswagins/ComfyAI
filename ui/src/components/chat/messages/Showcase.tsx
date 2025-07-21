@@ -51,7 +51,7 @@ const Showcase: React.FC = () => {
       if (end <= str.length) {
         setTimeout(() => {
           func()
-        }, isUser ? 10 : 50)
+        }, 10)
       } else {
         setTimeout(() => {
           cb()
