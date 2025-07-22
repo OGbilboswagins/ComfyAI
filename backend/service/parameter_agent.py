@@ -390,9 +390,8 @@ def update_workflow_parameter(session_id: str, node_id: str, param_name: str, ne
             "message": f"Successfully updated {param_name} from '{old_value}' to '{new_value}' in node {node_id}",
             # 添加ext数据用于前端实时更新画布
             "ext": [{
-                "type": "workflow_update",
+                "type": "param_update",
                 "data": {
-                    "action": "parameter_update",
                     "workflow_data": workflow_data,
                     "changes": {
                         "node_id": node_id,

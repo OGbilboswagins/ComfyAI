@@ -127,13 +127,39 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 const nodeExt = response.ext?.find((item: ExtItem) => item.type === 'node');
                 const downstreamSubgraphsExt = response.ext?.find((item: ExtItem) => item.type === 'downstream_subgraph_search');
                 const nodeInstallGuideExt = response.ext?.find((item: ExtItem) => item.type === 'node_install_guide');
+                const paramUpdateExt = response.ext?.find((item: ExtItem) => item.type === 'param_update');
                 const workflowUpdateExt = response.ext?.find((item: ExtItem) => item.type === 'workflow_update');
                 const debugCheckpointExt = response.ext?.find((item: ExtItem) => item.type === 'debug_checkpoint');
                 
                 // 检查是否是工作流成功加载的消息
                 const isWorkflowSuccessMessage = response.text === 'The workflow has been successfully loaded to the canvas';
-                
+
                 // 处理工作流更新：实时更新画布 
+                if (workflowUpdateExt && workflowUpdateExt.data) {
+                    const { workflow_data } = workflowUpdateExt.data;
+                    if (typeof window !== 'undefined' && (window as any).app && workflow_data) {
+                        console.log('[MessageList] Applying workflow update to canvas...');
+                        try {
+                            // 导入通用的工作流应用函数
+                            import('../../utils/graphUtils').then(({ applyNewWorkflow }) => {
+                                const success = applyNewWorkflow(workflow_data);
+                                
+                                if (success) {
+                                    console.log('[MessageList] Successfully applied workflow update');
+                                } else {
+                                    console.warn('[MessageList] Failed to apply workflow update');
+                                }
+                            }).catch(error => {
+                                console.error('[MessageList] Failed to import graphUtils:', error);
+                            });
+                        } catch (error) {
+                            console.error('[MessageList] Failed to update canvas:', error);
+                        }
+                    }
+                }
+
+                
+                // 处理参数更新：实时更新画布 
                 // "changes": [
                 //     {
                 //         "node_id": "4",
@@ -142,8 +168,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 //         "new_value": "dreamshaperXL_v21TurboDPMSDE.safetensors"
                 //     }
                 // ]
-                if (workflowUpdateExt && workflowUpdateExt.data) {
-                    const { changes } = workflowUpdateExt.data;
+                if (paramUpdateExt && paramUpdateExt.data) {
+                    const { changes } = paramUpdateExt.data;
                     if (typeof window !== 'undefined' && (window as any).app && changes) {
                         console.log('[MessageList] Applying parameter changes to canvas...');
                         try {
@@ -169,15 +195,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                         }
                     }
                 }
-                
-                // 移除频繁的日志输出
-                // console.log('[MessageList] Found extensions:', {
-                //     workflowExt,
-                //     nodeExt,
-                //     nodeRecommendExt,
-                //     downstreamSubgraphsExt,
-                //     nodeInstallGuideExt
-                // });
 
                 // 根据扩展类型添加对应组件
                 let ExtComponent = null;
@@ -299,7 +316,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                         const workflow = message.metadata.pendingWorkflow;
                                         const optimizedParams = message.metadata.optimizedParams;
                                        
-                                        // 支持不同格式的工作流
+                                        // TODO: 支持不同格式的工作流
                                         if(workflow.nodes) {
                                             app.loadGraphData(workflow);
                                         } else {

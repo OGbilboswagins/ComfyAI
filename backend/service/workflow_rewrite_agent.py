@@ -52,7 +52,14 @@ def update_workflow(session_id: str, workflow_data: str) -> str:
         return json.dumps({
             "success": True,
             "version_id": version_id,
-            "message": f"Workflow updated successfully with version ID: {version_id}"
+            "message": f"Workflow updated successfully with version ID: {version_id}",
+            # 添加ext数据用于前端实时更新画布
+            "ext": [{
+                "type": "workflow_update",
+                "data": {
+                    "workflow_data": workflow_dict
+                }
+            }]
         })
     except Exception as e:
         return json.dumps({"error": f"Failed to update workflow: {str(e)}"})
@@ -149,7 +156,20 @@ def fix_node_connections(session_id: str, node_id: str, input_name: str, source_
         return json.dumps({
             "success": True,
             "version_id": version_id,
-            "message": f"Fixed connection for {node_id}.{input_name}"
+            "message": f"Fixed connection for {node_id}.{input_name}",
+            # 添加ext数据用于前端实时更新画布
+            "ext": [{
+                "type": "workflow_update",
+                "data": {
+                    "workflow_data": workflow_data,
+                    "changes": {
+                        "node_id": node_id,
+                        "input": input_name,
+                        "old_value": old_value,
+                        "new_value": new_connection
+                    }
+                }
+            }]
         })
         
     except Exception as e:
@@ -204,7 +224,19 @@ def add_missing_node(session_id: str, node_class: str, node_id: str = "", inputs
             "success": True,
             "version_id": version_id,
             "node_id": node_id,
-            "message": f"Added {node_class} node with ID {node_id}"
+            "message": f"Added {node_class} node with ID {node_id}",
+            # 添加ext数据用于前端实时更新画布
+            "ext": [{
+                "type": "workflow_update",
+                "data": {
+                    "workflow_data": workflow_data,
+                    "changes": {
+                        "action": "add_node",
+                        "node_id": node_id,
+                        "node_class": node_class
+                    }
+                }
+            }]
         })
         
     except Exception as e:
@@ -250,7 +282,19 @@ def remove_node(session_id: str, node_id: str) -> str:
         return json.dumps({
             "success": True,
             "version_id": version_id,
-            "message": f"Removed node {node_id} and cleaned up connections"
+            "message": f"Removed node {node_id} and cleaned up connections",
+            # 添加ext数据用于前端实时更新画布
+            "ext": [{
+                "type": "workflow_update",
+                "data": {
+                    "workflow_data": workflow_data,
+                    "changes": {
+                        "action": "remove_node",
+                        "node_id": node_id,
+                        "removed_node": removed_node
+                    }
+                }
+            }]
         })
         
     except Exception as e:

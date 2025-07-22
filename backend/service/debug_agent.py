@@ -158,9 +158,8 @@ def analyze_error_type(error_data: str) -> str:
                         error_message = error.get("message", "").lower()
                         
                         # 参数相关错误的判断
-                        if (error_type in ["value_not_in_list", "required_input_missing", "invalid_input"] or
+                        if (error_type in ["value_not_in_list", "invalid_input"] or
                             "value not in list" in error_message or
-                            "required input" in error_message or
                             "invalid" in error_message or
                             "not found" in error_message):
                             parameter_errors += 1
@@ -380,7 +379,7 @@ Start by validating the workflow to see its current state. If there are errors, 
                         tool_output_json = json.loads(output)
                         if "ext" in tool_output_json and tool_output_json["ext"]:
                             for ext_item in tool_output_json["ext"]:
-                                if ext_item.get("type") == "workflow_update":
+                                if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
                                     workflow_update_ext = ext_item
                                     print(f"-- Captured workflow_update ext from tool output")
                                     break

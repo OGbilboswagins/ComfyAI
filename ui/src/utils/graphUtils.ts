@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-02-17 20:53:45
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-07-16 17:15:54
+ * @LastEditTime: 2025-07-22 17:29:05
  * @FilePath: /comfyui_copilot/ui/src/utils/graphUtils.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -33,6 +33,23 @@ export function addNodeOnGraph(type: string, options: any = {}) {
     
     app.graph.add(node);
     return node;
+}
+
+
+export function applyNewWorkflow(workflow:any): boolean {
+    try {
+        // ui格式的工作流
+        if(workflow.nodes) {
+            app.loadGraphData(workflow);
+        } else {
+        // api格式的工作流
+            app.loadApiJson(workflow);
+        }
+        return true;
+    } catch (error) {
+        console.error('[graphUtils] Error applying new workflow:', error);
+        return false;
+    }
 }
 
 /**
