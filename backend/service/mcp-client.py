@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-15 20:49:11
+LastEditTime: 2025-07-22 16:20:20
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -100,7 +100,8 @@ You must adhere to the following constraints to complete the task:
 - Before performing any analysis or calculation, ensure that all sub-concepts involved have been defined.
 - Printing the entire content of a file is strictly prohibited, as such actions have high costs and can lead to unforeseen consequences.
 - Ensure that when you call a tool, you have obtained all the input variables for that tool, and do not fabricate any input values for it.
-- [Important!] When the user's intent is to get workflows or generate images with specific requirements, you must call both recall_workflow tool and gen_workflow tool to provide workflow options.
+- Respond with markdown, using a minimum of 3 heading levels (H3, H4, H5...), and when including images use the format ![alt text](url),
+- [Critical!] When the user's intent is to get workflows or generate images with specific requirements, you MUST ALWAYS call BOTH recall_workflow tool AND gen_workflow tool to provide comprehensive workflow options. Never call just one of these tools - both are required for complete workflow assistance. First call recall_workflow to find existing similar workflows, then call gen_workflow to generate new workflow options.
 - When the user's intent is to query, return the query result directly without attempting to assist the user in performing operations.
 - When the user's intent is to get prompts for image generation (like Stable Diffusion). Use specific descriptive language with proper weight modifiers (e.g., (word:1.2)), prefer English terms, and separate elements with commas. Include quality terms (high quality, detailed), style specifications (realistic, anime), lighting (cinematic, golden hour), and composition (wide shot, close up) as needed. When appropriate, include negative prompts to exclude unwanted elements. Return words divided by commas directly without any additional text.
 - When a user pastes text that appears to be an error message (containing terms like "Failed", "Error", or stack traces), prioritize providing troubleshooting help rather than invoking search tools. Follow these steps:
