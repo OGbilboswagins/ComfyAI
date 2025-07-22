@@ -165,7 +165,7 @@ const TabButton = ({
 
 export default function WorkflowChat({ onClose, visible = true, triggerUsage = false, onUsageTriggered }: WorkflowChatProps) {
     const { state, dispatch, isAutoScroll, showcasIng } = useChatContext();
-    const { messages, installedNodes, loading, sessionId, selectedNode, activeTab, guiding } = state;
+    const { messages, installedNodes, loading, sessionId, selectedNode, activeTab } = state;
     const messageDivRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState<string>('');
     const [latestInput, setLatestInput] = useState<string>('');
@@ -231,7 +231,6 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     }, [activeTab]);
 
     const showGuide = () => {
-        dispatch({ type: 'SET_GUIDING', payload: true });
         dispatch({ type: 'SET_MESSAGES', payload: [
             {
                 id: generateUUID(),
@@ -371,8 +370,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     }
 
     const handleSendMessage = async () => {
-        if (guiding) {
-            dispatch({ type: 'SET_GUIDING', payload: false });
+        if (messages?.[0]?.role === 'showcase') {
             dispatch({ type: 'CLEAR_MESSAGES' });
         }
         isAutoScroll.current = true
