@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BaseMessage } from './BaseMessage';
 import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
 import { app } from '../../../utils/comfyapp';
@@ -68,10 +68,15 @@ interface DebugResultProps {
     name?: string;
     avatar: string;
     format?: string;
+    onFinishLoad?: () => void;
 }
 
-export function DebugResult({ content, name = 'Assistant', avatar, format = 'markdown' }: DebugResultProps) {
+export function DebugResult({ content, name = 'Assistant', avatar, format = 'markdown', onFinishLoad }: DebugResultProps) {
     // Parse the message content
+    useEffect(() => {
+        onFinishLoad?.()
+    }, [])
+    
     let response;
     let checkpointId: number | null = null;
     
@@ -104,7 +109,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
 
     return (
         <BaseMessage name={name}>
-            <div className="space-y-3">
+            <div className='bg-gray-100 p-4 rounded-lg'>
                 <div className="flex justify-between items-start">
                     <div className="flex-1 prose prose-sm max-w-none">
                         {format === 'markdown' ? (

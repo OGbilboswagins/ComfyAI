@@ -45,6 +45,7 @@ interface MessageListProps {
     latestInput: string;
     installedNodes: any[];
     onAddMessage: (message: Message) => void;
+    onUpdateMessage: (message: Message) => void;
     loading?: boolean;
     isActive?: boolean;
 }
@@ -66,7 +67,7 @@ const LazyDebugResult = lazy(() => import('./messages/DebugResult').then(m => ({
 // 默认显示3轮回答，也就是找到列表最后的3条role是ai的数据
 const DEFAULT_COUNT = 3;
 
-export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, loading, isActive }: MessageListProps) {
+export function MessageList({ messages, latestInput, onOptionClick, installedNodes, onAddMessage, onUpdateMessage, loading, isActive }: MessageListProps) {
     const { isAutoScroll } = useChatContext()
 
     const [currentIndex, setCurrentIndex] = useState<number>(0)
@@ -82,6 +83,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
           
         const handleScroll = () => {
             if (!!scrollRef.current) {
+                console.log("el.scrollHeight--->", el.scrollHeight, el.scrollTop, el.clientHeight)
                 isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 10
             }
             currentScrollHeight.current = el.scrollHeight
@@ -92,9 +94,13 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }, [])
 
     const onFinishLoad = () => {
-        if (!!scrollRef?.current && isAutoScroll.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
+        console.log("onFinishLoad1--->", scrollRef?.current?.scrollHeight, isAutoScroll.current)
+        // setTimeout(() => { 
+            console.log("onFinishLoad2--->", scrollRef?.current?.scrollHeight, isAutoScroll.current) 
+            if (!!scrollRef?.current && isAutoScroll.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
+        // }, 100)
     }
 
     // 渲染对应的消息组件
@@ -250,6 +256,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 onOptionClick={onOptionClick}
                                 extComponent={dsExtComponent}
                                 metadata={message.metadata}
+                                finished={message.finished}
+                                debugGuide={message.debugGuide}
                             />
                         );
                     }
@@ -409,6 +417,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 name={message.name}
                                 avatar={avatar}
                                 onAddMessage={onAddMessage}
+                                onUpdateMessage={onUpdateMessage}
+                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -421,6 +431,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 name={message.name}
                                 avatar={avatar}
                                 format={message.format}
+                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -448,6 +459,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             onOptionClick={onOptionClick}
                             extComponent={ExtComponent}
                             metadata={message.metadata}
+                            finished={message.finished}
+                            debugGuide={message.debugGuide}
                         />
                     );
                 }
@@ -467,6 +480,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                         format={message.format}
                         onOptionClick={onOptionClick}
                         metadata={message.metadata}
+                        finished={message.finished}
+                        debugGuide={message.debugGuide}
                     />
                 );
             } catch (error) {
@@ -482,6 +497,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                         format={message.format}
                         onOptionClick={onOptionClick}
                         metadata={message.metadata}
+                        finished={message.finished}
+                        debugGuide={message.debugGuide}
                     />
                 );
             }
@@ -527,6 +544,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     buttonStatus: LoadMoreStatus.USED
                 })
             }
+            console.log('setCurrentMessages--->', list, Date.now());
             setCurrentMessages(pre => [...pre, ...list]);
         } else {
             let count = 0;
@@ -562,7 +580,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         lastMessagesCount.current = messages.length
     }, [messages, currentIndex])
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (!!scrollRef?.current) {
             if (isLoadHistory.current) {
                 // 加载历史数据需要修改scrolltop保证当前视图不变
@@ -571,6 +589,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 isLoadHistory.current = false
             } else {
                 if (isAutoScroll.current) {
+                    console.log("scrollRef.current.scrollTop--->", scrollRef.current.scrollTop, scrollRef.current.scrollHeight)
                     scrollRef.current.scrollTop = scrollRef.current.scrollHeight
                 }
             }
