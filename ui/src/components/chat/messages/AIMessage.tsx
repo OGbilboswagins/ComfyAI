@@ -22,6 +22,8 @@ interface AIMessageProps {
   onOptionClick?: (option: string) => void;
   extComponent?: React.ReactNode;
   metadata?: any;
+  finished?: boolean;
+  debugGuide?: boolean;
 }
 
 // Card component for node explanation intent
@@ -63,7 +65,7 @@ const NodeParamsCard = ({ content }: { content: React.ReactNode }) => {
   );
 };
 
-export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata }: AIMessageProps) {
+export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata, finished, debugGuide }: AIMessageProps) {
   const markdownWrapper = useRef<HTMLDivElement | null>(null)
   
   // Renders markdown content with customized styles and components
@@ -291,6 +293,12 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
     <BaseMessage name={name}>
       <div className="w-full rounded-lg bg-gray-50 p-4 text-gray-900 text-sm break-words overflow-hidden">
         {renderContent()}
+        {debugGuide && !finished && (
+            <div className="flex items-center gap-2 text-blue-500 text-sm">
+                <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                Analyzing workflow...
+            </div>
+        )}
       </div>
     </BaseMessage>
   );

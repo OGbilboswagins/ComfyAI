@@ -700,6 +700,17 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         updateMessagesCache(updatedMessages);
     };
 
+    const handleUpdateMessage = (message: Message) => {
+        // console.log('[WorkflowChat] Upadating message:', message);
+        const updatedMessages = state.messages.map(msg => 
+            msg.id === message.id && !msg.finished ? message : msg
+        );
+        dispatch({ type: 'UPDATE_MESSAGE', payload: message });
+        
+        // Update the localStorage cache and IndexedDB with the new message
+        updateMessagesCache(updatedMessages);
+    };
+
     const handleSelectSession = (sessionId: string, messages: Message[]) => {
         // Clear current state and load new session
         dispatch({ type: 'SET_SESSION_ID', payload: sessionId });
@@ -848,6 +859,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                         onOptionClick={handleOptionClick}
                         installedNodes={installedNodes}
                         onAddMessage={handleAddMessage}
+                        onUpdateMessage={handleUpdateMessage}
                         loading={loading}
                         isActive={activeTab === 'chat'}
                     />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BaseMessage } from './BaseMessage';
 import { generateUUID } from '../../../utils/uuid';
 import { queuePrompt } from '../../../utils/queuePrompt';
@@ -70,35 +70,65 @@ interface DebugGuideProps {
     name?: string;
     avatar: string;
     onAddMessage?: (message: any) => void;
+    onUpdateMessage?: (message: any) => void;
+    onFinishLoad?: () => void;
 }
 
-export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }: DebugGuideProps) {
+export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, onUpdateMessage, onFinishLoad }: DebugGuideProps) {
     const [isDebugging, setIsDebugging] = useState(false);
     const [streamingText, setStreamingText] = useState('');
     const [showStreamingMessage, setShowStreamingMessage] = useState(false);
     const [checkpointId, setCheckpointId] = useState<number | null>(null);
     
     // Parse the message content
-    let response;
-    try {
-        response = JSON.parse(content);
-    } catch (error) {
-        console.error('Failed to parse message content:', error);
-        return null;
-    }
+    // let response;
+    // try {
+    //     response = JSON.parse(content);
+    // } catch (error) {
+    //     console.error('Failed to parse message content:', error);
+    //     return null;
+    // }
+
+    useEffect(() => {
+        onFinishLoad?.()
+    }, [])
+
+    const response = useMemo(() => {
+        try {
+            let response = JSON.parse(content);
+            return response;
+        } catch (error) {
+            console.error('Failed to parse message content:', error);
+            return null;
+        }
+    }, [content])
 
     const handleDebugClick = async () => {
         if (isDebugging) return;
         
-        setIsDebugging(true);
-        setShowStreamingMessage(true);
-        setStreamingText('🔍 Starting workflow analysis...\n');
+        // setIsDebugging(true);
+        // setShowStreamingMessage(true);
+        const messageId = generateUUID();
+        const message = {
+            id: messageId,
+            role: 'ai' as const,
+            content: JSON.stringify({
+                text: '🔍 Starting workflow analysis...\n',
+                ext: []
+            }),
+            format: 'markdown',
+            name: 'Assistant',
+            finished: false,
+            debugGuide: true
+        }
+        onAddMessage?.(message);
+        // setStreamingText('🔍 Starting workflow analysis...\n');
         
         try {
             // Save checkpoint before debugging
             await saveCheckpointBeforeDebug();
             
-            await handleQueueError();
+            await handleQueueError(messageId);
         } finally {
             setIsDebugging(false);
         }
@@ -126,117 +156,122 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage }
         }
     };
 
-    const handleQueueError = async () => {
+    const handleQueueError = async (messageId: string) => {
         try {
             // Get current workflow for context
             const prompt = await app.graphToPrompt();
             
             let accumulatedText = '';
             let finalExt: any = null;
-
             // Use the streaming debug agent API
             for await (const result of WorkflowChatAPI.streamDebugAgent(prompt)) {
                 if (result.text) {
                     accumulatedText = result.text;
-                    setStreamingText(accumulatedText); // Update streaming text in real-time
+                    // setStreamingText(accumulatedText); // Update streaming text in real-time
                     if (result.ext) {
                         finalExt = result.ext;
                     }
+                    const message = {
+                        id: messageId,
+                        role: 'ai' as const,
+                        content: JSON.stringify({
+                            text: accumulatedText,
+                            ext: finalExt || []
+                        }),
+                        format: 'markdown',
+                        name: 'Assistant',
+                        finished: false,
+                        debugGuide: true
+                    }
+                    onUpdateMessage?.(message);
                 }
             }
 
+            onUpdateMessage?.({
+                id: messageId,
+                role: 'ai' as const,
+                content: JSON.stringify({
+                    text: accumulatedText,
+                    ext: finalExt || []
+                }),
+                format: 'markdown',
+                name: 'Assistant',
+                finished: true,
+                debugGuide: true
+            });
             // Hide streaming message and add final complete message
-            setShowStreamingMessage(false);
+            // setShowStreamingMessage(false);
             
-            if (accumulatedText) {
-                const debugMessage = {
-                    id: generateUUID(),
-                    role: 'ai' as const,
-                    content: JSON.stringify({
-                        text: accumulatedText,
-                        ext: finalExt || []
-                    }),
-                    format: 'markdown',
-                    name: 'Assistant'
-                };
-                onAddMessage?.(debugMessage);
-            }
+            // if (accumulatedText) {
+            //     const debugMessage = {
+            //         id: generateUUID(),
+            //         role: 'ai' as const,
+            //         content: JSON.stringify({
+            //             text: accumulatedText,
+            //             ext: finalExt || []
+            //         }),
+            //         format: 'markdown',
+            //         name: 'Assistant'
+            //     };
+            //     onAddMessage?.(debugMessage);
+            // }
 
         } catch (error: unknown) {
             console.error('Error calling debug agent:', error);
             setShowStreamingMessage(false);
             const errorObj = error as any;
             const errorMessage = {
-                id: generateUUID(),
+                id: messageId,
                 role: 'ai' as const,
                 content: JSON.stringify({
                     text: `I encountered an error while analyzing your workflow: ${errorObj.message || 'Unknown error'}`,
                     ext: []
                 }),
                 format: 'markdown',
-                name: 'Assistant'
+                name: 'Assistant',
+                finished: true
             };
-            onAddMessage?.(errorMessage);
+            onUpdateMessage?.(errorMessage);
         }
     };
 
-    return (
-        <div className="w-full space-y-4">
-            {/* Original message */}
-            <BaseMessage name={name}>
-                <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                        <p className="text-gray-700 text-sm flex-1">
-                            {response.text}
-                        </p>
-                        
-                        {/* Restore checkpoint icon */}
-                        {checkpointId && (
-                            <div className="ml-2 flex-shrink-0">
-                                <RestoreCheckpointIcon 
-                                    checkpointId={checkpointId} 
-                                    onRestore={() => {
-                                        console.log('Workflow restored from checkpoint');
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleDebugClick}
-                            disabled={isDebugging}
-                            className={`px-4 py-2 text-white text-sm rounded-md transition-colors ${
-                                isDebugging 
-                                    ? 'bg-gray-400 cursor-not-allowed' 
-                                    : 'bg-blue-500 hover:bg-blue-600'
-                            }`}
-                        >
-                            {isDebugging ? 'Analyzing...' : 'Debug Errors'}
-                        </button>
-                    </div>
-                </div>
-            </BaseMessage>
+    if (!response) return null;
 
-            {/* Streaming message */}
-            {showStreamingMessage && (
-                <BaseMessage name="Assistant">
-                    <div className="space-y-3">
-                        <div className="prose prose-sm max-w-none">
-                            <pre className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">
-                                {streamingText}
-                            </pre>
+    return (
+        <BaseMessage name={name}>
+            <div className='bg-gray-100 p-4 rounded-lg'>
+                <div className="flex justify-between items-start">
+                    <p className="text-gray-700 text-sm flex-1">
+                        {response.text}
+                    </p>
+                    
+                    {/* Restore checkpoint icon */}
+                    {checkpointId && (
+                        <div className="ml-2 flex-shrink-0">
+                            <RestoreCheckpointIcon 
+                                checkpointId={checkpointId} 
+                                onRestore={() => {
+                                    console.log('Workflow restored from checkpoint');
+                                }}
+                            />
                         </div>
-                        {isDebugging && (
-                            <div className="flex items-center gap-2 text-blue-500 text-sm">
-                                <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                                Analyzing workflow...
-                            </div>
-                        )}
-                    </div>
-                </BaseMessage>
-            )}
-        </div>
+                    )}
+                </div>
+                
+                <div className="flex mt-4">
+                    <button
+                        onClick={handleDebugClick}
+                        disabled={isDebugging}
+                        className={`px-4 py-2 text-white text-sm rounded-md transition-colors ${
+                            isDebugging 
+                                ? 'bg-gray-400 cursor-not-allowed' 
+                                : 'bg-blue-500 hover:bg-blue-600'
+                        }`}
+                    >
+                        {isDebugging ? 'Analyzing...' : 'Debug Errors'}
+                    </button>
+                </div>
+            </div>
+        </BaseMessage>
     );
 }

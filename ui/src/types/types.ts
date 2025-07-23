@@ -88,6 +88,7 @@ export interface Message {
   type?: string;
   metadata?: any;
   trace_id?: string;
+  debugGuide?: boolean;
 }
 
 export interface ToolCall {
