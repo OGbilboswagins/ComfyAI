@@ -76,6 +76,17 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     const currentScrollHeight = useRef<number>(0) 
     const isLoadHistory = useRef<boolean>(false)
     
+    // 用于跟踪已经处理过的工作流和参数更新，防止重复执行
+    const processedUpdates = useRef<Set<string>>(new Set())
+    
+    // 当消息列表发生重大变化时（如清除消息、切换会话），清空已处理的更新记录
+    useEffect(() => {
+        // 如果消息数量大幅减少（比如清除消息），清空处理记录
+        if (messages.length < processedUpdates.current.size / 2) {
+            processedUpdates.current.clear();
+        }
+    }, [messages]);
+    
     useEffect(() => {
         const el = scrollRef.current
         if (!el) return;
@@ -136,25 +147,30 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
                 // 处理工作流更新：实时更新画布 
                 if (workflowUpdateExt && workflowUpdateExt.data) {
-                    const { workflow_data } = workflowUpdateExt.data;
-                    if (typeof window !== 'undefined' && (window as any).app && workflow_data) {
-                        console.log('[MessageList] Applying workflow update to canvas...');
-                        try {
-                            // 导入通用的工作流应用函数
-                            import('../../utils/graphUtils').then(({ applyNewWorkflow }) => {
-                                const success = applyNewWorkflow(workflow_data);
-                                
-                                if (success) {
-                                    console.log('[MessageList] Successfully applied workflow update');
-                                } else {
-                                    console.warn('[MessageList] Failed to apply workflow update');
-                                }
-                            }).catch(error => {
-                                console.error('[MessageList] Failed to import graphUtils:', error);
-                            });
-                        } catch (error) {
-                            console.error('[MessageList] Failed to update canvas:', error);
+                    const workflowUpdateKey = `workflow_update_${message.id}`;
+                    if (!processedUpdates.current.has(workflowUpdateKey)) {
+                        const { workflow_data } = workflowUpdateExt.data;
+                        if (typeof window !== 'undefined' && (window as any).app && workflow_data) {
+                            console.log('[MessageList] Applying workflow update to canvas...');
+                            try {
+                                // 导入通用的工作流应用函数
+                                import('../../utils/graphUtils').then(({ applyNewWorkflow }) => {
+                                    const success = applyNewWorkflow(workflow_data);
+                                    
+                                    if (success) {
+                                        console.log('[MessageList] Successfully applied workflow update');
+                                    } else {
+                                        console.warn('[MessageList] Failed to apply workflow update');
+                                    }
+                                }).catch(error => {
+                                    console.error('[MessageList] Failed to import graphUtils:', error);
+                                });
+                            } catch (error) {
+                                console.error('[MessageList] Failed to update canvas:', error);
+                            }
                         }
+                        // 标记该更新已处理
+                        processedUpdates.current.add(workflowUpdateKey);
                     }
                 }
 
@@ -169,30 +185,35 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 //     }
                 // ]
                 if (paramUpdateExt && paramUpdateExt.data) {
-                    const { changes } = paramUpdateExt.data;
-                    if (typeof window !== 'undefined' && (window as any).app && changes) {
-                        console.log('[MessageList] Applying parameter changes to canvas...');
-                        try {
-                            // 导入通用的参数修改函数
-                            import('../../utils/graphUtils').then(({ applyParameterChanges }) => {
-                                // 支持单个change对象或changes数组
-                                const changesList = Array.isArray(changes) ? changes : [changes];
-                                const success = applyParameterChanges(changesList);
-                                
-                                if (success) {
-                                    console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
-                                    changesList.forEach(change => {
-                                        console.log(`[MessageList] Updated parameter ${change.parameter} in node ${change.node_id} to:`, change.new_value);
-                                    });
-                                } else {
-                                    console.warn('[MessageList] Failed to apply some parameter changes');
-                                }
-                            }).catch(error => {
-                                console.error('[MessageList] Failed to import graphUtils:', error);
-                            });
-                        } catch (error) {
-                            console.error('[MessageList] Failed to update canvas:', error);
+                    const paramUpdateKey = `param_update_${message.id}`;
+                    if (!processedUpdates.current.has(paramUpdateKey)) {
+                        const { changes } = paramUpdateExt.data;
+                        if (typeof window !== 'undefined' && (window as any).app && changes) {
+                            console.log('[MessageList] Applying parameter changes to canvas...');
+                            try {
+                                // 导入通用的参数修改函数
+                                import('../../utils/graphUtils').then(({ applyParameterChanges }) => {
+                                    // 支持单个change对象或changes数组
+                                    const changesList = Array.isArray(changes) ? changes : [changes];
+                                    const success = applyParameterChanges(changesList);
+                                    
+                                    if (success) {
+                                        console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
+                                        changesList.forEach(change => {
+                                            console.log(`[MessageList] Updated parameter ${change.parameter} in node ${change.node_id} to:`, change.new_value);
+                                        });
+                                    } else {
+                                        console.warn('[MessageList] Failed to apply some parameter changes');
+                                    }
+                                }).catch(error => {
+                                    console.error('[MessageList] Failed to import graphUtils:', error);
+                                });
+                            } catch (error) {
+                                console.error('[MessageList] Failed to update canvas:', error);
+                            }
                         }
+                        // 标记该更新已处理
+                        processedUpdates.current.add(paramUpdateKey);
                     }
                 }
 
