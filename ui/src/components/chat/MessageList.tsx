@@ -94,7 +94,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
           
         const handleScroll = () => {
             if (!!scrollRef.current) {
-                console.log("el.scrollHeight--->", el.scrollHeight, el.scrollTop, el.clientHeight)
                 isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 10
             }
             currentScrollHeight.current = el.scrollHeight
@@ -105,9 +104,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }, [])
 
     const onFinishLoad = () => {
-        console.log("onFinishLoad1--->", scrollRef?.current?.scrollHeight, isAutoScroll.current)
         // setTimeout(() => { 
-            console.log("onFinishLoad2--->", scrollRef?.current?.scrollHeight, isAutoScroll.current) 
             if (!!scrollRef?.current && isAutoScroll.current) {
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
             }
@@ -566,7 +563,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     buttonStatus: LoadMoreStatus.USED
                 })
             }
-            console.log('setCurrentMessages--->', list, Date.now());
             setCurrentMessages(pre => [...pre, ...list]);
         } else {
             let count = 0;
@@ -602,16 +598,14 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         lastMessagesCount.current = messages.length
     }, [messages, currentIndex])
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!!scrollRef?.current) {
             if (isLoadHistory.current) {
                 // 加载历史数据需要修改scrolltop保证当前视图不变
-                // console.log('scrollRef.current.scrollHeight--->', scrollRef.current.scrollHeight, currentScrollHeight.current)
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
                 isLoadHistory.current = false
             } else {
                 if (isAutoScroll.current) {
-                    console.log("scrollRef.current.scrollTop--->", scrollRef.current.scrollTop, scrollRef.current.scrollHeight)
                     scrollRef.current.scrollTop = scrollRef.current.scrollHeight
                 }
             }
