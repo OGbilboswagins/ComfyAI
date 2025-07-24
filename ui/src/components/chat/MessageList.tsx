@@ -440,6 +440,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 onAddMessage={onAddMessage}
                                 onUpdateMessage={onUpdateMessage}
                                 onFinishLoad={onFinishLoad}
+                                messageId={message.id}
                             />
                         </Suspense>
                     );

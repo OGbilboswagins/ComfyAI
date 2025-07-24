@@ -29,6 +29,9 @@ const RestoreCheckpointIcon = ({ checkpointId, onRestore }: { checkpointId: numb
                 
                 console.log(`Restored workflow checkpoint ${checkpointId}`);
                 onRestore();
+            } else {
+                console.error('No workflow data found in checkpoint');
+                alert('No workflow data found in checkpoint.');
             }
         } catch (error) {
             console.error('Failed to restore checkpoint:', error);

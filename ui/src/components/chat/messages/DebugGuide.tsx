@@ -72,23 +72,15 @@ interface DebugGuideProps {
     onAddMessage?: (message: any) => void;
     onUpdateMessage?: (message: any) => void;
     onFinishLoad?: () => void;
+    messageId?: string;  // Add messageId prop to track the current message
 }
 
-export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, onUpdateMessage, onFinishLoad }: DebugGuideProps) {
+export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, onUpdateMessage, onFinishLoad, messageId }: DebugGuideProps) {
     const [isDebugging, setIsDebugging] = useState(false);
     const [streamingText, setStreamingText] = useState('');
     const [showStreamingMessage, setShowStreamingMessage] = useState(false);
-    const [checkpointId, setCheckpointId] = useState<number | null>(null);
+    const [localCheckpointId, setLocalCheckpointId] = useState<number | null>(null);
     
-    // Parse the message content
-    // let response;
-    // try {
-    //     response = JSON.parse(content);
-    // } catch (error) {
-    //     console.error('Failed to parse message content:', error);
-    //     return null;
-    // }
-
     useEffect(() => {
         onFinishLoad?.()
     }, [])
@@ -103,11 +95,28 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
         }
     }, [content])
 
+    // Parse checkpointId from ext data (for persistence across page reloads)
+    const persistedCheckpointId = useMemo(() => {
+        if (!response || !response.ext) return null;
+        
+        const debugStartCheckpoint = response.ext.find((item: any) => 
+            item.type === 'debug_start_checkpoint' || 
+            (item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'debug_start')
+        );
+        
+        if (debugStartCheckpoint && debugStartCheckpoint.data && debugStartCheckpoint.data.checkpoint_id) {
+            return debugStartCheckpoint.data.checkpoint_id;
+        }
+        
+        return null;
+    }, [response]);
+
+    // Use persisted checkpoint ID if available, otherwise use local state
+    const checkpointId = persistedCheckpointId || localCheckpointId;
+
     const handleDebugClick = async () => {
         if (isDebugging) return;
         
-        // setIsDebugging(true);
-        // setShowStreamingMessage(true);
         const messageId = generateUUID();
         const message = {
             id: messageId,
@@ -122,7 +131,6 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
             debugGuide: true
         }
         onAddMessage?.(message);
-        // setStreamingText('🔍 Starting workflow analysis...\n');
         
         try {
             // Save checkpoint before debugging
@@ -147,8 +155,41 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                     'debug_start'
                 );
                 
-                setCheckpointId(checkpointData.version_id);
+                setLocalCheckpointId(checkpointData.version_id);
                 console.log(`Saved debug start checkpoint: ${checkpointData.version_id}`);
+                
+                // Update the current debug guide message to include checkpoint_id in ext data
+                if (onUpdateMessage && response) {
+                    const updatedExt = [...(response.ext || [])];
+                    
+                    // Remove any existing debug_start_checkpoint
+                    const filteredExt = updatedExt.filter((item: any) => 
+                        item.type !== 'debug_start_checkpoint' && 
+                        !(item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'debug_start')
+                    );
+                    
+                    // Add new checkpoint data
+                    filteredExt.push({
+                        type: 'debug_start_checkpoint',
+                        data: {
+                            checkpoint_id: checkpointData.version_id,
+                            checkpoint_type: 'debug_start'
+                        }
+                    });
+                    
+                    const updatedMessage = {
+                        id: messageId || generateUUID(),
+                        role: 'ai' as const,
+                        content: JSON.stringify({
+                            text: response.text,
+                            ext: filteredExt
+                        }),
+                        format: 'debug_guide' as const,
+                        name: 'Assistant'
+                    };
+                    
+                    onUpdateMessage(updatedMessage);
+                }
             }
         } catch (error) {
             console.error('Failed to save checkpoint before debug:', error);
@@ -167,7 +208,6 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
             for await (const result of WorkflowChatAPI.streamDebugAgent(prompt)) {
                 if (result.text) {
                     accumulatedText = result.text;
-                    // setStreamingText(accumulatedText); // Update streaming text in real-time
                     if (result.ext) {
                         finalExt = result.ext;
                     }
@@ -199,22 +239,6 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                 finished: true,
                 debugGuide: true
             });
-            // Hide streaming message and add final complete message
-            // setShowStreamingMessage(false);
-            
-            // if (accumulatedText) {
-            //     const debugMessage = {
-            //         id: generateUUID(),
-            //         role: 'ai' as const,
-            //         content: JSON.stringify({
-            //             text: accumulatedText,
-            //             ext: finalExt || []
-            //         }),
-            //         format: 'markdown',
-            //         name: 'Assistant'
-            //     };
-            //     onAddMessage?.(debugMessage);
-            // }
 
         } catch (error: unknown) {
             console.error('Error calling debug agent:', error);
