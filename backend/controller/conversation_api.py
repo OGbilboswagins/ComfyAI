@@ -19,30 +19,7 @@ import os
 
 from ..service.debug_agent import debug_workflow_errors
 from ..service.database import save_workflow_data, get_workflow_data_by_id
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'service'))
-try:
-    # Try importing with underscore (Python module naming convention)
-    from mcp_client import comfyui_agent_invoke, ImageData
-except ImportError:
-    try:
-        # Try importing from actual filename mcp-client.py
-        import importlib.util
-        mcp_client_path = os.path.join(os.path.dirname(__file__), '..', 'service', 'mcp-client.py')
-        spec = importlib.util.spec_from_file_location("mcp_client", mcp_client_path)
-        mcp_client_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mcp_client_module)
-        comfyui_agent_invoke = mcp_client_module.comfyui_agent_invoke
-        ImageData = mcp_client_module.ImageData
-    except Exception as e:
-        print(f"Warning: Could not import comfyui_agent_invoke: {e}, using mock implementation")
-        async def comfyui_agent_invoke(prompt, images=None, config=None):
-            yield f"Mock response for: {prompt}"
-        class ImageData:
-            def __init__(self, filename: str, data: str, url: str = None):
-                self.filename = filename
-                self.data = data
-                self.url = url
+from ..service.mcp_client import comfyui_agent_invoke, ImageData
 
 
 # 不再使用内存存储会话消息，改为从前端传递历史消息
@@ -352,6 +329,7 @@ async def invoke_chat(request):
     intent = req_json.get('intent')
     ext = req_json.get('ext')
     historical_messages = req_json.get('messages', [])
+    workflow_data = req_json.get('workflow_data')
 
     # Process images and upload to OSS (similar to reference implementation)
     processed_images = []
@@ -386,6 +364,25 @@ async def invoke_chat(request):
     # 历史消息已经从前端传递过来，格式为OpenAI格式，直接使用
     print(f"-- Received {len(historical_messages)} historical messages")
     
+    # Save current workflow data to database if provided
+    if workflow_data and session_id:
+        try:
+            print(f"Saving workflow data for session {session_id}")
+            save_workflow_data(
+                session_id=session_id,
+                workflow_data=workflow_data,
+                workflow_data_ui=None,  # UI format not available from frontend
+                attributes={
+                    "source": "frontend_current_workflow",
+                    "description": "Current workflow data from canvas",
+                    "timestamp": time.time()
+                }
+            )
+            print(f"Successfully saved workflow data for session {session_id}")
+        except Exception as e:
+            print(f"Failed to save workflow data for session {session_id}: {str(e)}")
+            # Continue without failing the request
+
     # Add current user message to OpenAI format
     current_user_message = {"role": "user", "content": prompt}
     
@@ -416,6 +413,7 @@ async def invoke_chat(request):
         previous_text_length = 0
         
         config = {
+            "session_id": session_id,  # 添加session_id到配置中
             "openai_api_key": request.headers.get('Openai-Api-Key'),
             "openai_base_url": request.headers.get('Openai-Base-Url'),
             "model_select": next((x['data'][0] for x in ext if x['type'] == 'model_select' and x.get('data')), None)

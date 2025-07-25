@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-07-21 19:21:49
+ * @LastEditTime: 2025-07-25 11:48:50
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -14,6 +14,7 @@ import { fetchApi } from "../Api";
 import { Message, ChatResponse, OptimizedWorkflowRequest, OptimizedWorkflowResponse, Node, ExtItem, TrackEventRequest } from "../types/types";
 import { generateUUID } from '../utils/uuid';
 import { encryptWithRsaPublicKey } from '../utils/crypto';
+import { app } from '../utils/comfyapp';
 
 const BASE_URL = config.apiBaseUrl
 
@@ -55,6 +56,8 @@ const checkAndSaveApiKey = (response: Response) => {
     localStorage.setItem('chatApiKey', apiKeyFromHeader);
   }
 };
+
+
 
 export namespace WorkflowChatAPI {
   export async function trackEvent(
@@ -150,6 +153,18 @@ export namespace WorkflowChatAPI {
       // Handle ext parameter
       let finalExt = ext ? (Array.isArray(ext) ? ext : [ext]) : [];
       
+      // Always get current workflow data for potential workflow modification requests
+      let currentWorkflowData: any = null;
+      try {
+        console.log('Getting current workflow data...');
+        const workflowPrompt = await app.graphToPrompt();
+        currentWorkflowData = workflowPrompt.output;
+        console.log('Successfully retrieved current workflow data');
+      } catch (error) {
+        console.error('Failed to get current workflow data:', error);
+        // Continue without workflow data - the backend will handle the error appropriately
+      }
+      
       // Prepare headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -200,7 +215,8 @@ export namespace WorkflowChatAPI {
           images: base64Images.map((base64, index) => ({
             filename: images[index].name,
             data: base64
-          }))
+          })),
+          workflow_data: currentWorkflowData
         }),
         signal: controller.signal
       });

@@ -87,6 +87,66 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
             processedUpdates.current.clear();
         }
     }, [messages]);
+
+    // 关联用户消息和AI响应的checkpoint信息
+    const processMessagesWithCheckpoints = (messages: Message[]): Message[] => {
+        const processedMessages = [...messages];
+        
+        for (let i = 0; i < processedMessages.length; i++) {
+            const message = processedMessages[i];
+            
+            // 检查AI消息是否包含checkpoint信息
+            if ((message.role === 'ai' || message.role === 'tool') && message.content) {
+                try {
+                    const response = JSON.parse(message.content);
+                    if (response.ext) {
+                        // 查找修改前的checkpoint信息（给用户消息）
+                        const checkpointExt = response.ext.find((item: any) => 
+                            item.type === 'workflow_rewrite_checkpoint' || 
+                            (item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'workflow_rewrite_start')
+                        );
+                        
+                        // 查找修改后的版本信息（保留在AI响应中）
+                        const completeExt = response.ext.find((item: any) => 
+                            item.type === 'workflow_rewrite_complete'
+                        );
+                        
+                        // 如果找到修改前的checkpoint，将其关联到前一条用户消息
+                        if (checkpointExt && i > 0) {
+                            const prevMessage = processedMessages[i - 1];
+                            if (prevMessage.role === 'user') {
+                                // 为用户消息添加修改前的checkpoint信息
+                                processedMessages[i - 1] = {
+                                    ...prevMessage,
+                                    ext: [checkpointExt]
+                                };
+                            }
+                        }
+                        
+                        // 如果找到修改后的版本信息，保留在AI响应中，并移除修改前的checkpoint
+                        if (completeExt) {
+                            // 从AI响应中移除修改前的checkpoint，只保留修改后的版本信息
+                            const updatedResponse = { ...response };
+                            updatedResponse.ext = response.ext.filter((item: any) => 
+                                item.type !== 'workflow_rewrite_checkpoint' && 
+                                !(item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'workflow_rewrite_start')
+                            );
+                            
+                            // 更新AI消息内容
+                            processedMessages[i] = {
+                                ...message,
+                                content: JSON.stringify(updatedResponse)
+                            };
+                        }
+                    }
+                } catch (error) {
+                    // 忽略JSON解析错误
+                }
+            }
+        }
+        
+        return processedMessages;
+    };
     
     useEffect(() => {
         const el = scrollRef.current
@@ -120,7 +180,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
             return <UserMessage 
                 key={message.id} 
                 content={message.content} 
-                trace_id={message.trace_id} 
+                trace_id={message.trace_id}
+                ext={message.ext}
             />;
         }
 
@@ -144,6 +205,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 const paramUpdateExt = response.ext?.find((item: ExtItem) => item.type === 'param_update');
                 const workflowUpdateExt = response.ext?.find((item: ExtItem) => item.type === 'workflow_update');
                 const debugCheckpointExt = response.ext?.find((item: ExtItem) => item.type === 'debug_checkpoint');
+                const workflowUpdateCompleteExt = response.ext?.find((item: ExtItem) => item.type === 'workflow_update_complete');
                 
                 // 检查是否是工作流成功加载的消息
                 const isWorkflowSuccessMessage = response.text === 'The workflow has been successfully loaded to the canvas';
@@ -154,22 +216,21 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     if (!processedUpdates.current.has(workflowUpdateKey)) {
                         const { workflow_data } = workflowUpdateExt.data;
                         if (typeof window !== 'undefined' && (window as any).app && workflow_data) {
-                            console.log('[MessageList] Applying workflow update to canvas...');
                             try {
                                 // 导入通用的工作流应用函数
                                 import('../../utils/graphUtils').then(({ applyNewWorkflow }) => {
                                     const success = applyNewWorkflow(workflow_data);
                                     
                                     if (success) {
-                                        console.log('[MessageList] Successfully applied workflow update');
+                                        // console.log('[MessageList] Successfully applied workflow update');
                                     } else {
-                                        console.warn('[MessageList] Failed to apply workflow update');
+                                        // console.warn('[MessageList] Failed to apply workflow update');
                                     }
                                 }).catch(error => {
-                                    console.error('[MessageList] Failed to import graphUtils:', error);
+                                    // console.error('[MessageList] Failed to import graphUtils:', error);
                                 });
                             } catch (error) {
-                                console.error('[MessageList] Failed to update canvas:', error);
+                                // console.error('[MessageList] Failed to update canvas:', error);
                             }
                         }
                         // 标记该更新已处理
@@ -192,7 +253,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     if (!processedUpdates.current.has(paramUpdateKey)) {
                         const { changes } = paramUpdateExt.data;
                         if (typeof window !== 'undefined' && (window as any).app && changes) {
-                            console.log('[MessageList] Applying parameter changes to canvas...');
                             try {
                                 // 导入通用的参数修改函数
                                 import('../../utils/graphUtils').then(({ applyParameterChanges }) => {
@@ -201,18 +261,18 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     const success = applyParameterChanges(changesList);
                                     
                                     if (success) {
-                                        console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
-                                        changesList.forEach(change => {
-                                            console.log(`[MessageList] Updated parameter ${change.parameter} in node ${change.node_id} to:`, change.new_value);
-                                        });
+                                        // console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
+                                        // changesList.forEach(change => {
+                                        //     console.log(`[MessageList] Updated parameter ${change.parameter} in node ${change.node_id} to:`, change.new_value);
+                                        // });
                                     } else {
-                                        console.warn('[MessageList] Failed to apply some parameter changes');
+                                        // console.warn('[MessageList] Failed to apply some parameter changes');
                                     }
                                 }).catch(error => {
-                                    console.error('[MessageList] Failed to import graphUtils:', error);
+                                    // console.error('[MessageList] Failed to import graphUtils:', error);
                                 });
                             } catch (error) {
-                                console.error('[MessageList] Failed to update canvas:', error);
+                                // console.error('[MessageList] Failed to update canvas:', error);
                             }
                         }
                         // 标记该更新已处理
@@ -454,6 +514,19 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             />
                         </Suspense>
                     );
+                } else if (workflowUpdateExt) {
+                    // 使用DebugResult组件来处理工作流更新结果消息
+                    ExtComponent = (
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <LazyDebugResult
+                                content={message.content}
+                                name={message.name}
+                                avatar={avatar}
+                                format={message.format}
+                                onFinishLoad={onFinishLoad}
+                            />
+                        </Suspense>
+                    );
                 }
 
                 // 如果是工作流成功消息或debug_guide格式，直接返回DebugGuide组件
@@ -463,6 +536,11 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
                 // 如果有debug checkpoint，直接返回DebugResult组件
                 if (debugCheckpointExt && ExtComponent) {
+                    return ExtComponent;
+                }
+
+                // 如果有workflow_update，直接返回DebugResult组件
+                if (workflowUpdateExt && ExtComponent) {
                     return ExtComponent;
                 }
 
@@ -504,9 +582,9 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     />
                 );
             } catch (error) {
-                console.error('[MessageList] Error parsing message content:', error);
+                // console.error('[MessageList] Error parsing message content:', error);
                 // 如果解析JSON失败,使用AIMessage
-                console.error('解析JSON失败', message.content);
+                // console.error('解析JSON失败', message.content);
                 return (
                     <AIMessage 
                         key={message.id}
@@ -553,12 +631,15 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }
 
     useEffect(() => {
+        // 先处理消息，关联checkpoint信息到用户消息
+        const processedMessages = processMessagesWithCheckpoints(messages);
+        
         let list: FinallyMessageProps[] = []
-        if (lastMessagesCount.current > 0 && lastMessagesCount.current < messages.length) {
-            list = messages.slice(lastMessagesCount.current)
-            if (messages[lastMessagesCount.current].role === 'user') {
+        if (lastMessagesCount.current > 0 && lastMessagesCount.current < processedMessages.length) {
+            list = processedMessages.slice(lastMessagesCount.current)
+            if (processedMessages[lastMessagesCount.current].role === 'user') {
                 list.unshift({  
-                    id: `${messages[lastMessagesCount.current].id}_loadmore`,
+                    id: `${processedMessages[lastMessagesCount.current].id}_loadmore`,
                     buttonType: 'loadmore',
                     buttonStatus: LoadMoreStatus.USED
                 })
@@ -566,12 +647,12 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
             setCurrentMessages(pre => [...pre, ...list]);
         } else {
             let count = 0;
-            let endIndex = messages?.length
-            for (let i = messages?.length - 1; i >= 0; i--) {
-                if (messages[i].role === 'ai' || i === 0) {
+            let endIndex = processedMessages?.length
+            for (let i = processedMessages?.length - 1; i >= 0; i--) {
+                if (processedMessages[i].role === 'ai' || i === 0) {
                     if (count > DEFAULT_COUNT + currentIndex) {
                         list.unshift({
-                            id: `${messages[i].id}_loadmore`,
+                            id: `${processedMessages[i].id}_loadmore`,
                             buttonType: 'loadmore',
                             buttonStatus: LoadMoreStatus.NOT_USED
                         })
@@ -580,13 +661,13 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                         count++;    
                         if (list?.length > 0) {
                             list.unshift({
-                                id: `${messages[i].id}_loadmore`,
+                                id: `${processedMessages[i].id}_loadmore`,
                                 buttonType: 'loadmore',
                                 buttonStatus: LoadMoreStatus.USED
                             })
                         }
                         list = [
-                            ...messages?.slice(Math.min(endIndex, i === 0 ? i : i + 1), endIndex + 1), 
+                            ...processedMessages?.slice(Math.min(endIndex, i === 0 ? i : i + 1), endIndex + 1), 
                             ...list
                         ];
                         endIndex = i;
@@ -595,7 +676,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
             }
             setCurrentMessages(list)
         }
-        lastMessagesCount.current = messages.length
+        lastMessagesCount.current = processedMessages.length
     }, [messages, currentIndex])
 
     useLayoutEffect(() => {

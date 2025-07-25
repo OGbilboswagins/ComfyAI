@@ -10,10 +10,10 @@ from agents.items import ItemHelpers
 from agents.run import Runner
 from agents.tool import function_tool
 from agents.tracing import set_tracing_disabled
-from ..service.workflow_rewrite_agent import *
+from ..service.workflow_rewrite_tools import *
 from openai.types.responses import ResponseTextDeltaEvent
 
-from ..service.parameter_agent import *
+from ..service.parameter_tools import *
 from ..service.database import get_workflow_data, save_workflow_data
 
 # Import ComfyUI internal modules
@@ -117,7 +117,7 @@ def analyze_error_type(error_data: str) -> str:
         
         error_analysis = {
             "error_type": "unknown",
-            "recommended_agent": "workflow_rewrite_agent",
+            "recommended_agent": "workflow_bugfix_default_agent",
             "error_details": [],
             "affected_nodes": []
         }
@@ -181,13 +181,13 @@ def analyze_error_type(error_data: str) -> str:
             # 根据错误类型决定使用哪个agent（连接错误优先级最高）
             if connection_errors > 0:
                 error_analysis["error_type"] = "connection_error"
-                error_analysis["recommended_agent"] = "workflow_rewrite_agent"
+                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
             elif parameter_errors > 0:
                 error_analysis["error_type"] = "parameter_error"
                 error_analysis["recommended_agent"] = "parameter_agent"
             else:
                 error_analysis["error_type"] = "structural_error"
-                error_analysis["recommended_agent"] = "workflow_rewrite_agent"
+                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
         
         elif "error" in error_dict:
             # 处理其他格式的错误
@@ -205,7 +205,7 @@ def analyze_error_type(error_data: str) -> str:
                 "not connected", "no connection", "link", "output", "socket"
             ]):
                 error_analysis["error_type"] = "connection_error"
-                error_analysis["recommended_agent"] = "workflow_rewrite_agent"
+                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
             elif any(keyword in error_message for keyword in [
                 "value not in list", "invalid value", "parameter", "model not found",
                 "invalid parameter", "not found in list"
@@ -214,7 +214,7 @@ def analyze_error_type(error_data: str) -> str:
                 error_analysis["recommended_agent"] = "parameter_agent"
             else:
                 error_analysis["error_type"] = "structural_error"
-                error_analysis["recommended_agent"] = "workflow_rewrite_agent"
+                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
             
             error_analysis["error_details"].append({
                 "error_type": error_type,
@@ -227,7 +227,7 @@ def analyze_error_type(error_data: str) -> str:
     except Exception as e:
         return json.dumps({
             "error_type": "analysis_failed",
-            "recommended_agent": "workflow_rewrite_agent",
+            "recommended_agent": "workflow_bugfix_default_agent",
             "error": f"Failed to analyze error: {str(e)}"
         })
 
@@ -289,7 +289,7 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
 1. **Validate the workflow**: Use run_workflow("{session_id}") to validate the workflow and capture any errors
 2. **Analyze errors**: If errors occur, use analyze_error_type() to determine the error type and hand off to the appropriate specialist:
    - Hand off to Parameter Agent for parameter-related errors (value_not_in_list, missing models, invalid values)
-   - Hand off to Workflow Rewrite Agent for structural issues (Node connection issues, missing nodes, incompatible configurations)
+   - Hand off to Workflow Bugfix Default Agent for structural issues (Node connection issues, missing nodes, incompatible configurations)
 3. **After specialist returns**: Continue validation from step 1 to check if the issue is resolved
 4. **Repeat until complete**: Continue this cycle until there are no errors or maximum 6 iterations
 
@@ -315,11 +315,11 @@ Start by validating the workflow to see its current state.""",
             tools=[run_workflow, analyze_error_type, save_current_workflow],
         )
         
-        workflow_rewrite_agent = Agent(
-            name="Workflow Rewrite Agent",
+        workflow_bugfix_default_agent = Agent(
+            name="Workflow Bugfix Default Agent",
             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
             handoff_description="""
-            I am the Workflow Rewrite Agent. I specialize in fixing structural issues in ComfyUI workflows.
+            I am the Workflow Bugfix Default Agent. I specialize in fixing structural issues in ComfyUI workflows.
             
             I can help with:
             - Fixing broken node connections
@@ -331,7 +331,7 @@ Start by validating the workflow to see its current state.""",
             Call me when you have workflow structure errors that require modifying the workflow graph itself.
             """,
             instructions="""
-            You are the Workflow Rewrite Agent, an expert in ComfyUI workflow structure analysis and modification.
+            You are the Workflow Bugfix Default Agent, an expert in ComfyUI workflow structure analysis and modification.
             
             **CRITICAL**: Your job is to analyze structural errors and fix them. After making fixes, you MUST transfer back to the Debug Coordinator to verify the results.
             
@@ -428,7 +428,7 @@ Start by validating the workflow to see its current state.""",
             handoffs=[agent],
         )
 
-        agent.handoffs = [workflow_rewrite_agent, parameter_agent]
+        agent.handoffs = [workflow_bugfix_default_agent, parameter_agent]
 
         # Initial message to start the debugging process
         messages = [{"role": "user", "content": f"Validate and debug this ComfyUI workflow. Session ID: {session_id}"}]

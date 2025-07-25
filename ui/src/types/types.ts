@@ -89,6 +89,7 @@ export interface Message {
   metadata?: any;
   trace_id?: string;
   debugGuide?: boolean;
+  ext?: ExtItem[];  // 添加ext字段
 }
 
 export interface ToolCall {

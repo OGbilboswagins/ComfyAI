@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-23 18:03:56
+LastEditTime: 2025-07-25 16:21:52
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -16,6 +16,7 @@ from agents.items import ItemHelpers
 from agents.mcp import MCPServerSse
 from agents.run import Runner
 from agents.tracing import set_tracing_disabled
+from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
 
 # Load environment variables from server.env
@@ -74,6 +75,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             
             # Get model from environment or use default
             model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
+            session_id = config.get("session_id", "default_session") if config else "default_session"
             if config and config.get("model_select") and config.get("model_select") != "":
                 model_name = config.get("model_select")
             if config and config.get("openai_api_key") and config.get("openai_api_key") != "":
@@ -81,10 +83,18 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             print(f"Using model: {model_name}")
+            print(f"Session ID: {session_id}")
+            
+            # 创建带有session_id的workflow_rewrite_agent实例
+            workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
             
             agent = Agent(
                 name="ComfyUI-Copilot",
-                instructions="""You are a powerful AI assistant for designing image processing workflows, capable of automating problem-solving using tools and commands.
+                instructions=f"""You are a powerful AI assistant for designing image processing workflows, capable of automating problem-solving using tools and commands.
+
+**Current Session ID:** {session_id}
+
+When handing off to workflow rewrite agent or other agents, this session ID should be used for workflow data management.
 
 You must adhere to the following constraints to complete the task:
 
@@ -104,6 +114,8 @@ You must adhere to the following constraints to complete the task:
 - [Critical!] When the user's intent is to get workflows or generate images with specific requirements, you MUST ALWAYS call BOTH recall_workflow tool AND gen_workflow tool to provide comprehensive workflow options. Never call just one of these tools - both are required for complete workflow assistance. First call recall_workflow to find existing similar workflows, then call gen_workflow to generate new workflow options.
 - When the user's intent is to query, return the query result directly without attempting to assist the user in performing operations.
 - When the user's intent is to get prompts for image generation (like Stable Diffusion). Use specific descriptive language with proper weight modifiers (e.g., (word:1.2)), prefer English terms, and separate elements with commas. Include quality terms (high quality, detailed), style specifications (realistic, anime), lighting (cinematic, golden hour), and composition (wide shot, close up) as needed. When appropriate, include negative prompts to exclude unwanted elements. Return words divided by commas directly without any additional text.
+- When the user's intent is to debug workflows or resolve errors, respond with: "Please click the 🪲 button in the bottom right corner to trigger debug"
+- [Critical!] When the user's intent is to modify, update, enhance, or add functionality to the current workflow (keywords: "修改当前工作流", "更新工作流", "在当前工作流", "添加功能", "enhance current workflow", "modify workflow", "add to current workflow", "update current workflow"), you MUST handoff to the Workflow Rewrite Agent immediately. This includes requests to add upscaling, LoRA, post-processing, or any modifications to existing workflows.
 - When a user pastes text that appears to be an error message (containing terms like "Failed", "Error", or stack traces), prioritize providing troubleshooting help rather than invoking search tools. Follow these steps:
   1. Analyze the error to identify the root cause (error type, affected component, missing dependencies, etc.)
   2. Explain the issue in simple terms
@@ -118,6 +130,7 @@ You must adhere to the following constraints to complete the task:
                 """,
                 mcp_servers=[server],
                 model=model_name,
+                handoffs=[workflow_rewrite_agent_instance],
             )
 
             # Use messages directly as agent input since they're already in OpenAI format
@@ -139,7 +152,8 @@ You must adhere to the following constraints to complete the task:
             last_yield_length = 0
             tool_call_queue = []  # Queue to track tool calls in order
             current_tool_call = None  # Track current tool being called
-            
+            # Collect workflow update ext data from tools and message outputs
+            workflow_update_ext = None
             async for event in result.stream_events():
                 # Handle different event types similar to reference implementation
                 if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
@@ -156,7 +170,15 @@ You must adhere to the following constraints to complete the task:
                     continue
                     
                 elif event.type == "agent_updated_stream_event":
-                    print(f"Agent updated: {event.new_agent.name}")
+                    new_agent_name = event.new_agent.name
+                    print(f"Handoff to: {new_agent_name}")
+                    # Add handoff information to the stream
+                    handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
+                    current_text += handoff_text
+                    last_yield_length = len(current_text)
+                    
+                    # Yield text update only
+                    yield (current_text, None)
                     continue
                     
                 elif event.type == "run_item_stream_event":
@@ -174,7 +196,7 @@ You must adhere to the following constraints to complete the task:
                     elif event.item.type == "tool_call_output_item":
                         print(f"-- Tool output: {event.item.output}")
                         # Store tool output for potential ext data processing
-                        tool_output_data_str = event.item.output
+                        tool_output_data_str = str(event.item.output)
                         
                         # Get the next tool from the queue (FIFO)
                         if tool_call_queue:
@@ -187,6 +209,15 @@ You must adhere to the following constraints to complete the task:
                         try:
                             import json
                             tool_output_data = json.loads(tool_output_data_str)
+                            if "ext" in tool_output_data and tool_output_data["ext"]:
+                                # Store all ext items from tool output, not just workflow_update
+                                tool_ext_items = tool_output_data["ext"]
+                                for ext_item in tool_ext_items:
+                                    if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
+                                        workflow_update_ext = tool_ext_items  # Store all ext items, not just one
+                                        print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
+                                        break
+                                
                             if tool_output_data.get('text'):
                                 parsed_output = json.loads(tool_output_data['text'])
                                 answer = parsed_output.get("answer")
@@ -206,6 +237,9 @@ You must adhere to the following constraints to complete the task:
                                 if tool_name in ["recall_workflow", "gen_workflow"]:
                                     print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
                                     
+                                
+                                
+                                
                         except (json.JSONDecodeError, TypeError) as e:
                             # If not JSON or parsing fails, treat as regular text
                             print(f"-- Failed to parse tool output as JSON: {e}")
@@ -221,6 +255,27 @@ You must adhere to the following constraints to complete the task:
                         text = ItemHelpers.text_message_output(event.item)
                         if text:
                             print(f"-- Message: {text}\n\n")
+                            
+                            # Try to parse message content for ext data (from handoff agents like workflow_rewrite_agent)
+                            try:
+                                import json
+                                parsed_message = json.loads(text)
+                                if isinstance(parsed_message, dict) and 'ext' in parsed_message and parsed_message['ext']:
+                                    # Found ext data in message output
+                                    message_ext = parsed_message['ext']
+                                    print(f"-- Found ext data in message output: {message_ext}")
+                                    
+                                    # Store as a special tool result for processing later
+                                    tool_results['_message_output_ext'] = {
+                                        "answer": parsed_message.get('text', text),
+                                        "data": None,
+                                        "ext": message_ext,
+                                        "content_dict": parsed_message
+                                    }
+                                    print(f"-- Stored message output ext data")
+                            except (json.JSONDecodeError, TypeError):
+                                # Not JSON or no ext field, continue normally
+                                pass
                     else:
                         pass  # Ignore other event types
 
@@ -230,16 +285,19 @@ You must adhere to the following constraints to complete the task:
             print(f"=== Tool Results Summary ===")
             print(f"Total tool results: {len(tool_results)}")
             for tool_name, result in tool_results.items():
-                print(f"Tool: {tool_name}")
+                result_type = "Message Output" if tool_name == '_message_output_ext' else "Tool"
+                print(f"{result_type}: {tool_name}")
                 print(f"  - Has data: {result['data'] is not None}")
                 print(f"  - Data length: {len(result['data']) if result['data'] else 0}")
                 print(f"  - Has ext: {result['ext'] is not None}")
+                if result['ext']:
+                    print(f"  - Ext types: {[item.get('type') for item in (result['ext'] if isinstance(result['ext'], list) else [result['ext']])]}")
                 print(f"  - Answer preview: {result['answer'][:100] if result['answer'] else 'None'}...")
             print(f"=== End Tool Results Summary ===\n")
 
             # Process workflow tools results integration similar to reference facade.py
             workflow_tools_found = [tool for tool in ["recall_workflow", "gen_workflow"] if tool in tool_results]
-            finished = True  # Default finished state
+            finished = False  # Default finished state
 
             if workflow_tools_found:
                 print(f"Workflow tools called: {workflow_tools_found}")
@@ -323,7 +381,7 @@ You must adhere to the following constraints to complete the task:
                     # Only gen_workflow called, finished = True
                     finished = True
             else:
-                # No workflow tools called, check if other tools returned ext
+                # No workflow tools called, check if other tools or message output returned ext
                 for tool_name, result in tool_results.items():
                     if result["ext"]:
                         ext = result["ext"]
@@ -333,12 +391,24 @@ You must adhere to the following constraints to complete the task:
                 # No workflow tools, finished = True
                 finished = True
             
+            
+            # Prepare final ext (debug_ext would be empty here since no debug events)
+            final_ext = ext
+            if workflow_update_ext:
+                # workflow_update_ext is now a list of ext items, so extend rather than wrap
+                if isinstance(workflow_update_ext, list):
+                    final_ext = workflow_update_ext + (ext if ext else [])
+                else:
+                    # Backward compatibility: if it's a single item, wrap it
+                    final_ext = [workflow_update_ext] + (ext if ext else [])
+                print(f"-- Including workflow_update ext in final response: {len(workflow_update_ext) if isinstance(workflow_update_ext, list) else 1} items")
+            
             # Final yield with complete text, ext data, and finished status
             # Return as tuple (text, ext_with_finished) where ext_with_finished includes finished info
-            if ext:
+            if final_ext:
                 # Add finished status to ext structure
                 ext_with_finished = {
-                    "data": ext,
+                    "data": final_ext,
                     "finished": finished
                 }
             else:
