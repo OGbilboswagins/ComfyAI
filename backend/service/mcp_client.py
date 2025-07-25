@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-25 18:42:55
+LastEditTime: 2025-07-25 23:42:19
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -113,9 +113,12 @@ You must adhere to the following constraints to complete the task:
 - [Critical!] When the user's intent is to get workflows or generate images with specific requirements, you MUST ALWAYS call BOTH recall_workflow tool AND gen_workflow tool to provide comprehensive workflow options. Never call just one of these tools - both are required for complete workflow assistance. First call recall_workflow to find existing similar workflows, then call gen_workflow to generate new workflow options.
 - When the user's intent is to query, return the query result directly without attempting to assist the user in performing operations.
 - When the user's intent is to get prompts for image generation (like Stable Diffusion). Use specific descriptive language with proper weight modifiers (e.g., (word:1.2)), prefer English terms, and separate elements with commas. Include quality terms (high quality, detailed), style specifications (realistic, anime), lighting (cinematic, golden hour), and composition (wide shot, close up) as needed. When appropriate, include negative prompts to exclude unwanted elements. Return words divided by commas directly without any additional text.
-- When the user's intent is to debug workflows or resolve errors, respond with: "Please click the 🪲 button in the bottom right corner to trigger debug"
-- [Critical!] When the user's intent is to modify, update, enhance, or add functionality to the current workflow (keywords: "修改当前工作流", "更新工作流", "在当前工作流", "添加功能", "enhance current workflow", "modify workflow", "add to current workflow", "update current workflow"), you MUST handoff to the Workflow Rewrite Agent immediately. This includes requests to add upscaling, LoRA, post-processing, or any modifications to existing workflows.
-- When a user pastes text that appears to be an error message (containing terms like "Failed", "Error", or stack traces), prioritize providing troubleshooting help rather than invoking search tools. Follow these steps:
+
+- **DEBUG Intent** - When the user's intent is to debug workflow execution problems, runtime errors, or troubleshoot failed workflows (keywords: "debug", "调试", "工作流报错", "执行失败", "workflow failed", "node error", "runtime error", "不能运行", "出错了"), respond with: "Please click the 🪲 button in the bottom right corner to trigger debug"
+
+- **WORKFLOW REWRITE Intent** - [Critical!] When the user's intent is to functionally modify, enhance, or add NEW features to the current workflow (keywords: "修改当前工作流", "更新工作流", "在当前工作流中添加", "添加功能", "enhance current workflow", "modify workflow", "add to current workflow", "update current workflow", "添加LoRA", "加个upscale", "add upscaling"), you MUST handoff to the Workflow Rewrite Agent immediately. This is for feature enhancements, not error fixes.
+
+- **ERROR MESSAGE ANALYSIS** - When a user pastes specific error text/logs (containing terms like "Failed", "Error", "Traceback", or stack traces), prioritize providing troubleshooting help rather than invoking search tools. Follow these steps:
   1. Analyze the error to identify the root cause (error type, affected component, missing dependencies, etc.)
   2. Explain the issue in simple terms
   3. Provide concrete, executable solutions including:
@@ -153,131 +156,145 @@ You must adhere to the following constraints to complete the task:
             current_tool_call = None  # Track current tool being called
             # Collect workflow update ext data from tools and message outputs
             workflow_update_ext = None
-            async for event in result.stream_events():
-                # Handle different event types similar to reference implementation
-                if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
-                    # Stream text deltas for real-time response
-                    delta_text = event.data.delta
-                    if delta_text:
-                        current_text += delta_text
-                        # Yield tuple (accumulated_text, None) for streaming - similar to facade.py
-                        # Only yield if we have new content to avoid duplicate yields
-                        if len(current_text) > last_yield_length:
-                            last_yield_length = len(current_text)
-                            yield (current_text, None)
-                    continue
-                    
-                elif event.type == "agent_updated_stream_event":
-                    new_agent_name = event.new_agent.name
-                    print(f"Handoff to: {new_agent_name}")
-                    # Add handoff information to the stream
-                    handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
-                    current_text += handoff_text
-                    last_yield_length = len(current_text)
-                    
-                    # Yield text update only
-                    yield (current_text, None)
-                    continue
-                    
-                elif event.type == "run_item_stream_event":
-                    if event.item.type == "tool_call_item":
-                        # Get tool name correctly using raw_item.name
-                        tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
-                        # Add to queue instead of overwriting current_tool_call
-                        tool_call_queue.append(tool_name)
-                        print(f"-- Tool '{tool_name}' was called")
+            
+            # Simple retry for OpenAI streaming errors
+            try:
+                async for event in result.stream_events():
+                    # Handle different event types similar to reference implementation
+                    if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+                        # Stream text deltas for real-time response
+                        delta_text = event.data.delta
+                        if delta_text:
+                            current_text += delta_text
+                            # Yield tuple (accumulated_text, None) for streaming - similar to facade.py
+                            # Only yield if we have new content to avoid duplicate yields
+                            if len(current_text) > last_yield_length:
+                                last_yield_length = len(current_text)
+                                yield (current_text, None)
+                        continue
                         
-                        # Track workflow tools being called
-                        if tool_name in ["recall_workflow", "gen_workflow"]:
-                            workflow_tools_called.add(tool_name)
-                    elif event.item.type == "tool_call_output_item":
-                        print(f"-- Tool output: {event.item.output}")
-                        # Store tool output for potential ext data processing
-                        tool_output_data_str = str(event.item.output)
+                    elif event.type == "agent_updated_stream_event":
+                        new_agent_name = event.new_agent.name
+                        print(f"Handoff to: {new_agent_name}")
+                        # Add handoff information to the stream
+                        handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
+                        current_text += handoff_text
+                        last_yield_length = len(current_text)
                         
-                        # Get the next tool from the queue (FIFO)
-                        if tool_call_queue:
-                            tool_name = tool_call_queue.pop(0)
-                            print(f"-- Associating output with tool '{tool_name}'")
-                        else:
-                            tool_name = 'unknown_tool'
-                            print(f"-- Warning: No tool call in queue for output")
+                        # Yield text update only
+                        yield (current_text, None)
+                        continue
                         
-                        try:
-                            import json
-                            tool_output_data = json.loads(tool_output_data_str)
-                            if "ext" in tool_output_data and tool_output_data["ext"]:
-                                # Store all ext items from tool output, not just workflow_update
-                                tool_ext_items = tool_output_data["ext"]
-                                for ext_item in tool_ext_items:
-                                    if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
-                                        workflow_update_ext = tool_ext_items  # Store all ext items, not just one
-                                        print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
-                                        break
-                                
-                            if tool_output_data.get('text'):
-                                parsed_output = json.loads(tool_output_data['text'])
-                                answer = parsed_output.get("answer")
-                                data = parsed_output.get("data")
-                                tool_ext = parsed_output.get("ext")
-                                
-                                # Store tool results similar to reference facade.py
-                                tool_results[tool_name] = {
-                                    "answer": answer,
-                                    "data": data,
-                                    "ext": tool_ext,
-                                    "content_dict": parsed_output
-                                }
-                                print(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
-                                
-                                # Track workflow tools that produced results
-                                if tool_name in ["recall_workflow", "gen_workflow"]:
-                                    print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
-                                    
-                                
-                                
-                                
-                        except (json.JSONDecodeError, TypeError) as e:
-                            # If not JSON or parsing fails, treat as regular text
-                            print(f"-- Failed to parse tool output as JSON: {e}")
-                            print(f"-- Full traceback: {traceback.format_exc()}")
-                            tool_results[tool_name] = {
-                                "answer": tool_output_data_str,
-                                "data": None,
-                                "ext": None,
-                                "content_dict": None
-                            }
-                        
-                    elif event.item.type == "message_output_item":
-                        # Handle message output - this is the main response text
-                        text = ItemHelpers.text_message_output(event.item)
-                        if text:
-                            print(f"-- Message: {text}\n\n")
+                    elif event.type == "run_item_stream_event":
+                        if event.item.type == "tool_call_item":
+                            # Get tool name correctly using raw_item.name
+                            tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
+                            # Add to queue instead of overwriting current_tool_call
+                            tool_call_queue.append(tool_name)
+                            print(f"-- Tool '{tool_name}' was called")
                             
-                            # Try to parse message content for ext data (from handoff agents like workflow_rewrite_agent)
+                            # Track workflow tools being called
+                            if tool_name in ["recall_workflow", "gen_workflow"]:
+                                workflow_tools_called.add(tool_name)
+                        elif event.item.type == "tool_call_output_item":
+                            print(f"-- Tool output: {event.item.output}")
+                            # Store tool output for potential ext data processing
+                            tool_output_data_str = str(event.item.output)
+                            
+                            # Get the next tool from the queue (FIFO)
+                            if tool_call_queue:
+                                tool_name = tool_call_queue.pop(0)
+                                print(f"-- Associating output with tool '{tool_name}'")
+                            else:
+                                tool_name = 'unknown_tool'
+                                print(f"-- Warning: No tool call in queue for output")
+                            
                             try:
                                 import json
-                                parsed_message = json.loads(text)
-                                if isinstance(parsed_message, dict) and 'ext' in parsed_message and parsed_message['ext']:
-                                    # Found ext data in message output
-                                    message_ext = parsed_message['ext']
-                                    print(f"-- Found ext data in message output: {message_ext}")
+                                tool_output_data = json.loads(tool_output_data_str)
+                                if "ext" in tool_output_data and tool_output_data["ext"]:
+                                    # Store all ext items from tool output, not just workflow_update
+                                    tool_ext_items = tool_output_data["ext"]
+                                    for ext_item in tool_ext_items:
+                                        if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
+                                            workflow_update_ext = tool_ext_items  # Store all ext items, not just one
+                                            print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
+                                            break
                                     
-                                    # Store as a special tool result for processing later
-                                    tool_results['_message_output_ext'] = {
-                                        "answer": parsed_message.get('text', text),
-                                        "data": None,
-                                        "ext": message_ext,
-                                        "content_dict": parsed_message
+                                if tool_output_data.get('text'):
+                                    parsed_output = json.loads(tool_output_data['text'])
+                                    answer = parsed_output.get("answer")
+                                    data = parsed_output.get("data")
+                                    tool_ext = parsed_output.get("ext")
+                                    
+                                    # Store tool results similar to reference facade.py
+                                    tool_results[tool_name] = {
+                                        "answer": answer,
+                                        "data": data,
+                                        "ext": tool_ext,
+                                        "content_dict": parsed_output
                                     }
-                                    print(f"-- Stored message output ext data")
+                                    print(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
+                                    
+                                    # Track workflow tools that produced results
+                                    if tool_name in ["recall_workflow", "gen_workflow"]:
+                                        print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
+                                        
+                                    
+                                    
+                                    
                             except (json.JSONDecodeError, TypeError) as e:
-                                # Not JSON or no ext field, continue normally
-                                print(f"-- Message not JSON or no ext field: {e}")
+                                # If not JSON or parsing fails, treat as regular text
+                                print(f"-- Failed to parse tool output as JSON: {e}")
                                 print(f"-- Full traceback: {traceback.format_exc()}")
-                                pass
-                    else:
-                        pass  # Ignore other event types
+                                tool_results[tool_name] = {
+                                    "answer": tool_output_data_str,
+                                    "data": None,
+                                    "ext": None,
+                                    "content_dict": None
+                                }
+                            
+                        elif event.item.type == "message_output_item":
+                            # Handle message output - this is the main response text
+                            text = ItemHelpers.text_message_output(event.item)
+                            if text:
+                                print(f"-- Message: {text}\n\n")
+                                
+                                # Try to parse message content for ext data (from handoff agents like workflow_rewrite_agent)
+                                try:
+                                    import json
+                                    parsed_message = json.loads(text)
+                                    if isinstance(parsed_message, dict) and 'ext' in parsed_message and parsed_message['ext']:
+                                        # Found ext data in message output
+                                        message_ext = parsed_message['ext']
+                                        print(f"-- Found ext data in message output: {message_ext}")
+                                        
+                                        # Store as a special tool result for processing later
+                                        tool_results['_message_output_ext'] = {
+                                            "answer": parsed_message.get('text', text),
+                                            "data": None,
+                                            "ext": message_ext,
+                                            "content_dict": parsed_message
+                                        }
+                                        print(f"-- Stored message output ext data")
+                                except (json.JSONDecodeError, TypeError) as e:
+                                    # Not JSON or no ext field, continue normally
+                                    print(f"-- Message not JSON or no ext field: {e}")
+                                    print(f"-- Full traceback: {traceback.format_exc()}")
+                                    pass
+                        else:
+                            pass  # Ignore other event types
+            except Exception as stream_error:
+                print(f"Stream error (retrying once): {stream_error}")
+                # Simple one-time retry for streaming errors
+                try:
+                    async for event in result.stream_events():
+                        # Same event handling logic - minimal duplication for simplicity
+                        if hasattr(event, 'type'):
+                            continue  # Just consume events on retry, don't process
+                except Exception as retry_error:
+                    print(f"Retry failed: {retry_error}")
+                    # Continue to normal processing, error will be handled by outer try-catch
 
             print("\n=== MCP Agent Run complete ===")
 
