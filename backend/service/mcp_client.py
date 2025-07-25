@@ -2,12 +2,13 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-25 16:21:52
+LastEditTime: 2025-07-25 18:42:55
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
 import asyncio
 import os
+import traceback
 from typing import List, Dict, Any, Optional
 
 from agents._config import set_default_openai_api
@@ -82,8 +83,6 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
                 os.environ["OPENAI_API_KEY"] = config.get("openai_api_key")
             if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
-            print(f"Using model: {model_name}")
-            print(f"Session ID: {session_id}")
             
             # 创建带有session_id的workflow_rewrite_agent实例
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
@@ -161,7 +160,6 @@ You must adhere to the following constraints to complete the task:
                     delta_text = event.data.delta
                     if delta_text:
                         current_text += delta_text
-                        print(f"-- Delta received: '{delta_text}', current_text length: {len(current_text)}")
                         # Yield tuple (accumulated_text, None) for streaming - similar to facade.py
                         # Only yield if we have new content to avoid duplicate yields
                         if len(current_text) > last_yield_length:
@@ -192,7 +190,6 @@ You must adhere to the following constraints to complete the task:
                         # Track workflow tools being called
                         if tool_name in ["recall_workflow", "gen_workflow"]:
                             workflow_tools_called.add(tool_name)
-                            print(f"-- Workflow tool '{tool_name}' added to tracking")
                     elif event.item.type == "tool_call_output_item":
                         print(f"-- Tool output: {event.item.output}")
                         # Store tool output for potential ext data processing
@@ -243,6 +240,7 @@ You must adhere to the following constraints to complete the task:
                         except (json.JSONDecodeError, TypeError) as e:
                             # If not JSON or parsing fails, treat as regular text
                             print(f"-- Failed to parse tool output as JSON: {e}")
+                            print(f"-- Full traceback: {traceback.format_exc()}")
                             tool_results[tool_name] = {
                                 "answer": tool_output_data_str,
                                 "data": None,
@@ -273,8 +271,10 @@ You must adhere to the following constraints to complete the task:
                                         "content_dict": parsed_message
                                     }
                                     print(f"-- Stored message output ext data")
-                            except (json.JSONDecodeError, TypeError):
+                            except (json.JSONDecodeError, TypeError) as e:
                                 # Not JSON or no ext field, continue normally
+                                print(f"-- Message not JSON or no ext field: {e}")
+                                print(f"-- Full traceback: {traceback.format_exc()}")
                                 pass
                     else:
                         pass  # Ignore other event types
@@ -421,6 +421,7 @@ You must adhere to the following constraints to complete the task:
             
     except Exception as e:
         print(f"Error in comfyui_agent_invoke: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
         # Yield error as tuple with finished=True
         error_ext = {
@@ -428,4 +429,3 @@ You must adhere to the following constraints to complete the task:
             "finished": True
         }
         yield (error_message, error_ext)
-
