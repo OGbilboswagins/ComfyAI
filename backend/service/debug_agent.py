@@ -113,11 +113,12 @@ def analyze_error_type(error_data: str) -> str:
                         error_analysis["error_details"].append(error_detail)
                         
                         # 改进的错误类型判断
+                        error_detail_str = json.dumps(error_detail).lower()
                         error_type = error.get("type", "").lower()
-                        error_message = error.get("message", "").lower()
+                        # error_message = error.get("message", "").lower()
                         
                         # 优先判断连接相关错误（结构性错误）
-                        if (any(keyword in error_message for keyword in [
+                        if (any(keyword in error_detail_str for keyword in [
                             "connection", "input connection", "required input", "missing input",
                             "not connected", "no connection", "link", "output", "socket"
                         ]) or 
@@ -126,9 +127,9 @@ def analyze_error_type(error_data: str) -> str:
                         
                         # 参数相关错误的判断（更精确）
                         elif (error_type in ["value_not_in_list", "invalid_input", "invalid_value"] or
-                            any(keyword in error_message for keyword in [
+                            any(keyword in error_detail_str for keyword in [
                                 "value not in list", "invalid value", "not found in list",
-                                "parameter value", "invalid parameter", "model not found"
+                                "parameter value", "invalid parameter", "model not found", "invalid image file"
                             ])):
                             parameter_errors += 1
                         
