@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-25 23:42:19
+LastEditTime: 2025-07-28 20:55:02
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -338,7 +338,7 @@ You must adhere to the following constraints to complete the task:
                     if gen_result["data"] and len(gen_result["data"]) > 0:
                         print(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
                         print(f"  - Workflow IDs: {[w.get('id') for w in gen_result['data']]}")
-                        successful_workflows.extend(gen_result["data"])
+                        successful_workflows.insert(0, *gen_result["data"])
                     else:
                         print("gen_workflow failed or returned no data")
 
