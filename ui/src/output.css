@@ -496,6 +496,9 @@
   .w-2 {
     width: 0.5rem;
   }
+  .w-28 {
+    width: 7rem;
+  }
   .w-3 {
     width: 0.75rem;
   }
@@ -549,6 +552,9 @@
   }
   .min-w-0 {
     min-width: 0px;
+  }
+  .min-w-\[300px\] {
+    min-width: 300px;
   }
   .min-w-\[400px\] {
     min-width: 400px;
@@ -1124,8 +1130,8 @@
   .pt-2 {
     padding-top: 0.5rem;
   }
-  .pt-6 {
-    padding-top: 1.5rem;
+  .pt-4 {
+    padding-top: 1rem;
   }
   .text-left {
     text-align: left;
@@ -1808,6 +1814,11 @@
   .dark\:text-pink-400 {
     --tw-text-opacity: 1;
     color: rgb(244 114 182 / var(--tw-text-opacity, 1));
+  }
+
+  .dark\:text-red-300 {
+    --tw-text-opacity: 1;
+    color: rgb(252 165 165 / var(--tw-text-opacity, 1));
   }
 
   .dark\:text-red-400 {

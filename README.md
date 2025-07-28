@@ -166,8 +166,8 @@ We welcome any form of contribution! Feel free to make issues, pull requests, or
 
 For any queries or suggestions, please feel free to contact: ComfyUI-Copilot@service.alibaba.com.
 <div align="center">
-  <img src="assets/qrcode.png" width="20%"/> 
-  
+  <img src="assets/qrcode1.png" width="20%"/> 
+   
   WeChat
   
   <img src="assets/discordqrcode.png" width="20%"/>
