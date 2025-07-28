@@ -15,16 +15,7 @@ from typing import Dict, Any, Optional, List
 import nodes
 import execution
 import folder_paths
-
-
-def _get_server_instance():
-    """获取PromptServer实例，如果不存在则返回None"""
-    try:
-        # Import here to avoid circular imports
-        import server
-        return getattr(server, 'PromptServer', {}).get('instance', None)
-    except:
-        return None
+import server
 
 
 class ComfyGateway:
@@ -41,98 +32,82 @@ class ComfyGateway:
             logging.warning("ComfyGateway: base_url parameter is deprecated when using internal calls")
         
         # Get server instance for operations that need it
-        self.server_instance = _get_server_instance()
+        self.server_instance = server.PromptServer.instance
 
     def run_prompt(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Validate and potentially queue a prompt on ComfyUI - direct internal call equivalent
+        Run a prompt - direct internal call equivalent of server.py post_prompt
         
-        This function validates a workflow/prompt using ComfyUI's internal validation.
+        This method replicates the exact logic from server.py's post_prompt route handler
+        to ensure consistent behavior without requiring HTTP requests.
         
         Args:
-            json_data: The prompt/workflow data. Should contain:
-                - prompt: The workflow definition
-                - client_id: Optional client identifier
-                
+            json_data: The prompt/workflow data in the same format as HTTP API
+            
         Returns:
-            Dict containing the validation/queue response, typically includes:
-                - prompt_id: The ID of the queued prompt (if valid)
-                - number: Queue position (if queued)
-                - node_errors: Any validation errors
-                - success: Whether the operation succeeded
-        
-        Example:
-            gateway = ComfyGateway()
-            prompt_data = {
-                "prompt": {"1": {"inputs": {...}, "class_type": "KSampler", ...}},
-                "client_id": "python-client"
-            }
-            result = gateway.run_prompt(prompt_data)
+            Dict containing the validation result, similar to HTTP API response
         """
         try:
-            if "prompt" not in json_data:
-                return {
-                    "success": False,
-                    "error": {
-                        "type": "no_prompt",
-                        "message": "No prompt provided",
-                        "details": "No prompt provided"
-                    },
-                    "node_errors": {}
-                }
-            
-            prompt = json_data["prompt"]
-            
-            # Validate the prompt using internal function
-            valid = execution.validate_prompt(prompt)
-            
-            if valid[0]:  # Validation successful
-                # If we have a server instance and want to actually queue it
-                if self.server_instance and hasattr(self.server_instance, 'prompt_queue'):
-                    try:
-                        # Generate prompt_id and queue the prompt
-                        prompt_id = str(uuid.uuid4())
-                        
-                        # Handle numbering
-                        number = getattr(self.server_instance, 'number', 0)
-                        if "front" in json_data and json_data['front']:
-                            number = -number
-                        self.server_instance.number = getattr(self.server_instance, 'number', 0) + 1
-                        
-                        # Prepare extra data
-                        extra_data = json_data.get("extra_data", {})
-                        if "client_id" in json_data:
-                            extra_data["client_id"] = json_data["client_id"]
-                        
-                        # Queue the prompt
-                        outputs_to_execute = valid[2]
-                        self.server_instance.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
-                        
-                        return {
-                            "success": True,
-                            "prompt_id": prompt_id,
-                            "number": number,
-                            "node_errors": valid[3]
-                        }
-                    except Exception as e:
-                        logging.warning(f"Failed to queue prompt, returning validation only: {e}")
-                        # Fall back to just validation
-                        pass
-                
-                # Just return validation result without queueing
-                return {
-                    "success": True,
-                    "prompt_id": str(uuid.uuid4()),  # Generate ID for compatibility
-                    "node_errors": valid[3],
-                    "queued": False,
-                    "message": "Prompt validated successfully (not queued)"
-                }
+            # Trigger on_prompt handlers (same as server.py)
+            json_data = self.server_instance.trigger_on_prompt(json_data)
+            print(json_data)
+            # Handle number logic (same as server.py)
+            if "number" in json_data:
+                number = float(json_data['number'])
             else:
-                # Validation failed
+                number = self.server_instance.number
+                if "front" in json_data:
+                    if json_data['front']:
+                        number = -number
+                self.server_instance.number += 1
+            
+            # Main prompt validation and processing logic (same as server.py)
+            if "prompt" in json_data:
+                prompt = json_data["prompt"]
+                valid = execution.validate_prompt(prompt)
+                extra_data = {}
+                if "extra_data" in json_data:
+                    extra_data = json_data["extra_data"]
+
+                if "client_id" in json_data:
+                    extra_data["client_id"] = json_data["client_id"]
+                    
+                if valid[0]:
+                    # Validation successful
+                    prompt_id = str(uuid.uuid4())
+                    outputs_to_execute = valid[2]
+                    
+                    # Add to prompt queue (same as server.py)
+                    if hasattr(self.server_instance, 'prompt_queue') and self.server_instance.prompt_queue:
+                        self.server_instance.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
+                    
+                    response = {
+                        "success": True,
+                        "prompt_id": prompt_id, 
+                        "number": number, 
+                        "node_errors": valid[3]
+                    }
+                    return response
+                else:
+                    # Validation failed
+                    logging.warning("invalid prompt: {}".format(valid[1]))
+                    return {
+                        "success": False,
+                        "error": valid[1], 
+                        "node_errors": valid[3]
+                    }
+            else:
+                # No prompt provided
+                error = {
+                    "type": "no_prompt",
+                    "message": "No prompt provided",
+                    "details": "No prompt provided",
+                    "extra_info": {}
+                }
                 return {
                     "success": False,
-                    "error": valid[1],
-                    "node_errors": valid[3]
+                    "error": error, 
+                    "node_errors": {}
                 }
                 
         except Exception as e:
@@ -345,6 +320,10 @@ if __name__ == "__main__":
         # Get available nodes
         nodes_list = gateway.get_installed_nodes()
         print(f"Found {len(nodes_list)} installed nodes")
+        
+        # Get object info by class
+        node_info = gateway.get_object_info_by_class("CLIPTextEncode")
+        print(f"Node info: {node_info}")
         
         # Validate a prompt (uncomment to actually execute)
         # result = gateway.run_prompt(example_prompt)

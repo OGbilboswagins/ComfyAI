@@ -10,7 +10,7 @@ from agents.tool import function_tool
 from ..utils.comfy_gateway import get_object_info, get_object_info_by_class
 from ..service.database import get_workflow_data, save_workflow_data
 
-@function_tool
+
 def get_node_parameters(node_name: str, param_name: str = "") -> str:
     """获取节点的参数信息，如果param_name为空则返回所有参数"""
     try:
@@ -54,7 +54,7 @@ def get_node_parameters(node_name: str, param_name: str = "") -> str:
 
 @function_tool
 def find_matching_parameter_value(node_name: str, param_name: str, current_value: str, error_info: str = "") -> str:
-    """根据错误信息找到匹配的参数值"""
+    """根据错误信息找到匹配的参数值，支持多种参数类型的智能处理"""
     try:
         # 获取参数配置
         param_info_str = get_node_parameters(node_name, param_name)
@@ -64,10 +64,83 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
             return json.dumps(param_info)
         
         param_config = param_info.get("config", [])
+        error_lower = error_info.lower()
         
-        # 如果参数配置是列表，说明有固定的可选值
-        if isinstance(param_config, list) and len(param_config) > 0:
+        # 检查错误类型并提供相应处理策略
+        error_analysis = {
+            "error_type": "unknown",
+            "is_model_related": False,
+            "is_file_related": False,
+            "can_auto_fix": False
+        }
+        
+        # 识别model相关错误
+        if (any(model_keyword in current_value.lower() for model_keyword in [
+            ".ckpt", ".safetensors", ".pt", ".pth", ".bin", "checkpoint", "lora", "vae", "controlnet", "clip", "unet"
+        ]) or any(model_keyword in param_name.lower() for model_keyword in [
+            "model", "checkpoint", "lora", "vae", "clip", "controlnet", "unet"
+        ]) or any(model_keyword in error_lower for model_keyword in [
+            "model not found", "checkpoint", "missing model", "file not found"
+        ])):
+            error_analysis["error_type"] = "model_missing"
+            error_analysis["is_model_related"] = True
+            error_analysis["can_auto_fix"] = False
+            
+            return json.dumps({
+                "found_match": False,
+                "error_type": "model_missing",
+                "solution_type": "download_required",
+                "message": f"Missing model file: {current_value}",
+                "recommendation": "Model files cannot be automatically replaced. Download required.",
+                "next_action": "use_suggest_model_download",
+                "details": {
+                    "node_name": node_name,
+                    "param_name": param_name,
+                    "missing_file": current_value,
+                    "is_model_related": True
+                }
+            })
+        
+        # 识别image文件相关错误
+        elif (any(img_ext in current_value.lower() for img_ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"]) or
+              param_name.lower() in ["image", "img", "picture", "photo"] or
+              any(img_keyword in error_lower for img_keyword in ["invalid image", "image file", "image not found"])):
+            error_analysis["error_type"] = "image_file_missing"
+            error_analysis["is_file_related"] = True
+            error_analysis["can_auto_fix"] = True
+            
+            # 如果参数配置是列表，查找其他可用的图片
+            if isinstance(param_config, list) and len(param_config) > 0:
+                available_images = [img for img in param_config if any(ext in str(img).lower() for ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"])]
+                
+                if available_images:
+                    recommended_image = available_images[0]  # 选择第一个可用图片
+                    return json.dumps({
+                        "found_match": True,
+                        "error_type": "image_file_missing",
+                        "solution_type": "auto_replace",
+                        "recommended_value": recommended_image,
+                        "match_type": "image_replacement",
+                        "message": f"Replaced missing image '{current_value}' with available image '{recommended_image}'",
+                        "all_available": available_images[:10],
+                        "can_auto_fix": True,
+                        "next_action": "update_parameter"
+                    })
+            
+            return json.dumps({
+                "found_match": False,
+                "error_type": "image_file_missing",
+                "solution_type": "manual_fix",
+                "message": f"Missing image file: {current_value}",
+                "suggestion": "Please add a valid image file to your ComfyUI input folder or choose an existing one",
+                "can_auto_fix": False
+            })
+        
+        # 处理枚举类型的参数（原有逻辑，但增强）
+        elif isinstance(param_config, list) and len(param_config) > 0:
             available_values = param_config
+            error_analysis["error_type"] = "enum_value_mismatch"
+            error_analysis["can_auto_fix"] = True
             
             # 改进的匹配算法
             current_lower = current_value.lower().replace("_", " ").replace("-", " ")
@@ -79,6 +152,9 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
                         "found_match": True,
                         "recommended_value": value,
                         "match_type": "exact",
+                        "error_type": "enum_value_mismatch",
+                        "solution_type": "exact_match",
+                        "can_auto_fix": True,
                         "all_available": available_values
                     })
             
@@ -90,6 +166,11 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
                         "found_match": True,
                         "recommended_value": value,
                         "match_type": "case_insensitive",
+                        "error_type": "enum_value_mismatch",
+                        "solution_type": "auto_replace",
+                        "message": f"Found case-insensitive match: '{current_value}' -> '{value}'",
+                        "can_auto_fix": True,
+                        "next_action": "update_parameter",
                         "all_available": available_values
                     })
             
@@ -117,32 +198,54 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
                     "found_match": True,
                     "recommended_value": best_match,
                     "match_type": "partial",
+                    "error_type": "enum_value_mismatch",
+                    "solution_type": "auto_replace",
                     "match_score": best_score,
-                    "all_available": available_values[:10],  # 只返回前10个选项
+                    "message": f"Found partial match: '{current_value}' -> '{best_match}' (score: {best_score})",
+                    "can_auto_fix": True,
+                    "next_action": "update_parameter",
+                    "all_available": available_values[:10],
                     "original_value": current_value
                 })
             
-            # TODO: 4. 如果都没有匹配，返回所有可用选项
+            # 4. 没有匹配，但可以用第一个可用值替代
             return json.dumps({
                 "found_match": False,
                 "recommended_value": available_values[0] if available_values else None,
                 "match_type": "no_match",
-                "all_available": available_values[:10],  # 只返回前10个选项
+                "error_type": "enum_value_mismatch", 
+                "solution_type": "default_replace",
+                "message": f"No match found for '{current_value}'. Using default value '{available_values[0]}'",
+                "can_auto_fix": True,
+                "next_action": "update_parameter",
+                "all_available": available_values[:10],
                 "total_options": len(available_values),
                 "original_value": current_value,
-                "suggestion": f"No match found for '{current_value}'. Please choose from available options."
+                "suggestion": f"No match found for '{current_value}'. Replacing with default option."
             })
         
-        # 如果不是列表类型的参数，返回参数信息
-        return json.dumps({
-            "found_match": False,
-            "parameter_type": type(param_config).__name__,
-            "config": param_config,
-            "suggestion": f"Parameter '{param_name}' is not a list type, cannot provide specific recommendations"
-        })
+        # 处理其他类型的参数
+        else:
+            error_analysis["error_type"] = "non_enum_parameter"
+            error_analysis["can_auto_fix"] = False
+            
+            return json.dumps({
+                "found_match": False,
+                "error_type": "non_enum_parameter",
+                "solution_type": "manual_fix",
+                "parameter_type": type(param_config).__name__,
+                "config": param_config,
+                "can_auto_fix": False,
+                "message": f"Parameter '{param_name}' is not an enumerable type",
+                "suggestion": f"Parameter '{param_name}' requires manual configuration. Check the parameter requirements."
+            })
         
     except Exception as e:
-        return json.dumps({"error": f"Failed to find matching parameter value: {str(e)}"})
+        return json.dumps({
+            "error": f"Failed to find matching parameter value: {str(e)}",
+            "can_auto_fix": False,
+            "solution_type": "error"
+        })
 
 @function_tool
 def get_model_files(model_type: str = "checkpoints") -> str:
