@@ -307,9 +307,9 @@ export function WorkflowOption({ content, name = 'Assistant', avatar, latestInpu
                         </Tooltip>}
                     </div>
                 </div>
-                {workflow.image && (
-                    <div className='aspect-[3/4] rounded-lg overflow-hidden'>
-                        <img
+                <div className='aspect-[3/4] rounded-lg overflow-hidden flex-1 w-full'>
+                    {
+                        !!workflow.image ? <img
                             src={workflow.image}
                             alt={workflow.name}
                             className="w-full h-full object-cover"
@@ -318,9 +318,11 @@ export function WorkflowOption({ content, name = 'Assistant', avatar, latestInpu
                                 target.onerror = null; // 防止循环触发
                                 target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56' fill='none'%3E%3Crect width='56' height='56' fill='%23F3F4F6'/%3E%3Cpath d='M28 28C30.2091 28 32 26.2091 32 24C32 21.7909 30.2091 20 28 20C25.7909 20 24 21.7909 24 24C24 26.2091 25.7909 28 28 28Z' fill='%239CA3AF'/%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M18.7253 37.6307C19.8278 35.1533 22.6897 33.6 26 33.6H30C33.3103 33.6 36.1722 35.1533 37.2747 37.6307C37.6419 38.4561 37.0611 39.2 36.1694 39.2H19.8306C18.9389 39.2 18.3581 38.4561 18.7253 37.6307Z' fill='%239CA3AF'/%3E%3C/svg%3E";
                             }}
-                        />
-                    </div>
-                )}
+                        /> : <div className="w-full h-full flex items-center justify-center">
+                            <svg t="1753686018498" class="icon" viewBox="0 0 1026 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1875" width="98" height="98"><path d="M0.003166 0v1024h1024V0H0.003166z m962.692789 61.286783v566.902743l-120.857537-118.426494-186.638683 137.466255-287.435012-237.138993L61.28995 705.410873V61.286783h901.406005zM61.28995 962.692788v-172.195431l309.661685-298.34406 282.164349 232.746773 183.104479-134.89221 126.49592 123.962734v248.722194H61.28995z" fill="#8a8a8a" p-id="1876"></path><path d="M757.03794 397.199641h0.960159c63.411392 0 118.263062-53.605506 119.733945-117.057756 1.470883-63.901686-51.337895-119.958663-115.321296-122.410134l-4.330933-0.081716c-31.011112 0-61.817935 13.1358-84.555332 36.016199-22.635252 22.819112-35.505476 53.666793-35.301187 84.616619 0.490294 63.942544 54.892529 118.406065 118.814644 118.916788z m-39.999841-160.346653a59.570753 59.570753 0 0 1 42.900748-17.875312h0.143003c30.214384 1.164449 57.098853 29.621945 56.38384 59.734184-0.694584 30.47996-28.00806 57.200998-58.447162 57.200998v30.643391l-0.449436-30.643391c-30.132668-0.245147-57.773007-27.926344-57.997726-58.079442-0.122574-14.749686 6.230823-29.683232 17.466733-40.980428z" fill="#8a8a8a" p-id="1877"></path></svg>
+                        </div>
+                    }
+                </div>
                 <button
                     onClick={() => handleAcceptWorkflow(workflow)}
                     disabled={loadingWorkflows[workflowId]}
