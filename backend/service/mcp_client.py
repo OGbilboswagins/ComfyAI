@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-29 17:09:16
+LastEditTime: 2025-07-28 20:55:02
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -19,7 +19,6 @@ from agents.run import Runner
 from agents.tracing import set_tracing_disabled
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
-from openai import APIError
 
 # Load environment variables from server.env
 def load_env_config():
@@ -267,11 +266,17 @@ You must adhere to the following constraints to complete the task:
                             else:
                                 pass  # Ignore other event types
                                 
-                except (AttributeError, TypeError, APIError) as attr_error:
-                    if isinstance(attr_error, APIError) or "'NoneType' object has no attribute 'strip'" in str(attr_error):
-                        raise  # Re-raise to be handled by outer exception handler
-                    print(f"Attribute error in streaming: {attr_error}")
-                    pass
+                except (AttributeError, TypeError) as attr_error:
+                    # Handle specific OpenAI streaming errors like "NoneType has no attribute strip"
+                    if "'NoneType' object has no attribute 'strip'" in str(attr_error):
+                        print(f"OpenAI streaming chunk error (NoneType strip): {attr_error}")
+                        # This is a known issue with OpenAI streaming when chunks are malformed
+                        # Re-raise to trigger retry mechanism
+                        raise attr_error
+                    else:
+                        print(f"Attribute error in streaming: {attr_error}")
+                        print(f"Traceback: {traceback.format_exc()}")
+                        raise attr_error
                         
                 except Exception as e:
                     print(f"Unexpected streaming error: {e}")
@@ -282,23 +287,17 @@ You must adhere to the following constraints to complete the task:
             while retry_count <= max_retries:
                 try:
                     async for stream_data in process_stream_events(result):
-                        if stream_data:
-                            yield stream_data
+                        yield stream_data
                     # If we get here, streaming completed successfully
                     break
                     
-                except (AttributeError, TypeError, ConnectionError, OSError, APIError) as stream_error:
-                    error_msg = str(stream_error)
-                    
-                    # Skip retry for NoneType strip error
-                    if "'NoneType' object has no attribute 'strip'" in error_msg:
-                        print(f"NoneType strip error detected, skipping retry: {error_msg}")
-                        break
-                    
+                except (AttributeError, TypeError, ConnectionError, OSError) as stream_error:
                     retry_count += 1
+                    error_msg = str(stream_error)
                     
                     # Check for specific streaming errors that are worth retrying
                     should_retry = (
+                        "'NoneType' object has no attribute 'strip'" in error_msg or
                         "Connection broken" in error_msg or
                         "InvalidChunkLength" in error_msg or
                         "socket hang up" in error_msg or
@@ -491,31 +490,9 @@ You must adhere to the following constraints to complete the task:
         print(f"Error in comfyui_agent_invoke: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
-        
-        # Check if this is a retryable streaming error that should not finish the conversation
-        error_msg = str(e)
-        is_retryable_streaming_error = (
-            "'NoneType' object has no attribute 'strip'" in error_msg or
-            "Connection broken" in error_msg or
-            "InvalidChunkLength" in error_msg or
-            "socket hang up" in error_msg or
-            "Connection reset" in error_msg or
-            isinstance(e, APIError)
-        )
-        
-        if is_retryable_streaming_error:
-            # For retryable streaming errors, don't finish - allow user to retry
-            print(f"Detected retryable streaming error, setting finished=False to allow retry")
-            error_ext = {
-                "data": None,
-                "finished": False
-            }
-            error_message = f"A temporary streaming error occurred: {str(e)}. Please try your request again."
-        else:
-            # For other errors, finish the conversation
-            error_ext = {
-                "data": None,
-                "finished": True
-            }
-        
+        # Yield error as tuple with finished=True
+        error_ext = {
+            "data": None,
+            "finished": True
+        }
         yield (error_message, error_ext)
