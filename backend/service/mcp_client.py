@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-29 16:46:46
+LastEditTime: 2025-07-29 16:53:39
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -269,15 +269,17 @@ You must adhere to the following constraints to complete the task:
                                 
                 except (AttributeError, TypeError, APIError) as attr_error:
                     # Handle specific OpenAI streaming errors like "NoneType has no attribute strip"
-                    if "'NoneType' object has no attribute 'strip'" in str(attr_error):
-                        print(f"OpenAI streaming chunk error (NoneType strip): {attr_error}")
-                        # This is a known issue with OpenAI streaming when chunks are malformed
-                        # Re-raise to trigger retry mechanism
-                        raise attr_error
-                    else:
-                        print(f"Attribute error in streaming: {attr_error}")
-                        print(f"Traceback: {traceback.format_exc()}")
-                        raise attr_error
+                    # if "'NoneType' object has no attribute 'strip'" in str(attr_error):
+                    #     print(f"OpenAI streaming chunk error (NoneType strip): {attr_error}")
+                    #     # This is a known issue with OpenAI streaming when chunks are malformed
+                    #     # Re-raise to trigger retry mechanism
+                    #     raise attr_error
+                    # else:
+                    #     print(f"Attribute error in streaming: {attr_error}")
+                    #     print(f"Traceback: {traceback.format_exc()}")
+                    #     raise attr_error
+                    print(f"Attribute error in streaming: {attr_error}")
+                    pass
                         
                 except Exception as e:
                     print(f"Unexpected streaming error: {e}")
