@@ -1,62 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BaseMessage } from './BaseMessage';
 import { generateUUID } from '../../../utils/uuid';
 import { queuePrompt } from '../../../utils/queuePrompt';
 import { app } from '../../../utils/comfyapp';
 import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
-import { Undo2 } from 'lucide-react';
-
-// Restore checkpoint icon component
-const RestoreCheckpointIcon = ({ checkpointId, onRestore }: { checkpointId: number; onRestore: () => void }) => {
-    const [isRestoring, setIsRestoring] = useState(false);
-
-    const handleRestore = async () => {
-        if (isRestoring) return;
-        
-        setIsRestoring(true);
-        try {
-            const checkpointData = await WorkflowChatAPI.restoreWorkflowCheckpoint(checkpointId);
-            
-            // Use UI format if available, otherwise use API format
-            const workflowToLoad = checkpointData.workflow_data_ui || checkpointData.workflow_data;
-            
-            if (workflowToLoad) {
-                // Load workflow to canvas
-                if (checkpointData.workflow_data_ui) {
-                    // UI format - use loadGraphData
-                    app.loadGraphData(workflowToLoad);
-                } else {
-                    // API format - use loadApiJson
-                    app.loadApiJson(workflowToLoad);
-                }
-                
-                console.log(`Restored workflow checkpoint ${checkpointId}`);
-                onRestore();
-            }
-        } catch (error) {
-            console.error('Failed to restore checkpoint:', error);
-            alert('Failed to restore workflow checkpoint. Please try again.');
-        } finally {
-            setIsRestoring(false);
-        }
-    };
-
-    return (
-        <button
-            onClick={handleRestore}
-            disabled={isRestoring}
-            className={`flex flex-row items-center gap-1 p-1 rounded transition-colors ${
-                isRestoring 
-                    ? 'text-gray-400 cursor-not-allowed' 
-                    : 'text-gray-500 hover:!bg-gray-100 hover:!text-gray-600'
-            }`}
-            title={`Restore checkpoint ${checkpointId}`}
-        >
-            <Undo2 size={12} />
-            <span className="text-xs">Restore checkpoint</span>
-        </button>
-    );
-};
+import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 
 interface DebugGuideProps {
     content: string;
@@ -256,7 +204,7 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
 
     return (
         <BaseMessage name={name}>
-            <div className='bg-gray-100 p-4 rounded-lg'>
+            <div className='bg-gray-100 pt-4 px-4 pb-3 rounded-lg'>
                 <div className="flex justify-between items-start">
                     <p className="text-gray-700 text-sm flex-1">
                         {response.text}
@@ -279,9 +227,9 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
 
                 <div className="flex justify-end mt-2"> 
                     {/* Restore checkpoint icon */}
-                    {checkpointId && (
+                    {!!checkpointId && (
                         <div className="ml-2 flex-shrink-0">
-                            <RestoreCheckpointIcon 
+                            <RestoreCheckpoint
                                 checkpointId={checkpointId} 
                                 onRestore={() => {
                                     console.log('Workflow restored from checkpoint');

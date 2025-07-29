@@ -1,0 +1,48 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+
+interface IProps {
+  title?: string | React.ReactNode;
+  isWorkflowUpdate?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}
+
+const DebugCollapsibleCard: React.FC<IProps> = (props) => {
+  const { title = '', isWorkflowUpdate = false,className = '', children } = props;
+  
+  const [isOpen, setIsOpen] = useState(false);
+
+  const color = isWorkflowUpdate 
+  ? '#166534'
+  : '#E5E7EB';
+  
+    return (
+      <div className={`relative shadow-gray-200 dark:shadow-gray-600 rounded-lg p-2 overflow-hidden ${className} ${!isOpen ? 'h-[200px]' : ''}`}>
+        <div className="flex justify-between items-center">
+          <div>
+          {
+            typeof title === 'string' ? <h3 className="text-sm text-gray-900 dark:text-white font-medium">{title}</h3> : title
+          }
+          </div>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {
+              isOpen ? <ChevronUp color={color} /> : <ChevronDown color={color} />
+            }
+          </button>
+        </div>
+        <div className="dark:border-gray-700">
+        {
+          children
+        }
+        </div>
+        {
+          !isOpen && <div className="absolute bottom-0 left-0 right-0 h-40 w-full z-5 bg-gradient-to-t from-[#fff] to-transparent" />
+        }
+        </div>
+    )
+}
+
+export default DebugCollapsibleCard;
