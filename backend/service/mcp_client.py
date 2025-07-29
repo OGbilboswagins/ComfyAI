@@ -246,7 +246,7 @@ You must adhere to the following constraints to complete the task:
                             except (json.JSONDecodeError, TypeError) as e:
                                 # If not JSON or parsing fails, treat as regular text
                                 print(f"-- Failed to parse tool output as JSON: {e}")
-                                print(f"-- Full traceback: {traceback.format_exc()}")
+                                print(f"-- Traceback: {traceback.format_exc()}")
                                 tool_results[tool_name] = {
                                     "answer": tool_output_data_str,
                                     "data": None,
@@ -280,12 +280,13 @@ You must adhere to the following constraints to complete the task:
                                 except (json.JSONDecodeError, TypeError) as e:
                                     # Not JSON or no ext field, continue normally
                                     print(f"-- Message not JSON or no ext field: {e}")
-                                    print(f"-- Full traceback: {traceback.format_exc()}")
+                                    print(f"-- Traceback: {traceback.format_exc()}")
                                     pass
                         else:
                             pass  # Ignore other event types
             except Exception as stream_error:
                 print(f"Stream error (retrying once): {stream_error}")
+                print(f"Traceback: {traceback.format_exc()}")
                 # Simple one-time retry for streaming errors
                 try:
                     async for event in result.stream_events():
@@ -294,6 +295,7 @@ You must adhere to the following constraints to complete the task:
                             continue  # Just consume events on retry, don't process
                 except Exception as retry_error:
                     print(f"Retry failed: {retry_error}")
+                    print(f"Traceback: {traceback.format_exc()}")
                     # Continue to normal processing, error will be handled by outer try-catch
 
             print("\n=== MCP Agent Run complete ===")
@@ -438,7 +440,7 @@ You must adhere to the following constraints to complete the task:
             
     except Exception as e:
         print(f"Error in comfyui_agent_invoke: {str(e)}")
-        print(f"Full traceback: {traceback.format_exc()}")
+        print(f"Traceback: {traceback.format_exc()}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
         # Yield error as tuple with finished=True
         error_ext = {
