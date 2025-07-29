@@ -290,7 +290,8 @@ You must adhere to the following constraints to complete the task:
             while retry_count <= max_retries:
                 try:
                     async for stream_data in process_stream_events(result):
-                        yield stream_data
+                        if stream_data:
+                            yield stream_data
                     # If we get here, streaming completed successfully
                     break
                     
