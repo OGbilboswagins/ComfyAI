@@ -255,33 +255,7 @@ You must adhere to the following constraints to complete the task:
                                 }
                             
                         elif event.item.type == "message_output_item":
-                            # Handle message output - this is the main response text
-                            text = ItemHelpers.text_message_output(event.item)
-                            if text:
-                                print(f"-- Message: {text}\n\n")
-                                
-                                # Try to parse message content for ext data (from handoff agents like workflow_rewrite_agent)
-                                try:
-                                    import json
-                                    parsed_message = json.loads(text)
-                                    if isinstance(parsed_message, dict) and 'ext' in parsed_message and parsed_message['ext']:
-                                        # Found ext data in message output
-                                        message_ext = parsed_message['ext']
-                                        print(f"-- Found ext data in message output: {message_ext}")
-                                        
-                                        # Store as a special tool result for processing later
-                                        tool_results['_message_output_ext'] = {
-                                            "answer": parsed_message.get('text', text),
-                                            "data": None,
-                                            "ext": message_ext,
-                                            "content_dict": parsed_message
-                                        }
-                                        print(f"-- Stored message output ext data")
-                                except (json.JSONDecodeError, TypeError) as e:
-                                    # Not JSON or no ext field, continue normally
-                                    print(f"-- Message not JSON or no ext field: {e}")
-                                    print(f"-- Traceback: {traceback.format_exc()}")
-                                    pass
+                            pass
                         else:
                             pass  # Ignore other event types
             except Exception as stream_error:
