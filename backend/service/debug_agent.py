@@ -19,6 +19,7 @@ from ..service.database import get_workflow_data, save_workflow_data
 
 # Import ComfyUI internal modules
 import uuid
+import execution
 
 # Load environment variables from server.env
 def load_env_config():
