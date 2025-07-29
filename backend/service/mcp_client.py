@@ -19,6 +19,7 @@ from agents.run import Runner
 from agents.tracing import set_tracing_disabled
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
+from openai import APIError
 
 # Load environment variables from server.env
 def load_env_config():
@@ -266,7 +267,7 @@ You must adhere to the following constraints to complete the task:
                             else:
                                 pass  # Ignore other event types
                                 
-                except (AttributeError, TypeError) as attr_error:
+                except (AttributeError, TypeError, APIError) as attr_error:
                     # Handle specific OpenAI streaming errors like "NoneType has no attribute strip"
                     if "'NoneType' object has no attribute 'strip'" in str(attr_error):
                         print(f"OpenAI streaming chunk error (NoneType strip): {attr_error}")
@@ -291,7 +292,7 @@ You must adhere to the following constraints to complete the task:
                     # If we get here, streaming completed successfully
                     break
                     
-                except (AttributeError, TypeError, ConnectionError, OSError) as stream_error:
+                except (AttributeError, TypeError, ConnectionError, OSError, APIError) as stream_error:
                     retry_count += 1
                     error_msg = str(stream_error)
                     
