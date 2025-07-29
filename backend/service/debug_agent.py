@@ -3,6 +3,7 @@ Debug Agent for ComfyUI Workflow Error Analysis
 '''
 import os
 import json
+import requests
 from typing import List, Dict, Any, Optional
 from agents._config import set_default_openai_api
 from agents.agent import Agent
@@ -39,103 +40,36 @@ load_env_config()
 set_default_openai_api("chat_completions")
 set_tracing_disabled(True)
 
-# @function_tool
-# def run_workflow(session_id: str) -> str:
-#     """验证当前session的工作流并返回结果"""
-#     try:
-#         workflow_data = get_workflow_data(session_id)
-#         if not workflow_data:
-#             return json.dumps({"error": "No workflow data found for this session"})
-        
-#         print(f"Run workflow for session {session_id}")
-        
-#         # 使用 ComfyGateway 调用 server.py 的 post_prompt 逻辑
-#         from ..utils.comfy_gateway import ComfyGateway
-        
-#         gateway = ComfyGateway()
-        
-#         # 准备请求数据格式（与server.py post_prompt接口一致）
-#         request_data = {
-#             "prompt": workflow_data,
-#             "client_id": f"debug_agent_{session_id}"
-#         }
-        
-#         # 调用ComfyGateway.run_prompt，它会直接复用server.py的post_prompt逻辑
-#         result = gateway.run_prompt(request_data)
-        
-#         return json.dumps(result)
-#     except Exception as e:
-#         return json.dumps({"error": f"Failed to run workflow: {str(e)}"})
-
-
 @function_tool
-def run_workflow(session_id: str) -> str:
+async def run_workflow(session_id: str) -> str:
     """验证当前session的工作流并返回结果"""
     try:
         workflow_data = get_workflow_data(session_id)
         if not workflow_data:
             return json.dumps({"error": "No workflow data found for this session"})
         
-        print(f"Validating workflow for session {session_id}")
+        print(f"Run workflow for session {session_id}")
         
-        # 直接调用 ComfyUI 的内部验证函数，避免 HTTP 请求
-        try:
-            # 调用工作流验证
-            valid = execution.validate_prompt(workflow_data)
-            
-            if valid[0]:  # 验证成功
-                # valid = (True, None, outputs_to_execute, node_errors)
-                prompt_id = str(uuid.uuid4())
-                result = {
-                    "success": True,
-                    "prompt_id": prompt_id,
-                    "outputs_to_execute": valid[2],
-                    "node_errors": valid[3],
-                    "message": "Workflow validation successful"
-                }
-                print(f"Workflow validation successful for session {session_id}")
-                return json.dumps(result)
-            else:
-                # valid = (False, error, outputs_to_execute, node_errors)
-                error_info = valid[1]  # 错误信息
-                node_errors = valid[3]  # 节点错误
-                
-                result = {
-                    "success": False,
-                    "error": error_info,
-                    "node_errors": node_errors,
-                    "message": "Workflow validation failed"
-                }
-                print(f"Workflow validation failed for session {session_id}: {error_info}")
-                return json.dumps(result)
-                
-        except Exception as e:
-            print(f"Exception during workflow validation: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return json.dumps({
-                "success": False,
-                "error": {
-                    "type": "validation_exception",
-                    "message": f"Exception during validation: {str(e)}",
-                    "details": str(e)
-                },
-                "node_errors": {}
-            })
+        # 使用 ComfyGateway 调用 server.py 的 post_prompt 逻辑
+        from ..utils.comfy_gateway import ComfyGateway
+        
+        # 简化方法：直接使用 requests 同步调用
+        gateway = ComfyGateway()
+
+        # 准备请求数据格式（与server.py post_prompt接口一致）
+        request_data = {
+            "prompt": workflow_data,
+            "client_id": f"debug_agent_{session_id}"
+        }
+        
+        result = await gateway.run_prompt(request_data)
+        print(result)
+        
+        return json.dumps(result)
         
     except Exception as e:
-        print(f"Error in run_workflow: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return json.dumps({
-            "success": False,
-            "error": {
-                "type": "function_error",
-                "message": f"Failed to validate workflow: {str(e)}",
-                "details": str(e)
-            },
-            "node_errors": {}
-        })
+        return json.dumps({"error": f"Failed to run workflow: {str(e)}"})
+
 
 @function_tool
 def analyze_error_type(error_data: str) -> str:

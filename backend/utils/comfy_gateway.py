@@ -2,13 +2,14 @@
 ComfyUI Gateway Utilities
 
 This module provides Python implementations of ComfyUI API functions,
-directly calling ComfyUI internal functions instead of HTTP requests.
+using HTTP requests to the ComfyUI server for consistency.
 """
 
 import json
 import os
 import uuid
 import logging
+import asyncio
 from typing import Dict, Any, Optional, List
 
 # Import ComfyUI internal modules
@@ -16,6 +17,7 @@ import nodes
 import execution
 import folder_paths
 import server
+import aiohttp
 
 
 class ComfyGateway:
@@ -26,20 +28,35 @@ class ComfyGateway:
         Initialize ComfyUI Gateway
         
         Args:
-            base_url: Deprecated - no longer used since we call internal functions directly
+            base_url: Optional base URL for ComfyUI server. If not provided, will auto-detect.
         """
-        if base_url:
-            logging.warning("ComfyGateway: base_url parameter is deprecated when using internal calls")
-        
         # Get server instance for operations that need it
         self.server_instance = server.PromptServer.instance
-
-    def run_prompt(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Run a prompt - direct internal call equivalent of server.py post_prompt
         
-        This method replicates the exact logic from server.py's post_prompt route handler
-        to ensure consistent behavior without requiring HTTP requests.
+        # Auto-detect server URL if not provided
+        if base_url:
+            self.base_url = base_url.rstrip('/')
+        else:
+            # Auto-detect from server instance
+            if hasattr(self.server_instance, 'address') and hasattr(self.server_instance, 'port'):
+                address = self.server_instance.address or '127.0.0.1'
+                port = self.server_instance.port or 8188
+                # Use 127.0.0.1 for localhost to avoid potential connection issues
+                if address in ['0.0.0.0', '::']:
+                    address = '127.0.0.1'
+                self.base_url = f"http://{address}:{port}"
+            else:
+                # Fallback to default
+                self.base_url = "http://127.0.0.1:8188"
+        
+        logging.info(f"ComfyGateway initialized with base_url: {self.base_url}")
+
+    async def run_prompt(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run a prompt - HTTP call to ComfyUI /api/prompt endpoint
+        
+        This method sends an HTTP POST request to the ComfyUI server's /api/prompt endpoint
+        to ensure consistent behavior and avoid code duplication.
         
         Args:
             json_data: The prompt/workflow data in the same format as HTTP API
@@ -48,68 +65,58 @@ class ComfyGateway:
             Dict containing the validation result, similar to HTTP API response
         """
         try:
-            # Trigger on_prompt handlers (same as server.py)
-            json_data = self.server_instance.trigger_on_prompt(json_data)
-            print(json_data)
-            # Handle number logic (same as server.py)
-            if "number" in json_data:
-                number = float(json_data['number'])
-            else:
-                number = self.server_instance.number
-                if "front" in json_data:
-                    if json_data['front']:
-                        number = -number
-                self.server_instance.number += 1
+            # Create a timeout configuration
+            timeout = aiohttp.ClientTimeout(total=30)  # 30 second timeout
             
-            # Main prompt validation and processing logic (same as server.py)
-            if "prompt" in json_data:
-                prompt = json_data["prompt"]
-                valid = execution.validate_prompt(prompt)
-                extra_data = {}
-                if "extra_data" in json_data:
-                    extra_data = json_data["extra_data"]
+            # Make HTTP request to /api/prompt endpoint
+            url = f"{self.base_url}/api/prompt"
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
 
-                if "client_id" in json_data:
-                    extra_data["client_id"] = json_data["client_id"]
-                    
-                if valid[0]:
-                    # Validation successful
-                    prompt_id = str(uuid.uuid4())
-                    outputs_to_execute = valid[2]
-                    
-                    # Add to prompt queue (same as server.py)
-                    if hasattr(self.server_instance, 'prompt_queue') and self.server_instance.prompt_queue:
-                        self.server_instance.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
-                    
-                    response = {
-                        "success": True,
-                        "prompt_id": prompt_id, 
-                        "number": number, 
-                        "node_errors": valid[3]
-                    }
-                    return response
-                else:
-                    # Validation failed
-                    logging.warning("invalid prompt: {}".format(valid[1]))
-                    return {
-                        "success": False,
-                        "error": valid[1], 
-                        "node_errors": valid[3]
-                    }
-            else:
-                # No prompt provided
-                error = {
-                    "type": "no_prompt",
-                    "message": "No prompt provided",
-                    "details": "No prompt provided",
-                    "extra_info": {}
+            # Create temporary session
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, json=json_data, headers=headers) as response:
+                    response_data = await response.json()
+                    status_code = response.status
+            
+            # Handle the response based on status code
+            if status_code == 200:
+                # Success response - add success flag for consistency
+                return {
+                    "success": True,
+                    **response_data
                 }
+            else:
+                # Error response (400, etc.) - add success flag for consistency
                 return {
                     "success": False,
-                    "error": error, 
-                    "node_errors": {}
+                    **response_data
                 }
                 
+        except aiohttp.ClientConnectionError as e:
+            logging.error(f"Connection error in run_prompt: {e}")
+            return {
+                "success": False,
+                "error": {
+                    "type": "connection_error",
+                    "message": f"Failed to connect to ComfyUI server at {self.base_url}",
+                    "details": str(e)
+                },
+                "node_errors": {}
+            }
+        except aiohttp.ClientTimeout as e:
+            logging.error(f"Timeout error in run_prompt: {e}")
+            return {
+                "success": False,
+                "error": {
+                    "type": "timeout_error",
+                    "message": "Request to ComfyUI server timed out",
+                    "details": str(e)
+                },
+                "node_errors": {}
+            }
         except Exception as e:
             logging.error(f"Error in run_prompt: {e}")
             return {
@@ -260,47 +267,41 @@ class ComfyGateway:
 
 
 # Convenience functions for backward compatibility and easy importing
-def run_prompt(json_data: Dict[str, Any], base_url: Optional[str] = None) -> Dict[str, Any]:
+async def run_prompt(json_data: Dict[str, Any], base_url: Optional[str] = None) -> Dict[str, Any]:
     """
-    Standalone function to run a prompt - direct equivalent of TypeScript runPrompt()
+    Standalone function to run a prompt - HTTP call to ComfyUI /api/prompt endpoint
     
     Args:
         json_data: The prompt/workflow data to execute
-        base_url: Deprecated - no longer used
+        base_url: Optional base URL for ComfyUI server
         
     Returns:
         Dict containing the API response
     """
     gateway = ComfyGateway(base_url)
-    return gateway.run_prompt(json_data)
+    return await gateway.run_prompt(json_data)
 
 
 def get_object_info(base_url: Optional[str] = None) -> Dict[str, Any]:
     """Standalone function to get object info - direct internal call equivalent"""
-    if base_url:
-        logging.warning("get_object_info: base_url parameter is deprecated when using internal calls")
     gateway = ComfyGateway(base_url)
     return gateway.get_object_info()
 
 def get_object_info_by_class(node_class: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """Standalone function to get object info for specific node class - direct internal call equivalent"""
-    if base_url:
-        logging.warning("get_object_info_by_class: base_url parameter is deprecated when using internal calls")
     gateway = ComfyGateway(base_url)
     return gateway.get_object_info(node_class)
 
 
 def get_installed_nodes(base_url: Optional[str] = None) -> List[str]:
     """Standalone function to get installed nodes - direct internal call equivalent"""
-    if base_url:
-        logging.warning("get_installed_nodes: base_url parameter is deprecated when using internal calls")
     gateway = ComfyGateway(base_url)
     return gateway.get_installed_nodes()
 
 
 # Example usage
-if __name__ == "__main__":
-    # Example of how to use the ComfyGateway with internal calls
+async def main():
+    # Example of how to use the ComfyGateway with HTTP calls
     gateway = ComfyGateway()
     
     # Example prompt structure (you would replace this with actual workflow data)
@@ -322,12 +323,15 @@ if __name__ == "__main__":
         print(f"Found {len(nodes_list)} installed nodes")
         
         # Get object info by class
-        node_info = gateway.get_object_info_by_class("CLIPTextEncode")
+        node_info = gateway.get_object_info("CLIPTextEncode")
         print(f"Node info: {node_info}")
         
         # Validate a prompt (uncomment to actually execute)
-        # result = gateway.run_prompt(example_prompt)
+        # result = await gateway.run_prompt(example_prompt)
         # print(f"Prompt result: {result}")
         
     except Exception as e:
         print(f"Example failed: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
