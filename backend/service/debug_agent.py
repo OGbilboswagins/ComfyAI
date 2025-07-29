@@ -3,6 +3,7 @@ Debug Agent for ComfyUI Workflow Error Analysis
 '''
 import os
 import json
+import requests
 from typing import List, Dict, Any, Optional
 from agents._config import set_default_openai_api
 from agents.agent import Agent
@@ -14,12 +15,12 @@ from ..service.workflow_rewrite_tools import *
 from openai.types.responses import ResponseTextDeltaEvent
 
 from ..service.parameter_tools import *
+from ..service.link_agent_tools import *
 from ..service.database import get_workflow_data, save_workflow_data
 
 # Import ComfyUI internal modules
-import execution
 import uuid
-import logging
+import execution
 
 # Load environment variables from server.env
 def load_env_config():
@@ -40,73 +41,35 @@ set_default_openai_api("chat_completions")
 set_tracing_disabled(True)
 
 @function_tool
-def run_workflow(session_id: str) -> str:
+async def run_workflow(session_id: str) -> str:
     """验证当前session的工作流并返回结果"""
     try:
         workflow_data = get_workflow_data(session_id)
         if not workflow_data:
             return json.dumps({"error": "No workflow data found for this session"})
         
-        print(f"Validating workflow for session {session_id}")
+        print(f"Run workflow for session {session_id}")
         
-        # 直接调用 ComfyUI 的内部验证函数，避免 HTTP 请求
-        try:
-            # 调用工作流验证
-            valid = execution.validate_prompt(workflow_data)
-            
-            if valid[0]:  # 验证成功
-                # valid = (True, None, outputs_to_execute, node_errors)
-                prompt_id = str(uuid.uuid4())
-                result = {
-                    "success": True,
-                    "prompt_id": prompt_id,
-                    "outputs_to_execute": valid[2],
-                    "node_errors": valid[3],
-                    "message": "Workflow validation successful"
-                }
-                print(f"Workflow validation successful for session {session_id}")
-                return json.dumps(result)
-            else:
-                # valid = (False, error, outputs_to_execute, node_errors)
-                error_info = valid[1]  # 错误信息
-                node_errors = valid[3]  # 节点错误
-                
-                result = {
-                    "success": False,
-                    "error": error_info,
-                    "node_errors": node_errors,
-                    "message": "Workflow validation failed"
-                }
-                print(f"Workflow validation failed for session {session_id}: {error_info}")
-                return json.dumps(result)
-                
-        except Exception as e:
-            print(f"Exception during workflow validation: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return json.dumps({
-                "success": False,
-                "error": {
-                    "type": "validation_exception",
-                    "message": f"Exception during validation: {str(e)}",
-                    "details": str(e)
-                },
-                "node_errors": {}
-            })
+        # 使用 ComfyGateway 调用 server.py 的 post_prompt 逻辑
+        from ..utils.comfy_gateway import ComfyGateway
+        
+        # 简化方法：直接使用 requests 同步调用
+        gateway = ComfyGateway()
+
+        # 准备请求数据格式（与server.py post_prompt接口一致）
+        request_data = {
+            "prompt": workflow_data,
+            "client_id": f"debug_agent_{session_id}"
+        }
+        
+        result = await gateway.run_prompt(request_data)
+        print(result)
+        
+        return json.dumps(result)
         
     except Exception as e:
-        print(f"Error in run_workflow: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return json.dumps({
-            "success": False,
-            "error": {
-                "type": "function_error",
-                "message": f"Failed to validate workflow: {str(e)}",
-                "details": str(e)
-            },
-            "node_errors": {}
-        })
+        return json.dumps({"error": f"Failed to run workflow: {str(e)}"})
+
 
 @function_tool
 def analyze_error_type(error_data: str) -> str:
@@ -155,11 +118,12 @@ def analyze_error_type(error_data: str) -> str:
                         error_analysis["error_details"].append(error_detail)
                         
                         # 改进的错误类型判断
+                        error_detail_str = json.dumps(error_detail).lower()
                         error_type = error.get("type", "").lower()
-                        error_message = error.get("message", "").lower()
+                        # error_message = error.get("message", "").lower()
                         
                         # 优先判断连接相关错误（结构性错误）
-                        if (any(keyword in error_message for keyword in [
+                        if (any(keyword in error_detail_str for keyword in [
                             "connection", "input connection", "required input", "missing input",
                             "not connected", "no connection", "link", "output", "socket"
                         ]) or 
@@ -168,9 +132,9 @@ def analyze_error_type(error_data: str) -> str:
                         
                         # 参数相关错误的判断（更精确）
                         elif (error_type in ["value_not_in_list", "invalid_input", "invalid_value"] or
-                            any(keyword in error_message for keyword in [
+                            any(keyword in error_detail_str for keyword in [
                                 "value not in list", "invalid value", "not found in list",
-                                "parameter value", "invalid parameter", "model not found"
+                                "parameter value", "invalid parameter", "model not found", "invalid image file"
                             ])):
                             parameter_errors += 1
                         
@@ -178,10 +142,15 @@ def analyze_error_type(error_data: str) -> str:
                         else:
                             other_errors += 1
             
-            # 根据错误类型决定使用哪个agent（连接错误优先级最高）
-            if connection_errors > 0:
+            # 根据错误类型决定使用哪个agent
+            if connection_errors > 0 and parameter_errors == 0 and other_errors == 0:
+                # 纯连接错误，使用专门的link_agent
                 error_analysis["error_type"] = "connection_error"
-                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
+                error_analysis["recommended_agent"] = "link_agent"
+            elif connection_errors > 0:
+                # 混合错误，优先处理连接问题
+                error_analysis["error_type"] = "mixed_connection_error"
+                error_analysis["recommended_agent"] = "link_agent"
             elif parameter_errors > 0:
                 error_analysis["error_type"] = "parameter_error"
                 error_analysis["recommended_agent"] = "parameter_agent"
@@ -191,37 +160,7 @@ def analyze_error_type(error_data: str) -> str:
         
         elif "error" in error_dict:
             # 处理其他格式的错误
-            error_info = error_dict.get("error", {})
-            if isinstance(error_info, dict):
-                error_message = error_info.get("message", "").lower()
-                error_type = error_info.get("type", "").lower()
-            else:
-                error_message = str(error_info).lower()
-                error_type = "unknown"
-            
-            # 改进的错误分类逻辑
-            if any(keyword in error_message for keyword in [
-                "connection", "input connection", "required input", "missing input",
-                "not connected", "no connection", "link", "output", "socket"
-            ]):
-                error_analysis["error_type"] = "connection_error"
-                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
-            elif any(keyword in error_message for keyword in [
-                "value not in list", "invalid value", "parameter", "model not found",
-                "invalid parameter", "not found in list"
-            ]):
-                error_analysis["error_type"] = "parameter_error"
-                error_analysis["recommended_agent"] = "parameter_agent"
-            else:
-                error_analysis["error_type"] = "structural_error"
-                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
-            
-            error_analysis["error_details"].append({
-                "error_type": error_type,
-                "message": error_info.get("message", str(error_info)) if isinstance(error_info, dict) else str(error_info),
-                "details": error_info.get("details", "") if isinstance(error_info, dict) else ""
-            })
-        
+            error_analysis = error_dict.get("error", {})
         return json.dumps(error_analysis)
         
     except Exception as e:
@@ -288,8 +227,9 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
 **Your Process:**
 1. **Validate the workflow**: Use run_workflow("{session_id}") to validate the workflow and capture any errors
 2. **Analyze errors**: If errors occur, use analyze_error_type() to determine the error type and hand off to the appropriate specialist:
+   - Hand off to Link Agent for connection-related errors (missing connections, disconnected inputs, node linking issues)
    - Hand off to Parameter Agent for parameter-related errors (value_not_in_list, missing models, invalid values)
-   - Hand off to Workflow Bugfix Default Agent for structural issues (Node connection issues, missing nodes, incompatible configurations)
+   - Hand off to Workflow Bugfix Default Agent for other structural issues (node compatibility, complex workflow restructuring)
 3. **After specialist returns**: Continue validation from step 1 to check if the issue is resolved
 4. **Repeat until complete**: Continue this cycle until there are no errors or maximum 6 iterations
 
@@ -297,16 +237,16 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
 - ALWAYS validate the workflow first to check for errors
 - If no errors occur, report success immediately and STOP
 - If errors occur, analyze them and hand off to the appropriate specialist
-- When specialists return to you: IMMEDIATELY re-validate the workflow to check if the issue is resolved
+- When specialists return: IMMEDIATELY re-validate the workflow to check if the issue is resolved
 - Continue the debugging cycle until all errors are fixed or max iterations reached
 - Provide clear, streaming updates about what you're doing
 - Be concise but informative in your responses
 
 **Handoff Strategy:**
 - Hand off errors to specialists for fixing
-- When they return: Re-validate immediately to check results
+- When they return: Re-validate immediately to check results  
 - If new errors appear: Analyze and hand off again
-- If same errors persist: Try the other specialist or report limitation
+- If same errors persist: Try different specialist (Link Agent → Parameter Agent → Workflow Bugfix Default Agent) or report limitation
 
 **Note**: The workflow validation is done using ComfyUI's internal functions, not actual execution, so it's fast and safe.
 
@@ -322,8 +262,6 @@ Start by validating the workflow to see its current state.""",
             I am the Workflow Bugfix Default Agent. I specialize in fixing structural issues in ComfyUI workflows.
             
             I can help with:
-            - Fixing broken node connections
-            - Adding missing nodes
             - Removing problematic nodes
             - Resolving node compatibility issues
             - Restructuring workflows to fix errors
@@ -338,13 +276,9 @@ Start by validating the workflow to see its current state.""",
             **Your Process:**
             
             1. **Get current workflow** using get_current_workflow()
-            2. **Validate connections** using validate_workflow_connections() 
-            3. **Identify and fix issues** using the appropriate tools:
-            - **Missing connections**: Use fix_node_connections()
-            - **Missing nodes**: Use add_missing_node()
-            - **Problematic nodes**: Use remove_node()
-            4. **Save changes** using update_workflow()
-            5. **MANDATORY**: Transfer back to Debug Coordinator for verification
+            2. **Identify and fix issues**
+            3. **Save changes** using update_workflow()
+            4. **MANDATORY**: Transfer back to Debug Coordinator for verification
             
             **Transfer Rules:**
             - After making structural fixes: Save with update_workflow() then TRANSFER to ComfyUI-Debug-Coordinator
@@ -353,9 +287,6 @@ Start by validating the workflow to see its current state.""",
             - ALWAYS transfer back - do not end without handoff
             
             **Tool Usage Guidelines:**
-            - fix_node_connections(): Use for broken connections between existing nodes
-            - add_missing_node(): Use when workflow needs additional nodes
-            - remove_node(): Use for incompatible or problematic nodes
             - update_workflow(): Use to save your changes (ALWAYS call this after fixes)
             
             **Response Format:**
@@ -366,11 +297,97 @@ Start by validating the workflow to see its current state.""",
             
             **Remember**: Focus on making necessary structural changes, then ALWAYS transfer back to let the coordinator verify the workflow.
             """,
-            tools=[get_current_workflow, get_node_info, update_workflow, validate_workflow_connections, 
-                fix_node_connections, add_missing_node, remove_node],
+            tools=[get_current_workflow, get_node_info, update_workflow],
             handoffs=[agent],
         )
         
+        link_agent = Agent(
+            name="Link Agent",
+            model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+            handoff_description="""
+            I am the Link Agent. I specialize in analyzing and fixing workflow connection issues.
+            
+            I can help with:
+            - Analyzing missing connections in workflows
+            - Finding optimal connection solutions
+            - Connecting existing nodes automatically
+            - Adding missing nodes when required
+            - Batch fixing multiple connection issues
+            - Generating intelligent connection strategies
+            
+            Call me when you have connection errors, missing input connections, or workflow structure issues related to node linking.
+            """,
+            instructions="""
+            You are the Link Agent, an expert in ComfyUI workflow connection analysis and automated fixing.
+            
+            **CRITICAL**: Your job is to analyze connection issues and apply intelligent fixes. After making fixes, you MUST transfer back to the Debug Coordinator to verify the results.
+            
+            **Your Enhanced Process:**
+            
+            1. **Analyze connection issues** using analyze_missing_connections():
+            - This tool comprehensively analyzes all missing required inputs
+            - It finds possible connections from existing nodes
+            - It identifies when new nodes are needed
+            - It provides confidence ratings and recommendations
+            
+            2. **Apply fixes strategically**:
+            
+            **Based on the analysis results**, decide the optimal strategy:
+            
+            **For connection-only fixes** (when existing nodes can be connected):
+            - Use apply_connection_fixes() with connections from possible_connections
+            - Prioritize high-confidence connections first
+            - Handle medium-confidence connections as appropriate
+            
+            **For missing node scenarios** (when new nodes are required):
+            - Use apply_connection_fixes() with both new_nodes and connections
+            - Create new_nodes based on required_new_nodes suggestions
+            - Add nodes with auto_connect specifications to streamline the process
+            - Ensure new nodes have proper default parameters
+            
+            **Smart decision making**:
+            - Review missing_connections and possible_connections from the analysis
+            - Choose the most efficient combination of existing connections and new nodes
+            - Consider connection_summary to understand the scope of work needed
+            
+            4. **Verification and handoff**:
+            - After applying fixes: TRANSFER to ComfyUI-Debug-Coordinator for verification
+            - Provide clear summary of what was fixed
+            - If fixes cannot be applied: Explain why then TRANSFER to ComfyUI-Debug-Coordinator
+            
+            **Smart Decision Making:**
+            - Prefer connecting existing nodes when type-compatible outputs are available
+            - Add new nodes only when no existing connections are possible
+            - Process fixes in optimal order (high-confidence first, then new nodes, then medium-confidence)
+            - Handle batch operations efficiently to minimize workflow updates
+            
+            **Transfer Rules:**
+            - After applying connection fixes: TRANSFER to ComfyUI-Debug-Coordinator
+            - If no connection issues found: Report findings then TRANSFER to ComfyUI-Debug-Coordinator  
+            - If fixes cannot be applied: Explain limitations then TRANSFER to ComfyUI-Debug-Coordinator
+            - ALWAYS transfer back - do not end without handoff
+            
+            **Response Format:**
+            1. "Connection analysis: [brief description of issues found from analyze_missing_connections]"
+            2. "Chosen strategy: [approach taken - connect existing/add nodes/mixed, with reasoning]"
+            3. "Fixes applied: [summary of changes made via apply_connection_fixes]"
+            4. Transfer to ComfyUI-Debug-Coordinator for verification
+            
+            **Advanced Features:**
+            - Comprehensive analysis: Full workflow connection scan with detailed diagnostics
+            - Batch processing: Handle multiple connection issues in one operation
+            - Smart node suggestions: Automatic recommendation of optimal node types for missing connections
+            - Auto-connection: Automatically connect new nodes to their intended targets
+            - Confidence-based prioritization: Make intelligent decisions based on connection confidence levels
+            - Flexible strategy: Adapt approach based on specific workflow requirements
+            
+            **Remember**: You are the specialist for ALL connection-related issues. Make the necessary structural changes efficiently, then ALWAYS transfer back for workflow verification.
+            """,
+            tools=[analyze_missing_connections, apply_connection_fixes,
+                   get_current_workflow, get_node_info],
+            handoffs=[agent],
+        )
+
         parameter_agent = Agent(
             name="Parameter Agent",
             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
@@ -391,44 +408,64 @@ Start by validating the workflow to see its current state.""",
             
             **CRITICAL**: Your job is to analyze parameter errors and provide solutions. After addressing the issue, you MUST transfer back to the Debug Coordinator to verify the results.
             
-            **Your Process:**
+            **Your Enhanced Process:**
             
-            1. **For value_not_in_list errors**:
-            - Use get_node_parameters() to understand the parameter
-            - Use find_matching_parameter_value() with smart matching
-            - If exact/good match found: use update_workflow_parameter() then TRANSFER back
-            - If no good match: show available options then TRANSFER back
+            1. **Analyze ALL parameter errors using find_matching_parameter_value()** first:
+            - This function now intelligently categorizes errors and provides solution strategies
+            - It handles: model missing, image file missing, enum value mismatches, and other parameter types
+            - Check the response for "error_type", "solution_type", and "can_auto_fix" fields
             
-            2. **For missing model errors (MOST COMMON)**:
-            - Use get_model_files() to check what's available
-            - If models folder is empty or missing models: use suggest_model_download() then TRANSFER back
-            - Do NOT attempt to fix missing models - just provide download instructions and TRANSFER back
+            2. **Handle different error types based on analysis:**
             
-            3. **For other parameter issues**:
-            - Analyze the parameter requirements
-            - If fixable: update then TRANSFER back
-            - If not fixable: provide guidance then TRANSFER back
+            **Model Missing Errors** (error_type: "model_missing"):
+            - When can_auto_fix = false and solution_type = "download_required"
+            - Use suggest_model_download() to provide download instructions
+            - Do NOT attempt to fix - just provide download guidance then TRANSFER back
+            
+            **Image File Missing Errors** (error_type: "image_file_missing"):
+            - When can_auto_fix = true and solution_type = "auto_replace"
+            - Use the recommended_value directly with update_workflow_parameter() then TRANSFER back
+            - When can_auto_fix = false: Provide guidance for adding images then TRANSFER back
+            
+            **Enum Value Errors** (error_type: "enum_value_mismatch"):
+            - When can_auto_fix = true (solution_type: "auto_replace", "default_replace", "exact_match")
+            - Use the recommended_value with update_workflow_parameter() then TRANSFER back
+            - When can_auto_fix = false: Show available options then TRANSFER back
+            
+            **Other Parameter Types** (error_type: "non_enum_parameter"):
+            - Provide configuration guidance based on parameter type then TRANSFER back
+            
+            3. **For multiple errors**: Process them systematically, one by one
+            
+            4. **Smart Fallback Strategy**:
+            - If find_matching_parameter_value() fails, use get_model_files() to check if it's a model issue
+            - If still unclear, use suggest_model_download() as last resort
+            
+            **Auto-Fix Priority** (when can_auto_fix = true):
+            1. Image replacements: Use any available image to replace missing ones
+            2. Enum matches: Use exact/partial/default matches automatically  
+            3. Case corrections: Fix capitalization and formatting issues
             
             **Transfer Rules:**
-            - When models are missing: Provide download instructions then TRANSFER to ComfyUI-Debug-Coordinator
-            - When parameters are fixed: Confirm the fix then TRANSFER to ComfyUI-Debug-Coordinator  
-            - When no fix is possible: Explain why then TRANSFER to ComfyUI-Debug-Coordinator
-            - ALWAYS transfer back - do not end without handoff
+            - Model missing: Provide download instructions then TRANSFER to ComfyUI-Debug-Coordinator
+            - Auto-fixed parameters: Confirm the fix then TRANSFER to ComfyUI-Debug-Coordinator
+            - Manual fixes needed: Provide clear guidance then TRANSFER to ComfyUI-Debug-Coordinator
+            - ALWAYS transfer back with clear status - do not end without handoff
             
             **Response Format:**
-            1. "Issue identified: [brief description]"
-            2. "Solution: [what you did or what user needs to do]"
-            3. "Next steps: [if manual action required]"
+            1. "Issue identified: [error_type] - [brief description]"
+            2. "Solution: [auto-fixed/download-required/manual-fix] - [what you did or what user needs to do]"
+            3. "Status: [fixed/requires-download/requires-manual-action]"
             4. Transfer to ComfyUI-Debug-Coordinator for verification
             
-            **Remember**: Your role is to identify the issue and provide the solution, then ALWAYS transfer back to let the coordinator verify the workflow.
+            **Key Enhancement**: You can now automatically fix many parameter issues (images, enums) without user intervention, but you still need downloads for missing models. Be proactive in applying fixes when possible.
             """,
-            tools=[get_node_parameters, find_matching_parameter_value, get_model_files, 
-                suggest_model_download, update_workflow_parameter],
+            tools=[find_matching_parameter_value, get_model_files, 
+                suggest_model_download, update_workflow_parameter, get_current_workflow],
             handoffs=[agent],
         )
 
-        agent.handoffs = [workflow_bugfix_default_agent, parameter_agent]
+        agent.handoffs = [link_agent, workflow_bugfix_default_agent, parameter_agent]
 
         # Initial message to start the debugging process
         messages = [{"role": "user", "content": f"Validate and debug this ComfyUI workflow. Session ID: {session_id}"}]

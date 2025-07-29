@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-25 23:42:19
+LastEditTime: 2025-07-29 16:46:46
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -19,6 +19,7 @@ from agents.run import Runner
 from agents.tracing import set_tracing_disabled
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
+from openai import APIError
 
 # Load environment variables from server.env
 def load_env_config():
@@ -157,144 +158,194 @@ You must adhere to the following constraints to complete the task:
             # Collect workflow update ext data from tools and message outputs
             workflow_update_ext = None
             
-            # Simple retry for OpenAI streaming errors
-            try:
-                async for event in result.stream_events():
-                    # Handle different event types similar to reference implementation
-                    if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
-                        # Stream text deltas for real-time response
-                        delta_text = event.data.delta
-                        if delta_text:
-                            current_text += delta_text
-                            # Yield tuple (accumulated_text, None) for streaming - similar to facade.py
-                            # Only yield if we have new content to avoid duplicate yields
-                            if len(current_text) > last_yield_length:
-                                last_yield_length = len(current_text)
-                                yield (current_text, None)
-                        continue
-                        
-                    elif event.type == "agent_updated_stream_event":
-                        new_agent_name = event.new_agent.name
-                        print(f"Handoff to: {new_agent_name}")
-                        # Add handoff information to the stream
-                        handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
-                        current_text += handoff_text
-                        last_yield_length = len(current_text)
-                        
-                        # Yield text update only
-                        yield (current_text, None)
-                        continue
-                        
-                    elif event.type == "run_item_stream_event":
-                        if event.item.type == "tool_call_item":
-                            # Get tool name correctly using raw_item.name
-                            tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
-                            # Add to queue instead of overwriting current_tool_call
-                            tool_call_queue.append(tool_name)
-                            print(f"-- Tool '{tool_name}' was called")
+            # Enhanced retry mechanism for OpenAI streaming errors
+            max_retries = 3
+            retry_count = 0
+            
+            async def process_stream_events(stream_result):
+                """Process stream events with enhanced error handling"""
+                nonlocal current_text, last_yield_length, tool_call_queue, workflow_update_ext, tool_results, workflow_tools_called
+                
+                try:
+                    async for event in stream_result.stream_events():
+                        # Handle different event types similar to reference implementation
+                        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+                            # Stream text deltas for real-time response
+                            delta_text = event.data.delta
+                            if delta_text:
+                                current_text += delta_text
+                                # Yield tuple (accumulated_text, None) for streaming - similar to facade.py
+                                # Only yield if we have new content to avoid duplicate yields
+                                if len(current_text) > last_yield_length:
+                                    last_yield_length = len(current_text)
+                                    yield (current_text, None)
+                            continue
                             
-                            # Track workflow tools being called
-                            if tool_name in ["recall_workflow", "gen_workflow"]:
-                                workflow_tools_called.add(tool_name)
-                        elif event.item.type == "tool_call_output_item":
-                            print(f"-- Tool output: {event.item.output}")
-                            # Store tool output for potential ext data processing
-                            tool_output_data_str = str(event.item.output)
+                        elif event.type == "agent_updated_stream_event":
+                            new_agent_name = event.new_agent.name
+                            print(f"Handoff to: {new_agent_name}")
+                            # Add handoff information to the stream
+                            handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
+                            current_text += handoff_text
+                            last_yield_length = len(current_text)
                             
-                            # Get the next tool from the queue (FIFO)
-                            if tool_call_queue:
-                                tool_name = tool_call_queue.pop(0)
-                                print(f"-- Associating output with tool '{tool_name}'")
-                            else:
-                                tool_name = 'unknown_tool'
-                                print(f"-- Warning: No tool call in queue for output")
+                            # Yield text update only
+                            yield (current_text, None)
+                            continue
                             
-                            try:
-                                import json
-                                tool_output_data = json.loads(tool_output_data_str)
-                                if "ext" in tool_output_data and tool_output_data["ext"]:
-                                    # Store all ext items from tool output, not just workflow_update
-                                    tool_ext_items = tool_output_data["ext"]
-                                    for ext_item in tool_ext_items:
-                                        if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
-                                            workflow_update_ext = tool_ext_items  # Store all ext items, not just one
-                                            print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
-                                            break
-                                    
-                                if tool_output_data.get('text'):
-                                    parsed_output = json.loads(tool_output_data['text'])
-                                    answer = parsed_output.get("answer")
-                                    data = parsed_output.get("data")
-                                    tool_ext = parsed_output.get("ext")
-                                    
-                                    # Store tool results similar to reference facade.py
-                                    tool_results[tool_name] = {
-                                        "answer": answer,
-                                        "data": data,
-                                        "ext": tool_ext,
-                                        "content_dict": parsed_output
-                                    }
-                                    print(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
-                                    
-                                    # Track workflow tools that produced results
-                                    if tool_name in ["recall_workflow", "gen_workflow"]:
-                                        print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
-                                        
-                                    
-                                    
-                                    
-                            except (json.JSONDecodeError, TypeError) as e:
-                                # If not JSON or parsing fails, treat as regular text
-                                print(f"-- Failed to parse tool output as JSON: {e}")
-                                print(f"-- Full traceback: {traceback.format_exc()}")
-                                tool_results[tool_name] = {
-                                    "answer": tool_output_data_str,
-                                    "data": None,
-                                    "ext": None,
-                                    "content_dict": None
-                                }
-                            
-                        elif event.item.type == "message_output_item":
-                            # Handle message output - this is the main response text
-                            text = ItemHelpers.text_message_output(event.item)
-                            if text:
-                                print(f"-- Message: {text}\n\n")
+                        elif event.type == "run_item_stream_event":
+                            if event.item.type == "tool_call_item":
+                                # Get tool name correctly using raw_item.name
+                                tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
+                                # Add to queue instead of overwriting current_tool_call
+                                tool_call_queue.append(tool_name)
+                                print(f"-- Tool '{tool_name}' was called")
                                 
-                                # Try to parse message content for ext data (from handoff agents like workflow_rewrite_agent)
+                                # Track workflow tools being called
+                                if tool_name in ["recall_workflow", "gen_workflow"]:
+                                    workflow_tools_called.add(tool_name)
+                            elif event.item.type == "tool_call_output_item":
+                                print(f"-- Tool output: {event.item.output}")
+                                # Store tool output for potential ext data processing
+                                tool_output_data_str = str(event.item.output)
+                                
+                                # Get the next tool from the queue (FIFO)
+                                if tool_call_queue:
+                                    tool_name = tool_call_queue.pop(0)
+                                    print(f"-- Associating output with tool '{tool_name}'")
+                                else:
+                                    tool_name = 'unknown_tool'
+                                    print(f"-- Warning: No tool call in queue for output")
+                                
                                 try:
                                     import json
-                                    parsed_message = json.loads(text)
-                                    if isinstance(parsed_message, dict) and 'ext' in parsed_message and parsed_message['ext']:
-                                        # Found ext data in message output
-                                        message_ext = parsed_message['ext']
-                                        print(f"-- Found ext data in message output: {message_ext}")
+                                    tool_output_data = json.loads(tool_output_data_str)
+                                    if "ext" in tool_output_data and tool_output_data["ext"]:
+                                        # Store all ext items from tool output, not just workflow_update
+                                        tool_ext_items = tool_output_data["ext"]
+                                        for ext_item in tool_ext_items:
+                                            if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
+                                                workflow_update_ext = tool_ext_items  # Store all ext items, not just one
+                                                print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
+                                                break
                                         
-                                        # Store as a special tool result for processing later
-                                        tool_results['_message_output_ext'] = {
-                                            "answer": parsed_message.get('text', text),
-                                            "data": None,
-                                            "ext": message_ext,
-                                            "content_dict": parsed_message
+                                    if tool_output_data.get('text'):
+                                        parsed_output = json.loads(tool_output_data['text'])
+                                        answer = parsed_output.get("answer")
+                                        data = parsed_output.get("data")
+                                        tool_ext = parsed_output.get("ext")
+                                        
+                                        # Store tool results similar to reference facade.py
+                                        tool_results[tool_name] = {
+                                            "answer": answer,
+                                            "data": data,
+                                            "ext": tool_ext,
+                                            "content_dict": parsed_output
                                         }
-                                        print(f"-- Stored message output ext data")
+                                        print(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
+                                        
+                                        # Track workflow tools that produced results
+                                        if tool_name in ["recall_workflow", "gen_workflow"]:
+                                            print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
+                                            
+                                        
+                                        
+                                        
                                 except (json.JSONDecodeError, TypeError) as e:
-                                    # Not JSON or no ext field, continue normally
-                                    print(f"-- Message not JSON or no ext field: {e}")
-                                    print(f"-- Full traceback: {traceback.format_exc()}")
-                                    pass
-                        else:
-                            pass  # Ignore other event types
-            except Exception as stream_error:
-                print(f"Stream error (retrying once): {stream_error}")
-                # Simple one-time retry for streaming errors
+                                    # If not JSON or parsing fails, treat as regular text
+                                    print(f"-- Failed to parse tool output as JSON: {e}")
+                                    print(f"-- Traceback: {traceback.format_exc()}")
+                                    tool_results[tool_name] = {
+                                        "answer": tool_output_data_str,
+                                        "data": None,
+                                        "ext": None,
+                                        "content_dict": None
+                                    }
+                                
+                            elif event.item.type == "message_output_item":
+                                pass
+                            else:
+                                pass  # Ignore other event types
+                                
+                except (AttributeError, TypeError, APIError) as attr_error:
+                    # Handle specific OpenAI streaming errors like "NoneType has no attribute strip"
+                    if "'NoneType' object has no attribute 'strip'" in str(attr_error):
+                        print(f"OpenAI streaming chunk error (NoneType strip): {attr_error}")
+                        # This is a known issue with OpenAI streaming when chunks are malformed
+                        # Re-raise to trigger retry mechanism
+                        raise attr_error
+                    else:
+                        print(f"Attribute error in streaming: {attr_error}")
+                        print(f"Traceback: {traceback.format_exc()}")
+                        raise attr_error
+                        
+                except Exception as e:
+                    print(f"Unexpected streaming error: {e}")
+                    print(f"Traceback: {traceback.format_exc()}")
+                    raise e
+            
+            # Implement retry mechanism with exponential backoff
+            while retry_count <= max_retries:
                 try:
-                    async for event in result.stream_events():
-                        # Same event handling logic - minimal duplication for simplicity
-                        if hasattr(event, 'type'):
-                            continue  # Just consume events on retry, don't process
-                except Exception as retry_error:
-                    print(f"Retry failed: {retry_error}")
-                    # Continue to normal processing, error will be handled by outer try-catch
+                    async for stream_data in process_stream_events(result):
+                        yield stream_data
+                    # If we get here, streaming completed successfully
+                    break
+                    
+                except (AttributeError, TypeError, ConnectionError, OSError, APIError) as stream_error:
+                    retry_count += 1
+                    error_msg = str(stream_error)
+                    
+                    # Check for specific streaming errors that are worth retrying
+                    should_retry = (
+                        "'NoneType' object has no attribute 'strip'" in error_msg or
+                        "Connection broken" in error_msg or
+                        "InvalidChunkLength" in error_msg or
+                        "socket hang up" in error_msg or
+                        "Connection reset" in error_msg
+                    )
+                    
+                    if should_retry and retry_count <= max_retries:
+                        wait_time = min(2 ** (retry_count - 1), 10)  # Exponential backoff, max 10 seconds
+                        print(f"Stream error (attempt {retry_count}/{max_retries}): {error_msg}")
+                        print(f"Retrying in {wait_time} seconds...")
+                        
+                        # Yield current progress before retry
+                        if current_text:
+                            yield (current_text, None)
+                        
+                        await asyncio.sleep(wait_time)
+                        
+                        try:
+                            # Create a new result object for retry
+                            result = Runner.run_streamed(
+                                agent,
+                                input=agent_input,
+                            )
+                            print(f"=== Retry attempt {retry_count} starting ===")
+                        except Exception as retry_setup_error:
+                            print(f"Failed to setup retry: {retry_setup_error}")
+                            if retry_count >= max_retries:
+                                raise stream_error  # Re-raise original error if max retries reached
+                            continue
+                    else:
+                        print(f"Non-retryable streaming error or max retries reached: {error_msg}")
+                        print(f"Traceback: {traceback.format_exc()}")
+                        # Continue to normal processing, error will be handled by outer try-catch
+                        break
+                        
+                except Exception as unexpected_error:
+                    retry_count += 1
+                    print(f"Unexpected error during streaming (attempt {retry_count}/{max_retries}): {unexpected_error}")
+                    print(f"Traceback: {traceback.format_exc()}")
+                    
+                    if retry_count > max_retries:
+                        print("Max retries exceeded for unexpected error")
+                        break
+                    else:
+                        # Brief wait before retry for unexpected errors
+                        await asyncio.sleep(1)
+                        continue
 
             print("\n=== MCP Agent Run complete ===")
 
@@ -338,7 +389,7 @@ You must adhere to the following constraints to complete the task:
                     if gen_result["data"] and len(gen_result["data"]) > 0:
                         print(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
                         print(f"  - Workflow IDs: {[w.get('id') for w in gen_result['data']]}")
-                        successful_workflows.extend(gen_result["data"])
+                        successful_workflows.insert(0, *gen_result["data"])
                     else:
                         print("gen_workflow failed or returned no data")
 
@@ -438,11 +489,33 @@ You must adhere to the following constraints to complete the task:
             
     except Exception as e:
         print(f"Error in comfyui_agent_invoke: {str(e)}")
-        print(f"Full traceback: {traceback.format_exc()}")
+        print(f"Traceback: {traceback.format_exc()}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
-        # Yield error as tuple with finished=True
-        error_ext = {
-            "data": None,
-            "finished": True
-        }
+        
+        # Check if this is a retryable streaming error that should not finish the conversation
+        error_msg = str(e)
+        is_retryable_streaming_error = (
+            "'NoneType' object has no attribute 'strip'" in error_msg or
+            "Connection broken" in error_msg or
+            "InvalidChunkLength" in error_msg or
+            "socket hang up" in error_msg or
+            "Connection reset" in error_msg or
+            isinstance(e, APIError)
+        )
+        
+        if is_retryable_streaming_error:
+            # For retryable streaming errors, don't finish - allow user to retry
+            print(f"Detected retryable streaming error, setting finished=False to allow retry")
+            error_ext = {
+                "data": None,
+                "finished": False
+            }
+            error_message = f"A temporary streaming error occurred: {str(e)}. Please try your request again."
+        else:
+            # For other errors, finish the conversation
+            error_ext = {
+                "data": None,
+                "finished": True
+            }
+        
         yield (error_message, error_ext)

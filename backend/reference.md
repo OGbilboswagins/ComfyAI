@@ -1,493 +1,1288 @@
-我需要参考另外一个工程的代码，来实现我当前的后端能力，当前的工程是个ComfyUI的插件，我在这里实现了一个mcp_client,来替代掉原来的workflowChatApi.ts里的`${BASE_URL}/api/chat/invoke`接口。
-
-核心代码facade.py实现了agent-tools的能力：
-```python
-from typing import Optional, Generator, Dict
-import json
-import uuid
-from agent.tools.node_explain_agent_tool import explain_node
-from agent.tools.node_search_tool import search_node
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
-from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.postgres import PostgresSaver
-from context import get_user_id
-from logger import logger
-from psycopg_pool import ConnectionPool
-from agent.llms import llm_4_chatbot, llm_4o, llm_deepseek, llm_4o_mini, llm_dashscope, get_openai_client, llm_dashscope_deepseek_v3, llm_qwen3, llm_4_1, llm_gemini2_5_flash
-from agent.tools.workflow_recall_tool import recall_workflow
-from agent.tools.gen_workflow_tool import gen_workflow
-from agent.tools.model_search_tool import search_model
-from initializer.db_initializer import Session, db_url
-from utils.os_util import get_root_path
-from dao.message_dao import Message, MessageSource
-from dao.node_dao import Node
-from dao.workflow_dao import Workflow
-
-tools = [
-    recall_workflow,  # 工作流召回
-    gen_workflow,  # 工作流生成
-    search_node,  # 节点搜索
-    search_model,  # 模型召回
-    explain_node,  # 节点解释
-    # analyze_workflow,  # 工作流分析
-]
-system_prompt_path = get_root_path('prompts/system_prompt.txt')
-with open(system_prompt_path, 'r', encoding='utf-8') as f:
-    system_prompt_content = f.read()
-new_system_prompt = SystemMessage(content=system_prompt_content)
-
-connection_kwargs = {
-    "autocommit": True,
-    "prepare_threshold": 0,
-}
-
-# with ConnectionPool(
-#     conninfo=db_url,
-#     max_size=20,
-#     kwargs=connection_kwargs,
-# ) as pool:
-pool = ConnectionPool(db_url, max_size=50, kwargs=connection_kwargs)
-checkpointer = PostgresSaver(pool)
-checkpointer.setup()
-
-# checkpointer = MemorySaver()
-
-# 修改 LLM 映射字典，使用正确的配置方式
-llm_config: Dict = {
-    "gemini-2.5-flash": {
-        "client":llm_gemini2_5_flash,
-        "image_enable":True,
-    },
-    "gpt-4o": {
-        "client":llm_4_1,
-        "image_enable":True,
-    },
-    "gpt-4.1": {
-        "client":llm_4_1,
-        "image_enable":True,
-    },
-    "qwen-plus": {
-        "client":llm_dashscope,
-        "image_enable":False,
-    },
-}
-
-llm_mapping = {k: llm_config[k]["client"] for k in llm_config}
+我把一些底层库的代码贴在这里来帮助我查找报错原因：
+``` 
+/.local/lib/python3.10/site-packages/agents/result.py
 
 
-# 获取所有llm列表
-def get_model_list():
-    model_list = []
-    remove_models = ["gpt-4o"]
-    for model, config in llm_config.items():
-        if model not in remove_models:
-            model_list.append({
-                "name": model,
-                "image_enable": config["image_enable"],
-            })
-    return model_list
+from __future__ import annotations
 
-# 创建一个函数用于限制对话历史
-def limit_conversation_history(state, max_turns=5):
-    """
-    限制对话历史只保留最近的几轮对话
-    
-    Args:
-        state: 当前的状态对象
-        max_turns: 保留的最大对话轮数
-    
-    Returns:
-        修改后的状态
-    """
-    messages = state.get("messages", [])
-    system_messages = []
-    conversation_messages = []
-    
-    # 分离系统消息和对话消息
-    for msg in messages:
-        if isinstance(msg, SystemMessage):
-            system_messages.append(msg)
-        else:
-            conversation_messages.append(msg)
-    
-    # 保留对话消息的最后max_turns*2条(每轮包含用户消息和AI回复)
-    limited_conversation = conversation_messages[-max_turns*2:] if len(conversation_messages) > max_turns*2 else conversation_messages
-    
-    # 重新组合消息
-    state["messages"] = system_messages + limited_conversation
-    return state
+import abc
+import asyncio
+from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, cast
 
-# 将系统提示和历史限制组合在一起
-def combined_state_modifier(state):
-    """
-    组合状态修改器，添加系统提示并限制对话历史
-    
-    Args:
-        state: 当前的状态对象
-    
-    Returns:
-        修改后的消息列表
-    """
-    messages = state.get("messages", [])
-    
-    # 分离系统消息和对话消息
-    system_messages = []
-    conversation_messages = []
-    
-    for msg in messages:
-        if isinstance(msg, SystemMessage):
-            system_messages.append(msg)
-        else:
-            conversation_messages.append(msg)
-    
-    # 如果没有系统消息，添加系统提示
-    if not system_messages and isinstance(new_system_prompt, SystemMessage):
-        system_messages = [new_system_prompt]
-    
-    # 保留对话消息的最后5轮(每轮包含用户消息和AI回复)
-    max_turns = 10
-    limited_conversation = conversation_messages[-max_turns*2:] if len(conversation_messages) > max_turns*2 else conversation_messages
-    
-    # 返回系统消息和限制后的对话消息的组合
-    return system_messages + limited_conversation
+from typing_extensions import TypeVar
 
-# 创建基础 agent 时使用 combined_state_modifier
-agent_executor = create_react_agent(
-    llm_4o,
-    tools,
-    checkpointer=checkpointer,
-    state_modifier=combined_state_modifier,
+from ._run_impl import QueueCompleteSentinel
+from .agent import Agent
+from .agent_output import AgentOutputSchemaBase
+from .exceptions import (
+    AgentsException,
+    InputGuardrailTripwireTriggered,
+    MaxTurnsExceeded,
+    RunErrorDetails,
+)
+from .guardrail import InputGuardrailResult, OutputGuardrailResult
+from .items import ItemHelpers, ModelResponse, RunItem, TResponseInputItem
+from .logger import logger
+from .run_context import RunContextWrapper
+from .stream_events import StreamEvent
+from .tracing import Trace
+from .util._pretty_print import (
+    pretty_print_result,
+    pretty_print_run_result_streaming,
 )
 
+if TYPE_CHECKING:
+    from ._run_impl import QueueCompleteSentinel
+    from .agent import Agent
 
-def is_return_direct_tool(tool_name: str) -> bool:
-    return any([tool_name == t.name and t.return_direct for t in tools])
-
-
-def is_json_str(value: str) -> bool:
-    try:
-        json.loads(value)
-        return True
-    except ValueError:
-        return False
+T = TypeVar("T")
 
 
-def chat(
-        query: str,
-        config: Optional[RunnableConfig] = None,
-        session_id: str=None,
-        debug: bool = False,
-) -> (Generator[tuple[str, any], None, None]):
-    logger.info(f"agent query: {query}")
+@dataclass
+class RunResultBase(abc.ABC):
+    input: str | list[TResponseInputItem]
+    """The original input items i.e. the items before run() was called. This may be a mutated
+    version of the input, if there are handoff input filters that mutate the input.
+    """
 
-    assert session_id is not None, "session_id is required"
-    common_info = {
-        "user_id": get_user_id() or -1,
-        "session_id": session_id,
-        "sub_session_id": str(uuid.uuid4()).replace('-', ''),
-    }
-    
-    model = config.get("model") if config else None
+    new_items: list[RunItem]
+    """The new items generated during the agent run. These include things like new messages, tool
+    calls and their outputs, etc.
+    """
 
-    with Session() as session:
-        Message.create(session, **common_info, source=MessageSource.USER.value, content=query, attributes={"model": model})
+    raw_responses: list[ModelResponse]
+    """The raw LLM responses generated by the model during the agent run."""
 
-    if config and config.get("images"):
-        images = config["images"]
-        content = [{"type": "text", "text": query}]
-        for image in images:
-            content.append({
-                "type": "image_url",
-                "image_url": {"url": image.data}
-            })
-        agent_input = {"messages": [HumanMessage(content=content)]}
-    else:
-        agent_input = {"messages": [HumanMessage(content=query)]}
+    final_output: Any
+    """The output of the last agent."""
 
-    # 检查自定义 OpenAI 凭据
-    custom_api_key = config.get("openai_api_key") if config else None
-    custom_base_url = config.get("openai_base_url") if config else None
+    input_guardrail_results: list[InputGuardrailResult]
+    """Guardrail results for the input messages."""
 
-    # 创建 LLM 映射
-    if custom_api_key:
-        # 使用客户端管理器获取客户端
-        custom_llm_mapping = {
-            "gpt-4o": get_openai_client("gpt-4o", custom_api_key, custom_base_url),
-            # "gpt-4o-mini": get_openai_client("gpt-4o-mini", custom_api_key, custom_base_url),
-        }
-        # 对于其他模型，使用默认实例
-        custom_llm_mapping.update({
-            "DeepSeek-V3": llm_deepseek,
-            "qwen-plus": llm_dashscope
-        })
-    else:
-        custom_llm_mapping = llm_mapping
+    output_guardrail_results: list[OutputGuardrailResult]
+    """Guardrail results for the final output of the agent."""
 
-    # 根据 config 中的 model 参数选择 LLM
-    if config and config.get("model") and config["model"] in custom_llm_mapping:
-        selected_llm = custom_llm_mapping[config["model"]]
-        agent = create_react_agent(selected_llm, tools, checkpointer=checkpointer, state_modifier=combined_state_modifier)
-    else:
-        agent = agent_executor
-    agent.step_timeout = 60  # 将单步超时时间增加到60秒
+    context_wrapper: RunContextWrapper[Any]
+    """The context wrapper for the agent run."""
 
-    try:
-        agent_response = agent.stream(agent_input, config, stream_mode="messages")
+    @property
+    @abc.abstractmethod
+    def last_agent(self) -> Agent[Any]:
+        """The last agent that was run."""
 
-        current_text = ''
-        # data = None
-        ext = None
-        tool_results = {}  # 存储不同工具的结果
-        workflow_tools_called = set()  # 跟踪调用的工作流工具
-        
-        for chunk, _ in agent_response:
-            content = chunk.content
-            chunk_type = chunk.type
-            if not content or not chunk_type:
-                continue
+    def final_output_as(self, cls: type[T], raise_if_incorrect_type: bool = False) -> T:
+        """A convenience method to cast the final output to a specific type. By default, the cast
+        is only for the typechecker. If you set `raise_if_incorrect_type` to True, we'll raise a
+        TypeError if the final output is not of the given type.
 
-            if chunk_type == 'tool':
-                tool_name = chunk.name
-                attributes = {
-                    "tool_name": tool_name,
-                    "model": model,
-                }
-                with Session() as session:
-                    Message.create(session, **common_info, source=MessageSource.TOOL.value, content=content, attributes=attributes)
-            
-                if is_json_str(content):
-                    content_dict = json.loads(content)
-                    answer = content_dict.get("answer")
-                    data = content_dict.get("data")
-                    tool_ext = content_dict.get("ext")
-                    
-                    # 存储工具结果
-                    tool_results[tool_name] = {
-                        "answer": answer,
-                        "data": data,
-                        "ext": tool_ext,
-                        "content_dict": content_dict
-                    }
-                    
-                    # 跟踪工作流相关工具的调用
-                    if tool_name in ["recall_workflow", "gen_workflow"]:
-                        workflow_tools_called.add(tool_name)
-                        
-                else:
-                    answer = content
-                    data = None
-                    tool_ext = None
-                    tool_results[tool_name] = {
-                        "answer": answer,
-                        "data": data,
-                        "ext": tool_ext,
-                        "content_dict": None
-                    }
-                    
-                    # 跟踪工作流相关工具的调用
-                    if tool_name in ["recall_workflow", "gen_workflow"]:
-                        workflow_tools_called.add(tool_name)
+        Args:
+            cls: The type to cast the final output to.
+            raise_if_incorrect_type: If True, we'll raise a TypeError if the final output is not of
+                the given type.
 
-                if is_return_direct_tool(chunk.name):
-                    logger.info(f"agent response answer: {answer}")
-                    if tool_ext:
-                        logger.info(f"agent response ext: {tool_ext}")
-                    yield answer, tool_ext
-                    return
-            elif chunk_type == 'AIMessageChunk':
-                current_text += content
-                if not debug:
-                    yield current_text, None
+        Returns:
+            The final output casted to the given type.
+        """
+        if raise_if_incorrect_type and not isinstance(self.final_output, cls):
+            raise TypeError(f"Final output is not of type {cls.__name__}")
 
-        # 处理工作流工具的结果合并
-        workflow_tools_found = [tool for tool in ["recall_workflow", "gen_workflow"] if tool in tool_results]
-        
-        if workflow_tools_found:
-            logger.info(f"Workflow tools called: {workflow_tools_found}")
-            
-            # 检查是否同时调用了两个工作流工具
-            if "recall_workflow" in tool_results and "gen_workflow" in tool_results:
-                logger.info("Both recall_workflow and gen_workflow were called, merging results")
-                
-                # 检查每个工具是否成功执行
-                successful_workflows = []
-                
-                recall_result = tool_results["recall_workflow"]
-                if recall_result["data"] and len(recall_result["data"]) > 0:
-                    successful_workflows.extend(recall_result["data"])
-                    logger.info(f"recall_workflow succeeded with {len(recall_result['data'])} workflows")
-                else:
-                    logger.info("recall_workflow failed or returned no data")
-                
-                gen_result = tool_results["gen_workflow"]
-                if gen_result["data"] and len(gen_result["data"]) > 0:
-                    successful_workflows.extend(gen_result["data"])
-                    logger.info(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
-                else:
-                    logger.info("gen_workflow failed or returned no data")
-                
-                # 创建最终的ext
-                if successful_workflows:
-                    ext = [{
-                        "type": "workflow",
-                        "data": successful_workflows
-                    }]
-                    logger.info(f"Returning {len(successful_workflows)} workflows from successful tools")
-                else:
-                    ext = None
-                    logger.info("No successful workflow data to return")
-                    
-            elif "recall_workflow" in tool_results and "gen_workflow" not in tool_results:
-                # 只调用了recall_workflow，不返回ext，保持finished=false
-                logger.info("Only recall_workflow was called, waiting for gen_workflow, not returning ext")
-                ext = None
-                
-            elif "gen_workflow" in tool_results and "recall_workflow" not in tool_results:
-                # 只调用了gen_workflow的情况，正常返回结果
-                logger.info("Only gen_workflow was called, returning its result")
-                gen_result = tool_results["gen_workflow"]
-                if gen_result["data"] and len(gen_result["data"]) > 0:
-                    ext = [{
-                        "type": "workflow",
-                        "data": gen_result["data"]
-                    }]
-                    logger.info(f"Returning {len(gen_result['data'])} workflows from gen_workflow")
-                else:
-                    ext = None
-                    logger.info("gen_workflow failed or returned no data")
-        else:
-            # 没有调用工作流工具，检查是否有其他工具返回了ext
-            for tool_name, result in tool_results.items():
-                if result["ext"]:
-                    ext = result["ext"]
-                    logger.info(f"Using ext from {tool_name}")
-                    break
+        return cast(T, self.final_output)
 
-        with Session() as session:
-            filtered_images = []
-            if config and config.get("images"):
-                filtered_images = [{k: v for k, v in img.dict().items() if k != 'data'} for img in config["images"]] if config["images"] else []
-            Message.create(session, **common_info, source=MessageSource.AI.value, content=current_text, attributes={"ext": ext, "images": filtered_images, "model": model})
+    def to_input_list(self) -> list[TResponseInputItem]:
+        """Creates a new input list, merging the original input with all the new items generated."""
+        original_items: list[TResponseInputItem] = ItemHelpers.input_to_new_input_list(self.input)
+        new_items = [item.to_input_item() for item in self.new_items]
 
-        logger.info(f"agent response answer: {current_text}")
-        if ext:
-            logger.info(f"agent response ext: {ext}")
-        yield current_text, ext
-    except TimeoutError:
-        logger.error("Agent execution timed out", exc_info=True)
-        yield "I apologize, but the request timed out. Please try again or rephrase your question.", None
-        return
-    except Exception as e:
-        logger.error(f"Agent execution failed: {str(e)}", exc_info=True)
-        yield f"I apologize, but an error occurred: {str(e)}", None
-        return
+        return original_items + new_items
+
+    @property
+    def last_response_id(self) -> str | None:
+        """Convenience method to get the response ID of the last model response."""
+        if not self.raw_responses:
+            return None
+
+        return self.raw_responses[-1].response_id
+
+
+@dataclass
+class RunResult(RunResultBase):
+    _last_agent: Agent[Any]
+
+    @property
+    def last_agent(self) -> Agent[Any]:
+        """The last agent that was run."""
+        return self._last_agent
+
+    def __str__(self) -> str:
+        return pretty_print_result(self)
+
+
+@dataclass
+class RunResultStreaming(RunResultBase):
+    """The result of an agent run in streaming mode. You can use the `stream_events` method to
+    receive semantic events as they are generated.
+
+    The streaming method will raise:
+    - A MaxTurnsExceeded exception if the agent exceeds the max_turns limit.
+    - A GuardrailTripwireTriggered exception if a guardrail is tripped.
+    """
+
+    current_agent: Agent[Any]
+    """The current agent that is running."""
+
+    current_turn: int
+    """The current turn number."""
+
+    max_turns: int
+    """The maximum number of turns the agent can run for."""
+
+    final_output: Any
+    """The final output of the agent. This is None until the agent has finished running."""
+
+    _current_agent_output_schema: AgentOutputSchemaBase | None = field(repr=False)
+
+    trace: Trace | None = field(repr=False)
+
+    is_complete: bool = False
+    """Whether the agent has finished running."""
+
+    # Queues that the background run_loop writes to
+    _event_queue: asyncio.Queue[StreamEvent | QueueCompleteSentinel] = field(
+        default_factory=asyncio.Queue, repr=False
+    )
+    _input_guardrail_queue: asyncio.Queue[InputGuardrailResult] = field(
+        default_factory=asyncio.Queue, repr=False
+    )
+
+    # Store the asyncio tasks that we're waiting on
+    _run_impl_task: asyncio.Task[Any] | None = field(default=None, repr=False)
+    _input_guardrails_task: asyncio.Task[Any] | None = field(default=None, repr=False)
+    _output_guardrails_task: asyncio.Task[Any] | None = field(default=None, repr=False)
+    _stored_exception: Exception | None = field(default=None, repr=False)
+
+    @property
+    def last_agent(self) -> Agent[Any]:
+        """The last agent that was run. Updates as the agent run progresses, so the true last agent
+        is only available after the agent run is complete.
+        """
+        return self.current_agent
+
+    def cancel(self) -> None:
+        """Cancels the streaming run, stopping all background tasks and marking the run as
+        complete."""
+        self._cleanup_tasks()  # Cancel all running tasks
+        self.is_complete = True  # Mark the run as complete to stop event streaming
+
+        # Optionally, clear the event queue to prevent processing stale events
+        while not self._event_queue.empty():
+            self._event_queue.get_nowait()
+        while not self._input_guardrail_queue.empty():
+            self._input_guardrail_queue.get_nowait()
+
+    async def stream_events(self) -> AsyncIterator[StreamEvent]:
+        """Stream deltas for new items as they are generated. We're using the types from the
+        OpenAI Responses API, so these are semantic events: each event has a `type` field that
+        describes the type of the event, along with the data for that event.
+
+        This will raise:
+        - A MaxTurnsExceeded exception if the agent exceeds the max_turns limit.
+        - A GuardrailTripwireTriggered exception if a guardrail is tripped.
+        """
+        while True:
+            self._check_errors()
+            if self._stored_exception:
+                logger.debug("Breaking due to stored exception")
+                self.is_complete = True
+                break
+
+            if self.is_complete and self._event_queue.empty():
+                break
+
+            try:
+                item = await self._event_queue.get()
+            except asyncio.CancelledError:
+                break
+
+            if isinstance(item, QueueCompleteSentinel):
+                self._event_queue.task_done()
+                # Check for errors, in case the queue was completed due to an exception
+                self._check_errors()
+                break
+
+            yield item
+            self._event_queue.task_done()
+
+        self._cleanup_tasks()
+
+        if self._stored_exception:
+            raise self._stored_exception
+
+    def _create_error_details(self) -> RunErrorDetails:
+        """Return a `RunErrorDetails` object considering the current attributes of the class."""
+        return RunErrorDetails(
+            input=self.input,
+            new_items=self.new_items,
+            raw_responses=self.raw_responses,
+            last_agent=self.current_agent,
+            context_wrapper=self.context_wrapper,
+            input_guardrail_results=self.input_guardrail_results,
+            output_guardrail_results=self.output_guardrail_results,
+        )
+
+    def _check_errors(self):
+        if self.current_turn > self.max_turns:
+            max_turns_exc = MaxTurnsExceeded(f"Max turns ({self.max_turns}) exceeded")
+            max_turns_exc.run_data = self._create_error_details()
+            self._stored_exception = max_turns_exc
+
+        # Fetch all the completed guardrail results from the queue and raise if needed
+        while not self._input_guardrail_queue.empty():
+            guardrail_result = self._input_guardrail_queue.get_nowait()
+            if guardrail_result.output.tripwire_triggered:
+                tripwire_exc = InputGuardrailTripwireTriggered(guardrail_result)
+                tripwire_exc.run_data = self._create_error_details()
+                self._stored_exception = tripwire_exc
+
+        # Check the tasks for any exceptions
+        if self._run_impl_task and self._run_impl_task.done():
+            run_impl_exc = self._run_impl_task.exception()
+            if run_impl_exc and isinstance(run_impl_exc, Exception):
+                if isinstance(run_impl_exc, AgentsException) and run_impl_exc.run_data is None:
+                    run_impl_exc.run_data = self._create_error_details()
+                self._stored_exception = run_impl_exc
+
+        if self._input_guardrails_task and self._input_guardrails_task.done():
+            in_guard_exc = self._input_guardrails_task.exception()
+            if in_guard_exc and isinstance(in_guard_exc, Exception):
+                if isinstance(in_guard_exc, AgentsException) and in_guard_exc.run_data is None:
+                    in_guard_exc.run_data = self._create_error_details()
+                self._stored_exception = in_guard_exc
+
+        if self._output_guardrails_task and self._output_guardrails_task.done():
+            out_guard_exc = self._output_guardrails_task.exception()
+            if out_guard_exc and isinstance(out_guard_exc, Exception):
+                if isinstance(out_guard_exc, AgentsException) and out_guard_exc.run_data is None:
+                    out_guard_exc.run_data = self._create_error_details()
+                self._stored_exception = out_guard_exc
+
+    def _cleanup_tasks(self):
+        if self._run_impl_task and not self._run_impl_task.done():
+            self._run_impl_task.cancel()
+
+        if self._input_guardrails_task and not self._input_guardrails_task.done():
+            self._input_guardrails_task.cancel()
+
+        if self._output_guardrails_task and not self._output_guardrails_task.done():
+            self._output_guardrails_task.cancel()
+
+    def __str__(self) -> str:
+        return pretty_print_run_result_streaming(self)
+
+
 ```
 
-接口调用侧代码如下：
-```python
 
-router = APIRouter()
-# conversations: dict[str, any] = {}
+```
+/.local/lib/python3.10/site-packages/agents/run.py
+
+from __future__ import annotations
+
+import asyncio
+import copy
+from dataclasses import dataclass, field
+from typing import Any, cast
+
+from openai.types.responses import ResponseCompletedEvent
+
+from ._run_impl import (
+    AgentToolUseTracker,
+    NextStepFinalOutput,
+    NextStepHandoff,
+    NextStepRunAgain,
+    QueueCompleteSentinel,
+    RunImpl,
+    SingleStepResult,
+    TraceCtxManager,
+    get_model_tracing_impl,
+)
+from .agent import Agent
+from .agent_output import AgentOutputSchema, AgentOutputSchemaBase
+from .exceptions import (
+    AgentsException,
+    InputGuardrailTripwireTriggered,
+    MaxTurnsExceeded,
+    ModelBehaviorError,
+    OutputGuardrailTripwireTriggered,
+    RunErrorDetails,
+)
+from .guardrail import InputGuardrail, InputGuardrailResult, OutputGuardrail, OutputGuardrailResult
+from .handoffs import Handoff, HandoffInputFilter, handoff
+from .items import ItemHelpers, ModelResponse, RunItem, TResponseInputItem
+from .lifecycle import RunHooks
+from .logger import logger
+from .model_settings import ModelSettings
+from .models.interface import Model, ModelProvider
+from .models.multi_provider import MultiProvider
+from .result import RunResult, RunResultStreaming
+from .run_context import RunContextWrapper, TContext
+from .stream_events import AgentUpdatedStreamEvent, RawResponsesStreamEvent
+from .tool import Tool
+from .tracing import Span, SpanError, agent_span, get_current_trace, trace
+from .tracing.span_data import AgentSpanData
+from .usage import Usage
+from .util import _coro, _error_tracing
+
+DEFAULT_MAX_TURNS = 10
 
 
-@router.post('/invoke')
-def invoke_post(request: ChatRequest, req: Request):
-    return _handle_invoke(request, req)
+@dataclass
+class RunConfig:
+    """Configures settings for the entire agent run."""
+
+    model: str | Model | None = None
+    """The model to use for the entire agent run. If set, will override the model set on every
+    agent. The model_provider passed in below must be able to resolve this model name.
+    """
+
+    model_provider: ModelProvider = field(default_factory=MultiProvider)
+    """The model provider to use when looking up string model names. Defaults to OpenAI."""
+
+    model_settings: ModelSettings | None = None
+    """Configure global model settings. Any non-null values will override the agent-specific model
+    settings.
+    """
+
+    handoff_input_filter: HandoffInputFilter | None = None
+    """A global input filter to apply to all handoffs. If `Handoff.input_filter` is set, then that
+    will take precedence. The input filter allows you to edit the inputs that are sent to the new
+    agent. See the documentation in `Handoff.input_filter` for more details.
+    """
+
+    input_guardrails: list[InputGuardrail[Any]] | None = None
+    """A list of input guardrails to run on the initial run input."""
+
+    output_guardrails: list[OutputGuardrail[Any]] | None = None
+    """A list of output guardrails to run on the final output of the run."""
+
+    tracing_disabled: bool = False
+    """Whether tracing is disabled for the agent run. If disabled, we will not trace the agent run.
+    """
+
+    trace_include_sensitive_data: bool = True
+    """Whether we include potentially sensitive data (for example: inputs/outputs of tool calls or
+    LLM generations) in traces. If False, we'll still create spans for these events, but the
+    sensitive data will not be included.
+    """
+
+    workflow_name: str = "Agent workflow"
+    """The name of the run, used for tracing. Should be a logical name for the run, like
+    "Code generation workflow" or "Customer support agent".
+    """
+
+    trace_id: str | None = None
+    """A custom trace ID to use for tracing. If not provided, we will generate a new trace ID."""
+
+    group_id: str | None = None
+    """
+    A grouping identifier to use for tracing, to link multiple traces from the same conversation
+    or process. For example, you might use a chat thread ID.
+    """
+
+    trace_metadata: dict[str, Any] | None = None
+    """
+    An optional dictionary of additional metadata to include with the trace.
+    """
 
 
-@router.get('/invoke')
-def invoke_get(req: Request):
-    request = ChatRequest(**req.query_params)
-    return _handle_invoke(request, req)
+class Runner:
+    @classmethod
+    async def run(
+        cls,
+        starting_agent: Agent[TContext],
+        input: str | list[TResponseInputItem],
+        *,
+        context: TContext | None = None,
+        max_turns: int = DEFAULT_MAX_TURNS,
+        hooks: RunHooks[TContext] | None = None,
+        run_config: RunConfig | None = None,
+        previous_response_id: str | None = None,
+    ) -> RunResult:
+        """Run a workflow starting at the given agent. The agent will run in a loop until a final
+        output is generated. The loop runs like so:
+        1. The agent is invoked with the given input.
+        2. If there is a final output (i.e. the agent produces something of type
+            `agent.output_type`, the loop terminates.
+        3. If there's a handoff, we run the loop again, with the new agent.
+        4. Else, we run tool calls (if any), and re-run the loop.
 
+        In two cases, the agent may raise an exception:
+        1. If the max_turns is exceeded, a MaxTurnsExceeded exception is raised.
+        2. If a guardrail tripwire is triggered, a GuardrailTripwireTriggered exception is raised.
 
-def _handle_invoke(request: ChatRequest, req: Request):
-    # Extract headers
-    accept_language = req.headers.get('Accept-Language')
-    openai_base_url = req.headers.get('Openai-Base-Url')
-    encrypted_api_key = req.headers.get('Encrypted-Openai-Api-Key')
-    model = req.headers.get('Model')
-    user_type = getattr(req.state, 'user_type', None)
-    
-    if user_type == "new":
-        def new_user_response_generator():
-            if accept_language == "zh-CN":
-                text = """
-您好！我是ComfyUI-Copilot，您的AI工作流助手。我可以帮您快速上手ComfyUI、提高工作流调优效率，包括：
+        Note that only the first agent's input guardrails are run.
 
-- 创建ComfyUI工作流、提供工作流模板和示例；
-- 提供节点使用建议和最佳实践
-- 解答ComfyUI相关问题
-- 帮助调试和优化现有工作流
-- 查询相关模型信息等
+        Args:
+            starting_agent: The starting agent to run.
+            input: The initial input to the agent. You can pass a single string for a user message,
+                or a list of input items.
+            context: The context to run the agent with.
+            max_turns: The maximum number of turns to run the agent for. A turn is defined as one
+                AI invocation (including any tool calls that might occur).
+            hooks: An object that receives callbacks on various lifecycle events.
+            run_config: Global settings for the entire agent run.
+            previous_response_id: The ID of the previous response, if using OpenAI models via the
+                Responses API, this allows you to skip passing in input from the previous turn.
 
-请告诉我你需要什么帮助，我会尽我所能协助你完成ComfyUI相关任务。
-第一次访问我们的服务请访问[链接](https://form.typeform.com/to/tkg91K8D)完成Key申请(免费)，并点击⚙️配置Key。
-                """
-            else:
-                text = """Hello! I'm ComfyUI-Copilot, your AI workflow assistant. I can help you quickly get started with ComfyUI and improve your workflow optimization efficiency, including:
+        Returns:
+            A run result containing all the inputs, guardrail results and the output of the last
+            agent. Agents may perform handoffs, so we don't know the specific type of the output.
+        """
+        if hooks is None:
+            hooks = RunHooks[Any]()
+        if run_config is None:
+            run_config = RunConfig()
 
-- Creating ComfyUI workflows and providing workflow templates and examples
-- Offering node usage recommendations and best practices
-- Answering ComfyUI-related questions
-- Helping debug and optimize existing workflows
-- Querying relevant model information
+        tool_use_tracker = AgentToolUseTracker()
 
-Please let me know what assistance you need, and I'll do my best to help you with your ComfyUI-related tasks.
+        with TraceCtxManager(
+            workflow_name=run_config.workflow_name,
+            trace_id=run_config.trace_id,
+            group_id=run_config.group_id,
+            metadata=run_config.trace_metadata,
+            disabled=run_config.tracing_disabled,
+        ):
+            current_turn = 0
+            original_input: str | list[TResponseInputItem] = copy.deepcopy(input)
+            generated_items: list[RunItem] = []
+            model_responses: list[ModelResponse] = []
 
-For first-time visitors, please visit [link](https://form.typeform.com/to/tkg91K8D) to complete your Key application (free), and click ⚙️ to configure your Key.
-                """
-            
-            response = ChatResponse(
-                session_id=request.session_id,
-                text=text,
-                format="markdown",
-                finished=True
+            context_wrapper: RunContextWrapper[TContext] = RunContextWrapper(
+                context=context,  # type: ignore
             )
-            yield response.model_dump_json()
-            yield '\n'
-        
-        return StreamingResponse(new_user_response_generator())
-    
-    if user_type == "unregister":
-        def unregister_response_generator():
-            if accept_language == "zh-CN":
-                text = "ComfyUI-Copilot服务升级，请访问[链接](https://form.typeform.com/to/tkg91K8D)输入邮箱完成Key申请(免费)，并点击⚙️配置Key。若原先已有Key，需要修改成邮箱新收到的Key。"
-            else:
-                text = "ComfyUI-Copilot service upgrade, please visit [link](https://form.typeform.com/to/tkg91K8D) to input your email and complete your Key application (free), and click 🔨 to configure your Key. If you already have a Key, you need to modify it to the new Key."
-            
-            response = ChatResponse(
-                session_id=request.session_id,
-                text=text,
-                format="markdown",
-                finished=True
+
+            input_guardrail_results: list[InputGuardrailResult] = []
+
+            current_span: Span[AgentSpanData] | None = None
+            current_agent = starting_agent
+            should_run_agent_start_hooks = True
+
+            try:
+                while True:
+                    all_tools = await cls._get_all_tools(current_agent, context_wrapper)
+
+                    # Start an agent span if we don't have one. This span is ended if the current
+                    # agent changes, or if the agent loop ends.
+                    if current_span is None:
+                        handoff_names = [h.agent_name for h in cls._get_handoffs(current_agent)]
+                        if output_schema := cls._get_output_schema(current_agent):
+                            output_type_name = output_schema.name()
+                        else:
+                            output_type_name = "str"
+
+                        current_span = agent_span(
+                            name=current_agent.name,
+                            handoffs=handoff_names,
+                            output_type=output_type_name,
+                        )
+                        current_span.start(mark_as_current=True)
+                        current_span.span_data.tools = [t.name for t in all_tools]
+
+                    current_turn += 1
+                    if current_turn > max_turns:
+                        _error_tracing.attach_error_to_span(
+                            current_span,
+                            SpanError(
+                                message="Max turns exceeded",
+                                data={"max_turns": max_turns},
+                            ),
+                        )
+                        raise MaxTurnsExceeded(f"Max turns ({max_turns}) exceeded")
+
+                    logger.debug(
+                        f"Running agent {current_agent.name} (turn {current_turn})",
+                    )
+
+                    if current_turn == 1:
+                        input_guardrail_results, turn_result = await asyncio.gather(
+                            cls._run_input_guardrails(
+                                starting_agent,
+                                starting_agent.input_guardrails
+                                + (run_config.input_guardrails or []),
+                                copy.deepcopy(input),
+                                context_wrapper,
+                            ),
+                            cls._run_single_turn(
+                                agent=current_agent,
+                                all_tools=all_tools,
+                                original_input=original_input,
+                                generated_items=generated_items,
+                                hooks=hooks,
+                                context_wrapper=context_wrapper,
+                                run_config=run_config,
+                                should_run_agent_start_hooks=should_run_agent_start_hooks,
+                                tool_use_tracker=tool_use_tracker,
+                                previous_response_id=previous_response_id,
+                            ),
+                        )
+                    else:
+                        turn_result = await cls._run_single_turn(
+                            agent=current_agent,
+                            all_tools=all_tools,
+                            original_input=original_input,
+                            generated_items=generated_items,
+                            hooks=hooks,
+                            context_wrapper=context_wrapper,
+                            run_config=run_config,
+                            should_run_agent_start_hooks=should_run_agent_start_hooks,
+                            tool_use_tracker=tool_use_tracker,
+                            previous_response_id=previous_response_id,
+                        )
+                    should_run_agent_start_hooks = False
+
+                    model_responses.append(turn_result.model_response)
+                    original_input = turn_result.original_input
+                    generated_items = turn_result.generated_items
+
+                    if isinstance(turn_result.next_step, NextStepFinalOutput):
+                        output_guardrail_results = await cls._run_output_guardrails(
+                            current_agent.output_guardrails + (run_config.output_guardrails or []),
+                            current_agent,
+                            turn_result.next_step.output,
+                            context_wrapper,
+                        )
+                        return RunResult(
+                            input=original_input,
+                            new_items=generated_items,
+                            raw_responses=model_responses,
+                            final_output=turn_result.next_step.output,
+                            _last_agent=current_agent,
+                            input_guardrail_results=input_guardrail_results,
+                            output_guardrail_results=output_guardrail_results,
+                            context_wrapper=context_wrapper,
+                        )
+                    elif isinstance(turn_result.next_step, NextStepHandoff):
+                        current_agent = cast(Agent[TContext], turn_result.next_step.new_agent)
+                        current_span.finish(reset_current=True)
+                        current_span = None
+                        should_run_agent_start_hooks = True
+                    elif isinstance(turn_result.next_step, NextStepRunAgain):
+                        pass
+                    else:
+                        raise AgentsException(
+                            f"Unknown next step type: {type(turn_result.next_step)}"
+                        )
+            except AgentsException as exc:
+                exc.run_data = RunErrorDetails(
+                    input=original_input,
+                    new_items=generated_items,
+                    raw_responses=model_responses,
+                    last_agent=current_agent,
+                    context_wrapper=context_wrapper,
+                    input_guardrail_results=input_guardrail_results,
+                    output_guardrail_results=[],
+                )
+                raise
+            finally:
+                if current_span:
+                    current_span.finish(reset_current=True)
+
+    @classmethod
+    def run_sync(
+        cls,
+        starting_agent: Agent[TContext],
+        input: str | list[TResponseInputItem],
+        *,
+        context: TContext | None = None,
+        max_turns: int = DEFAULT_MAX_TURNS,
+        hooks: RunHooks[TContext] | None = None,
+        run_config: RunConfig | None = None,
+        previous_response_id: str | None = None,
+    ) -> RunResult:
+        """Run a workflow synchronously, starting at the given agent. Note that this just wraps the
+        `run` method, so it will not work if there's already an event loop (e.g. inside an async
+        function, or in a Jupyter notebook or async context like FastAPI). For those cases, use
+        the `run` method instead.
+
+        The agent will run in a loop until a final output is generated. The loop runs like so:
+        1. The agent is invoked with the given input.
+        2. If there is a final output (i.e. the agent produces something of type
+            `agent.output_type`, the loop terminates.
+        3. If there's a handoff, we run the loop again, with the new agent.
+        4. Else, we run tool calls (if any), and re-run the loop.
+
+        In two cases, the agent may raise an exception:
+        1. If the max_turns is exceeded, a MaxTurnsExceeded exception is raised.
+        2. If a guardrail tripwire is triggered, a GuardrailTripwireTriggered exception is raised.
+
+        Note that only the first agent's input guardrails are run.
+
+        Args:
+            starting_agent: The starting agent to run.
+            input: The initial input to the agent. You can pass a single string for a user message,
+                or a list of input items.
+            context: The context to run the agent with.
+            max_turns: The maximum number of turns to run the agent for. A turn is defined as one
+                AI invocation (including any tool calls that might occur).
+            hooks: An object that receives callbacks on various lifecycle events.
+            run_config: Global settings for the entire agent run.
+            previous_response_id: The ID of the previous response, if using OpenAI models via the
+                Responses API, this allows you to skip passing in input from the previous turn.
+
+        Returns:
+            A run result containing all the inputs, guardrail results and the output of the last
+            agent. Agents may perform handoffs, so we don't know the specific type of the output.
+        """
+        return asyncio.get_event_loop().run_until_complete(
+            cls.run(
+                starting_agent,
+                input,
+                context=context,
+                max_turns=max_turns,
+                hooks=hooks,
+                run_config=run_config,
+                previous_response_id=previous_response_id,
             )
-            yield response.model_dump_json()
-            yield '\n'
-        
-        return StreamingResponse(unregister_response_generator())
-    
-    # Build config
-    config = {}
-    if accept_language:
-        config["language"] = accept_language
-    if openai_base_url:
-        config["openai_base_url"] = openai_base_url
-    
-    # Handle encrypted API key if provided
-    if encrypted_api_key:
+        )
+
+    @classmethod
+    def run_streamed(
+        cls,
+        starting_agent: Agent[TContext],
+        input: str | list[TResponseInputItem],
+        context: TContext | None = None,
+        max_turns: int = DEFAULT_MAX_TURNS,
+        hooks: RunHooks[TContext] | None = None,
+        run_config: RunConfig | None = None,
+        previous_response_id: str | None = None,
+    ) -> RunResultStreaming:
+        """Run a workflow starting at the given agent in streaming mode. The returned result object
+        contains a method you can use to stream semantic events as they are generated.
+
+        The agent will run in a loop until a final output is generated. The loop runs like so:
+        1. The agent is invoked with the given input.
+        2. If there is a final output (i.e. the agent produces something of type
+            `agent.output_type`, the loop terminates.
+        3. If there's a handoff, we run the loop again, with the new agent.
+        4. Else, we run tool calls (if any), and re-run the loop.
+
+        In two cases, the agent may raise an exception:
+        1. If the max_turns is exceeded, a MaxTurnsExceeded exception is raised.
+        2. If a guardrail tripwire is triggered, a GuardrailTripwireTriggered exception is raised.
+
+        Note that only the first agent's input guardrails are run.
+
+        Args:
+            starting_agent: The starting agent to run.
+            input: The initial input to the agent. You can pass a single string for a user message,
+                or a list of input items.
+            context: The context to run the agent with.
+            max_turns: The maximum number of turns to run the agent for. A turn is defined as one
+                AI invocation (including any tool calls that might occur).
+            hooks: An object that receives callbacks on various lifecycle events.
+            run_config: Global settings for the entire agent run.
+            previous_response_id: The ID of the previous response, if using OpenAI models via the
+                Responses API, this allows you to skip passing in input from the previous turn.
+        Returns:
+            A result object that contains data about the run, as well as a method to stream events.
+        """
+        if hooks is None:
+            hooks = RunHooks[Any]()
+        if run_config is None:
+            run_config = RunConfig()
+
+        # If there's already a trace, we don't create a new one. In addition, we can't end the
+        # trace here, because the actual work is done in `stream_events` and this method ends
+        # before that.
+        new_trace = (
+            None
+            if get_current_trace()
+            else trace(
+                workflow_name=run_config.workflow_name,
+                trace_id=run_config.trace_id,
+                group_id=run_config.group_id,
+                metadata=run_config.trace_metadata,
+                disabled=run_config.tracing_disabled,
+            )
+        )
+
+        output_schema = cls._get_output_schema(starting_agent)
+        context_wrapper: RunContextWrapper[TContext] = RunContextWrapper(
+            context=context  # type: ignore
+        )
+
+        streamed_result = RunResultStreaming(
+            input=copy.deepcopy(input),
+            new_items=[],
+            current_agent=starting_agent,
+            raw_responses=[],
+            final_output=None,
+            is_complete=False,
+            current_turn=0,
+            max_turns=max_turns,
+            input_guardrail_results=[],
+            output_guardrail_results=[],
+            _current_agent_output_schema=output_schema,
+            trace=new_trace,
+            context_wrapper=context_wrapper,
+        )
+
+        # Kick off the actual agent loop in the background and return the streamed result object.
+        streamed_result._run_impl_task = asyncio.create_task(
+            cls._run_streamed_impl(
+                starting_input=input,
+                streamed_result=streamed_result,
+                starting_agent=starting_agent,
+                max_turns=max_turns,
+                hooks=hooks,
+                context_wrapper=context_wrapper,
+                run_config=run_config,
+                previous_response_id=previous_response_id,
+            )
+        )
+        return streamed_result
+
+    @classmethod
+    async def _run_input_guardrails_with_queue(
+        cls,
+        agent: Agent[Any],
+        guardrails: list[InputGuardrail[TContext]],
+        input: str | list[TResponseInputItem],
+        context: RunContextWrapper[TContext],
+        streamed_result: RunResultStreaming,
+        parent_span: Span[Any],
+    ):
+        queue = streamed_result._input_guardrail_queue
+
+        # We'll run the guardrails and push them onto the queue as they complete
+        guardrail_tasks = [
+            asyncio.create_task(
+                RunImpl.run_single_input_guardrail(agent, guardrail, input, context)
+            )
+            for guardrail in guardrails
+        ]
+        guardrail_results = []
         try:
-            openai_api_key = crypto_util.decrypt_with_private_key(encrypted_api_key)
-            logger.info("Successfully decrypted OpenAI API key")
-            config["openai_api_key"] = openai_api_key
-        except Exception as e:
-            logger.error(f"Failed to decrypt OpenAI API key: {str(e)}")
-            # Continue with potentially None openai_api_key
-    
-    if model:
-        config["model"] = model
-        
-    return do_invoke(request, config)
+            for done in asyncio.as_completed(guardrail_tasks):
+                result = await done
+                if result.output.tripwire_triggered:
+                    _error_tracing.attach_error_to_span(
+                        parent_span,
+                        SpanError(
+                            message="Guardrail tripwire triggered",
+                            data={
+                                "guardrail": result.guardrail.get_name(),
+                                "type": "input_guardrail",
+                            },
+                        ),
+                    )
+                queue.put_nowait(result)
+                guardrail_results.append(result)
+        except Exception:
+            for t in guardrail_tasks:
+                t.cancel()
+            raise
+
+        streamed_result.input_guardrail_results = guardrail_results
+
+    @classmethod
+    async def _run_streamed_impl(
+        cls,
+        starting_input: str | list[TResponseInputItem],
+        streamed_result: RunResultStreaming,
+        starting_agent: Agent[TContext],
+        max_turns: int,
+        hooks: RunHooks[TContext],
+        context_wrapper: RunContextWrapper[TContext],
+        run_config: RunConfig,
+        previous_response_id: str | None,
+    ):
+        if streamed_result.trace:
+            streamed_result.trace.start(mark_as_current=True)
+
+        current_span: Span[AgentSpanData] | None = None
+        current_agent = starting_agent
+        current_turn = 0
+        should_run_agent_start_hooks = True
+        tool_use_tracker = AgentToolUseTracker()
+
+        streamed_result._event_queue.put_nowait(AgentUpdatedStreamEvent(new_agent=current_agent))
+
+        try:
+            while True:
+                if streamed_result.is_complete:
+                    break
+
+                all_tools = await cls._get_all_tools(current_agent, context_wrapper)
+
+                # Start an agent span if we don't have one. This span is ended if the current
+                # agent changes, or if the agent loop ends.
+                if current_span is None:
+                    handoff_names = [h.agent_name for h in cls._get_handoffs(current_agent)]
+                    if output_schema := cls._get_output_schema(current_agent):
+                        output_type_name = output_schema.name()
+                    else:
+                        output_type_name = "str"
+
+                    current_span = agent_span(
+                        name=current_agent.name,
+                        handoffs=handoff_names,
+                        output_type=output_type_name,
+                    )
+                    current_span.start(mark_as_current=True)
+                    tool_names = [t.name for t in all_tools]
+                    current_span.span_data.tools = tool_names
+                current_turn += 1
+                streamed_result.current_turn = current_turn
+
+                if current_turn > max_turns:
+                    _error_tracing.attach_error_to_span(
+                        current_span,
+                        SpanError(
+                            message="Max turns exceeded",
+                            data={"max_turns": max_turns},
+                        ),
+                    )
+                    streamed_result._event_queue.put_nowait(QueueCompleteSentinel())
+                    break
+
+                if current_turn == 1:
+                    # Run the input guardrails in the background and put the results on the queue
+                    streamed_result._input_guardrails_task = asyncio.create_task(
+                        cls._run_input_guardrails_with_queue(
+                            starting_agent,
+                            starting_agent.input_guardrails + (run_config.input_guardrails or []),
+                            copy.deepcopy(ItemHelpers.input_to_new_input_list(starting_input)),
+                            context_wrapper,
+                            streamed_result,
+                            current_span,
+                        )
+                    )
+                try:
+                    turn_result = await cls._run_single_turn_streamed(
+                        streamed_result,
+                        current_agent,
+                        hooks,
+                        context_wrapper,
+                        run_config,
+                        should_run_agent_start_hooks,
+                        tool_use_tracker,
+                        all_tools,
+                        previous_response_id,
+                    )
+                    should_run_agent_start_hooks = False
+
+                    streamed_result.raw_responses = streamed_result.raw_responses + [
+                        turn_result.model_response
+                    ]
+                    streamed_result.input = turn_result.original_input
+                    streamed_result.new_items = turn_result.generated_items
+
+                    if isinstance(turn_result.next_step, NextStepHandoff):
+                        current_agent = turn_result.next_step.new_agent
+                        current_span.finish(reset_current=True)
+                        current_span = None
+                        should_run_agent_start_hooks = True
+                        streamed_result._event_queue.put_nowait(
+                            AgentUpdatedStreamEvent(new_agent=current_agent)
+                        )
+                    elif isinstance(turn_result.next_step, NextStepFinalOutput):
+                        streamed_result._output_guardrails_task = asyncio.create_task(
+                            cls._run_output_guardrails(
+                                current_agent.output_guardrails
+                                + (run_config.output_guardrails or []),
+                                current_agent,
+                                turn_result.next_step.output,
+                                context_wrapper,
+                            )
+                        )
+
+                        try:
+                            output_guardrail_results = await streamed_result._output_guardrails_task
+                        except Exception:
+                            # Exceptions will be checked in the stream_events loop
+                            output_guardrail_results = []
+
+                        streamed_result.output_guardrail_results = output_guardrail_results
+                        streamed_result.final_output = turn_result.next_step.output
+                        streamed_result.is_complete = True
+                        streamed_result._event_queue.put_nowait(QueueCompleteSentinel())
+                    elif isinstance(turn_result.next_step, NextStepRunAgain):
+                        pass
+                except AgentsException as exc:
+                    streamed_result.is_complete = True
+                    streamed_result._event_queue.put_nowait(QueueCompleteSentinel())
+                    exc.run_data = RunErrorDetails(
+                        input=streamed_result.input,
+                        new_items=streamed_result.new_items,
+                        raw_responses=streamed_result.raw_responses,
+                        last_agent=current_agent,
+                        context_wrapper=context_wrapper,
+                        input_guardrail_results=streamed_result.input_guardrail_results,
+                        output_guardrail_results=streamed_result.output_guardrail_results,
+                    )
+                    raise
+                except Exception as e:
+                    if current_span:
+                        _error_tracing.attach_error_to_span(
+                            current_span,
+                            SpanError(
+                                message="Error in agent run",
+                                data={"error": str(e)},
+                            ),
+                        )
+                    streamed_result.is_complete = True
+                    streamed_result._event_queue.put_nowait(QueueCompleteSentinel())
+                    raise
+
+            streamed_result.is_complete = True
+        finally:
+            if current_span:
+                current_span.finish(reset_current=True)
+            if streamed_result.trace:
+                streamed_result.trace.finish(reset_current=True)
+
+    @classmethod
+    async def _run_single_turn_streamed(
+        cls,
+        streamed_result: RunResultStreaming,
+        agent: Agent[TContext],
+        hooks: RunHooks[TContext],
+        context_wrapper: RunContextWrapper[TContext],
+        run_config: RunConfig,
+        should_run_agent_start_hooks: bool,
+        tool_use_tracker: AgentToolUseTracker,
+        all_tools: list[Tool],
+        previous_response_id: str | None,
+    ) -> SingleStepResult:
+        if should_run_agent_start_hooks:
+            await asyncio.gather(
+                hooks.on_agent_start(context_wrapper, agent),
+                (
+                    agent.hooks.on_start(context_wrapper, agent)
+                    if agent.hooks
+                    else _coro.noop_coroutine()
+                ),
+            )
+
+        output_schema = cls._get_output_schema(agent)
+
+        streamed_result.current_agent = agent
+        streamed_result._current_agent_output_schema = output_schema
+
+        system_prompt = await agent.get_system_prompt(context_wrapper)
+
+        handoffs = cls._get_handoffs(agent)
+        model = cls._get_model(agent, run_config)
+        model_settings = agent.model_settings.resolve(run_config.model_settings)
+        model_settings = RunImpl.maybe_reset_tool_choice(agent, tool_use_tracker, model_settings)
+
+        final_response: ModelResponse | None = None
+
+        input = ItemHelpers.input_to_new_input_list(streamed_result.input)
+        input.extend([item.to_input_item() for item in streamed_result.new_items])
+
+        # 1. Stream the output events
+        async for event in model.stream_response(
+            system_prompt,
+            input,
+            model_settings,
+            all_tools,
+            output_schema,
+            handoffs,
+            get_model_tracing_impl(
+                run_config.tracing_disabled, run_config.trace_include_sensitive_data
+            ),
+            previous_response_id=previous_response_id,
+        ):
+            if isinstance(event, ResponseCompletedEvent):
+                usage = (
+                    Usage(
+                        requests=1,
+                        input_tokens=event.response.usage.input_tokens,
+                        output_tokens=event.response.usage.output_tokens,
+                        total_tokens=event.response.usage.total_tokens,
+                        input_tokens_details=event.response.usage.input_tokens_details,
+                        output_tokens_details=event.response.usage.output_tokens_details,
+                    )
+                    if event.response.usage
+                    else Usage()
+                )
+                final_response = ModelResponse(
+                    output=event.response.output,
+                    usage=usage,
+                    response_id=event.response.id,
+                )
+                context_wrapper.usage.add(usage)
+
+            streamed_result._event_queue.put_nowait(RawResponsesStreamEvent(data=event))
+
+        # 2. At this point, the streaming is complete for this turn of the agent loop.
+        if not final_response:
+            raise ModelBehaviorError("Model did not produce a final response!")
+
+        # 3. Now, we can process the turn as we do in the non-streaming case
+        single_step_result = await cls._get_single_step_result_from_response(
+            agent=agent,
+            original_input=streamed_result.input,
+            pre_step_items=streamed_result.new_items,
+            new_response=final_response,
+            output_schema=output_schema,
+            all_tools=all_tools,
+            handoffs=handoffs,
+            hooks=hooks,
+            context_wrapper=context_wrapper,
+            run_config=run_config,
+            tool_use_tracker=tool_use_tracker,
+        )
+
+        RunImpl.stream_step_result_to_queue(single_step_result, streamed_result._event_queue)
+        return single_step_result
+
+    @classmethod
+    async def _run_single_turn(
+        cls,
+        *,
+        agent: Agent[TContext],
+        all_tools: list[Tool],
+        original_input: str | list[TResponseInputItem],
+        generated_items: list[RunItem],
+        hooks: RunHooks[TContext],
+        context_wrapper: RunContextWrapper[TContext],
+        run_config: RunConfig,
+        should_run_agent_start_hooks: bool,
+        tool_use_tracker: AgentToolUseTracker,
+        previous_response_id: str | None,
+    ) -> SingleStepResult:
+        # Ensure we run the hooks before anything else
+        if should_run_agent_start_hooks:
+            await asyncio.gather(
+                hooks.on_agent_start(context_wrapper, agent),
+                (
+                    agent.hooks.on_start(context_wrapper, agent)
+                    if agent.hooks
+                    else _coro.noop_coroutine()
+                ),
+            )
+
+        system_prompt = await agent.get_system_prompt(context_wrapper)
+
+        output_schema = cls._get_output_schema(agent)
+        handoffs = cls._get_handoffs(agent)
+        input = ItemHelpers.input_to_new_input_list(original_input)
+        input.extend([generated_item.to_input_item() for generated_item in generated_items])
+
+        new_response = await cls._get_new_response(
+            agent,
+            system_prompt,
+            input,
+            output_schema,
+            all_tools,
+            handoffs,
+            context_wrapper,
+            run_config,
+            tool_use_tracker,
+            previous_response_id,
+        )
+
+        return await cls._get_single_step_result_from_response(
+            agent=agent,
+            original_input=original_input,
+            pre_step_items=generated_items,
+            new_response=new_response,
+            output_schema=output_schema,
+            all_tools=all_tools,
+            handoffs=handoffs,
+            hooks=hooks,
+            context_wrapper=context_wrapper,
+            run_config=run_config,
+            tool_use_tracker=tool_use_tracker,
+        )
+
+    @classmethod
+    async def _get_single_step_result_from_response(
+        cls,
+        *,
+        agent: Agent[TContext],
+        all_tools: list[Tool],
+        original_input: str | list[TResponseInputItem],
+        pre_step_items: list[RunItem],
+        new_response: ModelResponse,
+        output_schema: AgentOutputSchemaBase | None,
+        handoffs: list[Handoff],
+        hooks: RunHooks[TContext],
+        context_wrapper: RunContextWrapper[TContext],
+        run_config: RunConfig,
+        tool_use_tracker: AgentToolUseTracker,
+    ) -> SingleStepResult:
+        processed_response = RunImpl.process_model_response(
+            agent=agent,
+            all_tools=all_tools,
+            response=new_response,
+            output_schema=output_schema,
+            handoffs=handoffs,
+        )
+
+        tool_use_tracker.add_tool_use(agent, processed_response.tools_used)
+
+        return await RunImpl.execute_tools_and_side_effects(
+            agent=agent,
+            original_input=original_input,
+            pre_step_items=pre_step_items,
+            new_response=new_response,
+            processed_response=processed_response,
+            output_schema=output_schema,
+            hooks=hooks,
+            context_wrapper=context_wrapper,
+            run_config=run_config,
+        )
+
+    @classmethod
+    async def _run_input_guardrails(
+        cls,
+        agent: Agent[Any],
+        guardrails: list[InputGuardrail[TContext]],
+        input: str | list[TResponseInputItem],
+        context: RunContextWrapper[TContext],
+    ) -> list[InputGuardrailResult]:
+        if not guardrails:
+            return []
+
+        guardrail_tasks = [
+            asyncio.create_task(
+                RunImpl.run_single_input_guardrail(agent, guardrail, input, context)
+            )
+            for guardrail in guardrails
+        ]
+
+        guardrail_results = []
+
+        for done in asyncio.as_completed(guardrail_tasks):
+            result = await done
+            if result.output.tripwire_triggered:
+                # Cancel all guardrail tasks if a tripwire is triggered.
+                for t in guardrail_tasks:
+                    t.cancel()
+                _error_tracing.attach_error_to_current_span(
+                    SpanError(
+                        message="Guardrail tripwire triggered",
+                        data={"guardrail": result.guardrail.get_name()},
+                    )
+                )
+                raise InputGuardrailTripwireTriggered(result)
+            else:
+                guardrail_results.append(result)
+
+        return guardrail_results
+
+    @classmethod
+    async def _run_output_guardrails(
+        cls,
+        guardrails: list[OutputGuardrail[TContext]],
+        agent: Agent[TContext],
+        agent_output: Any,
+        context: RunContextWrapper[TContext],
+    ) -> list[OutputGuardrailResult]:
+        if not guardrails:
+            return []
+
+        guardrail_tasks = [
+            asyncio.create_task(
+                RunImpl.run_single_output_guardrail(guardrail, agent, agent_output, context)
+            )
+            for guardrail in guardrails
+        ]
+
+        guardrail_results = []
+
+        for done in asyncio.as_completed(guardrail_tasks):
+            result = await done
+            if result.output.tripwire_triggered:
+                # Cancel all guardrail tasks if a tripwire is triggered.
+                for t in guardrail_tasks:
+                    t.cancel()
+                _error_tracing.attach_error_to_current_span(
+                    SpanError(
+                        message="Guardrail tripwire triggered",
+                        data={"guardrail": result.guardrail.get_name()},
+                    )
+                )
+                raise OutputGuardrailTripwireTriggered(result)
+            else:
+                guardrail_results.append(result)
+
+        return guardrail_results
+
+    @classmethod
+    async def _get_new_response(
+        cls,
+        agent: Agent[TContext],
+        system_prompt: str | None,
+        input: list[TResponseInputItem],
+        output_schema: AgentOutputSchemaBase | None,
+        all_tools: list[Tool],
+        handoffs: list[Handoff],
+        context_wrapper: RunContextWrapper[TContext],
+        run_config: RunConfig,
+        tool_use_tracker: AgentToolUseTracker,
+        previous_response_id: str | None,
+    ) -> ModelResponse:
+        model = cls._get_model(agent, run_config)
+        model_settings = agent.model_settings.resolve(run_config.model_settings)
+        model_settings = RunImpl.maybe_reset_tool_choice(agent, tool_use_tracker, model_settings)
+
+        new_response = await model.get_response(
+            system_instructions=system_prompt,
+            input=input,
+            model_settings=model_settings,
+            tools=all_tools,
+            output_schema=output_schema,
+            handoffs=handoffs,
+            tracing=get_model_tracing_impl(
+                run_config.tracing_disabled, run_config.trace_include_sensitive_data
+            ),
+            previous_response_id=previous_response_id,
+        )
+
+        context_wrapper.usage.add(new_response.usage)
+
+        return new_response
+
+    @classmethod
+    def _get_output_schema(cls, agent: Agent[Any]) -> AgentOutputSchemaBase | None:
+        if agent.output_type is None or agent.output_type is str:
+            return None
+        elif isinstance(agent.output_type, AgentOutputSchemaBase):
+            return agent.output_type
+
+        return AgentOutputSchema(agent.output_type)
+
+    @classmethod
+    def _get_handoffs(cls, agent: Agent[Any]) -> list[Handoff]:
+        handoffs = []
+        for handoff_item in agent.handoffs:
+            if isinstance(handoff_item, Handoff):
+                handoffs.append(handoff_item)
+            elif isinstance(handoff_item, Agent):
+                handoffs.append(handoff(handoff_item))
+        return handoffs
+
+    @classmethod
+    async def _get_all_tools(
+        cls, agent: Agent[Any], context_wrapper: RunContextWrapper[Any]
+    ) -> list[Tool]:
+        return await agent.get_all_tools(context_wrapper)
+
+    @classmethod
+    def _get_model(cls, agent: Agent[Any], run_config: RunConfig) -> Model:
+        if isinstance(run_config.model, Model):
+            return run_config.model
+        elif isinstance(run_config.model, str):
+            return run_config.model_provider.get_model(run_config.model)
+        elif isinstance(agent.model, Model):
+            return agent.model
+
+        return run_config.model_provider.get_model(agent.model)
+
 ```
