@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-28 20:55:02
+LastEditTime: 2025-07-29 16:46:46
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -491,9 +491,31 @@ You must adhere to the following constraints to complete the task:
         print(f"Error in comfyui_agent_invoke: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
-        # Yield error as tuple with finished=True
-        error_ext = {
-            "data": None,
-            "finished": True
-        }
+        
+        # Check if this is a retryable streaming error that should not finish the conversation
+        error_msg = str(e)
+        is_retryable_streaming_error = (
+            "'NoneType' object has no attribute 'strip'" in error_msg or
+            "Connection broken" in error_msg or
+            "InvalidChunkLength" in error_msg or
+            "socket hang up" in error_msg or
+            "Connection reset" in error_msg or
+            isinstance(e, APIError)
+        )
+        
+        if is_retryable_streaming_error:
+            # For retryable streaming errors, don't finish - allow user to retry
+            print(f"Detected retryable streaming error, setting finished=False to allow retry")
+            error_ext = {
+                "data": None,
+                "finished": False
+            }
+            error_message = f"A temporary streaming error occurred: {str(e)}. Please try your request again."
+        else:
+            # For other errors, finish the conversation
+            error_ext = {
+                "data": None,
+                "finished": True
+            }
+        
         yield (error_message, error_ext)
