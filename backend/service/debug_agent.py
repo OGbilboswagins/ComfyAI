@@ -656,21 +656,19 @@ Start by validating the workflow to see its current state.""",
             
     except Exception as e:
         print(f"Error in debug_workflow_errors: {str(e)}")
-        error_message = f"❌ Error occurred during debugging: {str(e)}"
-        # Return error format matching mcp-client: {"data": ext, "finished": finished}
-        error_ext = [{
-            "type": "error",
-            "data": {
-                "error": True,
-                "message": str(e),
-                "error_type": "debug_agent_error"
-            }
-        }]
-        error_ext_with_finished = {
-            "data": error_ext,
+        error_message = current_text + f"\n\n❌ Error occurred during debugging: {str(e)}\n"
+
+        # Include workflow_update ext if captured from tools before the error
+        final_error_ext = None
+        if 'workflow_update_ext' in locals() and workflow_update_ext:
+            final_error_ext = [workflow_update_ext]
+            print(f"-- Including latest workflow_update ext in error response")
+        
+        ext_with_finished = {
+            "data": final_error_ext,
             "finished": True
         }
-        yield (error_message, error_ext_with_finished)
+        yield (error_message, ext_with_finished)
 
 
 # Test function

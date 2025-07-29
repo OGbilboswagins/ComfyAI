@@ -9,14 +9,14 @@ from ..service.database import get_workflow_data, save_workflow_data
 from ..utils.comfy_gateway import get_object_info
 
 @function_tool
-def analyze_missing_connections(session_id: str) -> str:
+async def analyze_missing_connections(session_id: str) -> str:
     """分析工作流中缺失的连接，枚举所有可能的连接选项和所需的新节点"""
     try:
         workflow_data = get_workflow_data(session_id)
         if not workflow_data:
             return json.dumps({"error": "No workflow data found for this session"})
         
-        object_info = get_object_info()
+        object_info = await get_object_info()
         
         analysis_result = {
             "missing_connections": [],

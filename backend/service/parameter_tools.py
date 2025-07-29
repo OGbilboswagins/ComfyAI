@@ -11,10 +11,10 @@ from ..utils.comfy_gateway import get_object_info, get_object_info_by_class
 from ..service.database import get_workflow_data, save_workflow_data
 
 
-def get_node_parameters(node_name: str, param_name: str = "") -> str:
+async def get_node_parameters(node_name: str, param_name: str = "") -> str:
     """获取节点的参数信息，如果param_name为空则返回所有参数"""
     try:
-        node_info_dict = get_object_info_by_class(node_name)
+        node_info_dict = await get_object_info_by_class(node_name)
         if not node_info_dict or node_name not in node_info_dict:
             return json.dumps({"error": f"Node '{node_name}' not found"})
         
@@ -53,11 +53,11 @@ def get_node_parameters(node_name: str, param_name: str = "") -> str:
         return json.dumps({"error": f"Failed to get node parameters: {str(e)}"})
 
 @function_tool
-def find_matching_parameter_value(node_name: str, param_name: str, current_value: str, error_info: str = "") -> str:
+async def find_matching_parameter_value(node_name: str, param_name: str, current_value: str, error_info: str = "") -> str:
     """根据错误信息找到匹配的参数值，支持多种参数类型的智能处理"""
     try:
         # 获取参数配置
-        param_info_str = get_node_parameters(node_name, param_name)
+        param_info_str = await get_node_parameters(node_name, param_name)
         param_info = json.loads(param_info_str)
         
         if "error" in param_info:
@@ -71,7 +71,6 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
             "error_type": "unknown",
             "is_model_related": False,
             "is_file_related": False,
-            "can_auto_fix": False
         }
         
         # 识别model相关错误
@@ -84,20 +83,19 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
         ])):
             error_analysis["error_type"] = "model_missing"
             error_analysis["is_model_related"] = True
-            error_analysis["can_auto_fix"] = False
             
             return json.dumps({
                 "found_match": False,
                 "error_type": "model_missing",
-                "solution_type": "download_required",
                 "message": f"Missing model file: {current_value}",
-                "recommendation": "Model files cannot be automatically replaced. Download required.",
-                "next_action": "use_suggest_model_download",
+                "recommendation": "Check for available model replacements, otherwise download required.",
+                "next_action": "check_available_models_or_suggest_download",
                 "details": {
                     "node_name": node_name,
                     "param_name": param_name,
                     "missing_file": current_value,
-                    "is_model_related": True
+                    "is_model_related": True,
+                    "param_config": param_config
                 }
             })
         
@@ -114,7 +112,9 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
                 available_images = [img for img in param_config if any(ext in str(img).lower() for ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"])]
                 
                 if available_images:
-                    recommended_image = available_images[0]  # 选择第一个可用图片
+                    # 随机选择一张可用图片
+                    import random
+                    recommended_image = random.choice(available_images)
                     return json.dumps({
                         "found_match": True,
                         "error_type": "image_file_missing",
@@ -122,7 +122,6 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
                         "recommended_value": recommended_image,
                         "match_type": "image_replacement",
                         "message": f"Replaced missing image '{current_value}' with available image '{recommended_image}'",
-                        "all_available": available_images[:10],
                         "can_auto_fix": True,
                         "next_action": "update_parameter"
                     })
@@ -248,11 +247,11 @@ def find_matching_parameter_value(node_name: str, param_name: str, current_value
         })
 
 @function_tool
-def get_model_files(model_type: str = "checkpoints") -> str:
+async def get_model_files(model_type: str = "checkpoints") -> str:
     """获取可用的模型文件列表"""
     try:
         # 获取所有节点信息
-        object_info = get_object_info()
+        object_info = await get_object_info()
         
         # 定义模型类型到节点的映射
         model_type_mapping = {
