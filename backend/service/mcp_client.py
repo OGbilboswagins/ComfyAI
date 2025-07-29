@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-29 16:53:39
+LastEditTime: 2025-07-29 17:09:16
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -268,16 +268,8 @@ You must adhere to the following constraints to complete the task:
                                 pass  # Ignore other event types
                                 
                 except (AttributeError, TypeError, APIError) as attr_error:
-                    # Handle specific OpenAI streaming errors like "NoneType has no attribute strip"
-                    # if "'NoneType' object has no attribute 'strip'" in str(attr_error):
-                    #     print(f"OpenAI streaming chunk error (NoneType strip): {attr_error}")
-                    #     # This is a known issue with OpenAI streaming when chunks are malformed
-                    #     # Re-raise to trigger retry mechanism
-                    #     raise attr_error
-                    # else:
-                    #     print(f"Attribute error in streaming: {attr_error}")
-                    #     print(f"Traceback: {traceback.format_exc()}")
-                    #     raise attr_error
+                    if isinstance(attr_error, APIError) or "'NoneType' object has no attribute 'strip'" in str(attr_error):
+                        raise  # Re-raise to be handled by outer exception handler
                     print(f"Attribute error in streaming: {attr_error}")
                     pass
                         
@@ -296,12 +288,17 @@ You must adhere to the following constraints to complete the task:
                     break
                     
                 except (AttributeError, TypeError, ConnectionError, OSError, APIError) as stream_error:
-                    retry_count += 1
                     error_msg = str(stream_error)
+                    
+                    # Skip retry for NoneType strip error
+                    if "'NoneType' object has no attribute 'strip'" in error_msg:
+                        print(f"NoneType strip error detected, skipping retry: {error_msg}")
+                        break
+                    
+                    retry_count += 1
                     
                     # Check for specific streaming errors that are worth retrying
                     should_retry = (
-                        "'NoneType' object has no attribute 'strip'" in error_msg or
                         "Connection broken" in error_msg or
                         "InvalidChunkLength" in error_msg or
                         "socket hang up" in error_msg or
