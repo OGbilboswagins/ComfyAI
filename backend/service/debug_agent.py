@@ -527,7 +527,7 @@ Start by validating the workflow to see its current state.""",
             **Key Enhancement**: You can now automatically fix many parameter issues (images, enums) without user intervention, but you still need downloads for missing models. Be proactive in applying fixes when possible.
             """,
             tools=[find_matching_parameter_value, get_model_files, 
-                suggest_model_download, update_workflow_parameter],
+                suggest_model_download, update_workflow_parameter, get_current_workflow],
             handoffs=[agent],
         )
 
