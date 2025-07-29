@@ -108,8 +108,8 @@ async def find_matching_parameter_value(node_name: str, param_name: str, current
             error_analysis["can_auto_fix"] = True
             
             # 如果参数配置是列表，查找其他可用的图片
-            if isinstance(param_config, list) and len(param_config) > 0:
-                available_images = [img for img in param_config if any(ext in str(img).lower() for ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"])]
+            if isinstance(param_config, list) and len(param_config) > 0 and param_config[0]:
+                available_images = [img for img in param_config[0] if any(ext in str(img).lower() for ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"])]
                 
                 if available_images:
                     # 随机选择一张可用图片
