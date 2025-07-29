@@ -603,29 +603,6 @@
   .animate-bounce {
     animation: bounce 1s infinite;
   }
-  @keyframes breathe {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    50% {
-      opacity: 0.7;
-      transform: scale(1.05);
-    }
-  }
-  @keyframes colorBreathe {
-    0%, 100% {
-      color: #6b7280;
-    }
-
-    50% {
-      color: #22c55e;
-    }
-  }
-  .animate-breathe-green {
-    animation: breathe 3s ease-in-out infinite, colorBreathe 3s ease-in-out infinite;
-  }
   @keyframes spin {
     to {
       transform: rotate(360deg);

@@ -4,6 +4,7 @@ import { generateUUID } from '../../../utils/uuid';
 import { queuePrompt } from '../../../utils/queuePrompt';
 import { app } from '../../../utils/comfyapp';
 import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
+import { Undo2 } from 'lucide-react';
 
 // Restore checkpoint icon component
 const RestoreCheckpointIcon = ({ checkpointId, onRestore }: { checkpointId: number; onRestore: () => void }) => {
@@ -44,23 +45,15 @@ const RestoreCheckpointIcon = ({ checkpointId, onRestore }: { checkpointId: numb
         <button
             onClick={handleRestore}
             disabled={isRestoring}
-            className={`p-1 rounded transition-colors ${
+            className={`flex flex-row items-center gap-1 p-1 rounded transition-colors ${
                 isRestoring 
                     ? 'text-gray-400 cursor-not-allowed' 
-                    : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                    : 'text-gray-500 hover:!bg-gray-100 hover:!text-gray-600'
             }`}
             title={`Restore checkpoint ${checkpointId}`}
         >
-            <svg 
-                width="16" 
-                height="16" 
-                viewBox="0 0 16 16" 
-                fill="currentColor"
-                className={isRestoring ? 'animate-spin' : ''}
-            >
-                <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                <path d="M8 4.466V2.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 6.658A.25.25 0 0 1 8 6.466z"/>
-            </svg>
+            <Undo2 size={12} />
+            <span className="text-xs">Restore checkpoint</span>
         </button>
     );
 };
@@ -268,18 +261,6 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                     <p className="text-gray-700 text-sm flex-1">
                         {response.text}
                     </p>
-                    
-                    {/* Restore checkpoint icon */}
-                    {checkpointId && (
-                        <div className="ml-2 flex-shrink-0">
-                            <RestoreCheckpointIcon 
-                                checkpointId={checkpointId} 
-                                onRestore={() => {
-                                    console.log('Workflow restored from checkpoint');
-                                }}
-                            />
-                        </div>
-                    )}
                 </div>
                 
                 <div className="flex mt-4">
@@ -294,6 +275,20 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                     >
                         {isDebugging ? 'Analyzing...' : 'Debug Errors'}
                     </button>
+                </div>
+
+                <div className="flex justify-end mt-2"> 
+                    {/* Restore checkpoint icon */}
+                    {checkpointId && (
+                        <div className="ml-2 flex-shrink-0">
+                            <RestoreCheckpointIcon 
+                                checkpointId={checkpointId} 
+                                onRestore={() => {
+                                    console.log('Workflow restored from checkpoint');
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         </BaseMessage>
