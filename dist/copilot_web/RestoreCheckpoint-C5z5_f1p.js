@@ -1,7 +1,7 @@
 function getImportPath(filename) {
             return `./${filename}`;
         }
-            import{j as a}from"./vendor-markdown-CBmlBP6m.js";import{r as d}from"./vendor-react-Dixhfmvb.js";import{W as f,a as n}from"./message-components-wGrDwG40.js";import{c as p}from"./workflowChat-nsr95Ko6.js";/**
+            import{j as a}from"./vendor-markdown-CBmlBP6m.js";import{r as d}from"./vendor-react-Dixhfmvb.js";import{W as f,a as n}from"./message-components-wGrDwG40.js";import{c as p}from"./workflowChat-DP6Ois-Q.js";/**
  * @license lucide-react v0.475.0 - ISC
  *
  * This source code is licensed under the ISC license.
