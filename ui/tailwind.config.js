@@ -36,10 +36,12 @@ export default {
           700: 'color-mix(in srgb, var(--p-text-color) 70%, transparent)',
           800: 'color-mix(in srgb, var(--p-text-color) 80%, transparent)',
           900: 'color-mix(in srgb, var(--p-text-color) 90%, transparent)',
-        },
+        }
       },
       backgroundImage: {
         'showcase-bg': 'linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 5%, transparent) 20%, color-mix(in srgb, var(--p-text-color) 40%, transparent) 100%)',
+        'debug-btn': 'linear-gradient(90deg, #4f8cff 0%, #2357d5 100%)',
+        'debug-btn-hover': 'linear-gradient(90deg, #2357d5 0%, #4f8cff 100%)',
       } 
     },
     typography: {

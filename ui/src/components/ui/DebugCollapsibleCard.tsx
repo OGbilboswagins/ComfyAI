@@ -39,7 +39,7 @@ const DebugCollapsibleCard: React.FC<IProps> = (props) => {
       }
       </div>
       {
-        !isOpen && <div className="absolute bottom-0 left-0 right-0 h-40 w-full z-5 bg-gradient-to-t from-[#fff] to-transparent" />
+        !isOpen && <div className="absolute bottom-0 left-0 right-0 h-40 w-full z-5 bg-gradient-to-t from-[#fff] to-transparent pointer-events-none" />
       }
     </div>
   )

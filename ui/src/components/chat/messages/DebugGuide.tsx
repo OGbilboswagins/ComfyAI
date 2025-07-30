@@ -211,14 +211,14 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                     </p>
                 </div>
                 
-                <div className="flex mt-4">
+                <div className="flex justify-end mt-4">
                     <button
                         onClick={handleDebugClick}
                         disabled={isDebugging}
-                        className={`px-4 py-2 text-white text-sm rounded-md transition-colors ${
+                        className={`px-4 py-2 text-[#fff] text-sm rounded-md shadow-[0_2px_8px_rbga(79, 140, 255, 0.15)] hover:!shadow-[0_4px_16px_rbga(79, 140, 255, 0.25)] hover:!scale-[1.05] transition-colors ${
                             isDebugging 
                                 ? 'bg-gray-400 cursor-not-allowed' 
-                                : 'bg-blue-500 hover:bg-blue-600'
+                                : 'bg-debug-btn hover:!bg-debug-btn-hover'
                         }`}
                     >
                         {isDebugging ? 'Analyzing...' : 'Debug Errors'}
