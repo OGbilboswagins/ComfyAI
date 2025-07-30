@@ -105,7 +105,7 @@ export namespace WorkflowChatAPI {
   ): AsyncGenerator<ChatResponse> {
     try {
       const apiKey = getApiKey();
-      const browserLanguage = getBrowserLanguage();
+      const browserLanguage = app.extensionManager.setting.get('Comfy.Locale');
       const { openaiApiKey, openaiBaseUrl, rsaPublicKey } = getOpenAiConfig();
       // Generate a unique message ID for this chat request
       const messageId = generateUUID();
@@ -569,6 +569,7 @@ export namespace WorkflowChatAPI {
   ): AsyncGenerator<ChatResponse> {
     try {
       const { openaiApiKey, openaiBaseUrl } = getOpenAiConfig();
+      const browserLanguage = app.extensionManager.setting.get('Comfy.Locale');
       const session_id = localStorage.getItem("sessionId") || null;
       
       // Prepare headers
@@ -576,6 +577,7 @@ export namespace WorkflowChatAPI {
         'Content-Type': 'application/json',
         'accept': 'application/json',
         'trace-id': generateUUID(),
+        'Accept-Language': browserLanguage,
       };
       
       // Add OpenAI configuration headers if available
