@@ -74,7 +74,7 @@ const Showcase: React.FC = () => {
   const getShowcaes = () => {
     const language = app.extensionManager.setting.get('Comfy.Locale')
     let list = showcases_en
-    let title = 'welcome to ComfyUI Copilot!'
+    let title = ''
     switch (language) {
       case 'zh':
         title = '欢迎使用ComfyUI Copilot!'
@@ -82,7 +82,7 @@ const Showcase: React.FC = () => {
         break;
       case 'en':
       default:
-        title = 'welcome to ComfyUI Copilot!'
+        title = 'Welcome to ComfyUI Copilot!'
         list = showcases_en
         break;
     }

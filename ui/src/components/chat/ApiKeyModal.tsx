@@ -11,15 +11,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { fetchRsaPublicKey, verifyOpenAiApiKey } from '../../utils/crypto';
-import Input from '../ui/input';
-import CollapsibleCard from '../ui/collapsibleCard';
+import Input from '../ui/Input';
+import CollapsibleCard from '../ui/CollapsibleCard';
 import { config } from '../../config';
-import Modal from '../ui/modal';
+import Modal from '../ui/Modal';
 import { debounce } from 'lodash';
 import useCountDown from '../../hooks/useCountDown';
-import { useChatContext } from '../../context/ChatContext';
-import { Loader, LoaderCircle } from 'lucide-react';
-import LoadingIcon from '../ui/loading-icon';
+import LoadingIcon from '../ui/Loading-icon';
 interface ApiKeyModalProps {
     isOpen: boolean;
     onClose: () => void;

@@ -418,6 +418,9 @@
   .h-4 {
     height: 1rem;
   }
+  .h-40 {
+    height: 10rem;
+  }
   .h-5 {
     height: 1.25rem;
   }
@@ -429,6 +432,9 @@
   }
   .h-8 {
     height: 2rem;
+  }
+  .h-\[200px\] {
+    height: 200px;
   }
   .h-\[24px\] {
     height: 24px;
@@ -1001,8 +1007,16 @@
   .bg-gradient-to-r {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
   }
+  .bg-gradient-to-t {
+    background-image: linear-gradient(to top, var(--tw-gradient-stops));
+  }
   .bg-showcase-bg {
     background-image: linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 5%, transparent) 20%, color-mix(in srgb, var(--p-text-color) 40%, transparent) 100%);
+  }
+  .from-\[\#fff\] {
+    --tw-gradient-from: #fff var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
   }
   .from-gray-50 {
     --tw-gradient-from: color-mix(in srgb, var(--p-text-color) 5%, transparent) var(--tw-gradient-from-position);
@@ -1011,6 +1025,9 @@
   }
   .to-gray-100 {
     --tw-gradient-to: color-mix(in srgb, var(--p-text-color) 10%, transparent) var(--tw-gradient-to-position);
+  }
+  .to-transparent {
+    --tw-gradient-to: transparent var(--tw-gradient-to-position);
   }
   .fill-current {
     fill: currentColor;
@@ -1363,6 +1380,10 @@
     --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
+  .shadow-gray-200 {
+    --tw-shadow-color: color-mix(in srgb, var(--p-text-color) 20%, transparent);
+    --tw-shadow: var(--tw-shadow-colored);
+  }
   .outline-none {
     outline: 2px solid transparent;
     outline-offset: 2px;
@@ -1451,6 +1472,34 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
   /* Chrome/Safari/Webkit */
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes colorBreathe {
+  0%, 100% {
+    color: #22c55e;
+    /* green-500 */
+  }
+
+  50% {
+    color: var(--p-text-color) / 20;
+    /* gray-200 */
+  }
+}
+
+.animate-breathe-green {
+  animation: breathe 3s ease-in-out infinite, colorBreathe 3s ease-in-out infinite;
 }
 
 .hover\:\!overflow-visible:hover {
@@ -1551,6 +1600,10 @@
 .hover\:\!text-\[\#71A3F2\]:hover {
   --tw-text-opacity: 1 !important;
   color: rgb(113 163 242 / var(--tw-text-opacity, 1)) !important;
+}
+
+.hover\:\!text-gray-600:hover {
+  color: color-mix(in srgb, var(--p-text-color) 60%, transparent) !important;
 }
 
 .hover\:\!text-gray-700:hover {
@@ -1836,6 +1889,11 @@
 
   .dark\:placeholder-gray-400::placeholder {
     color: color-mix(in srgb, var(--p-text-color) 40%, transparent);
+  }
+
+  .dark\:shadow-gray-600 {
+    --tw-shadow-color: color-mix(in srgb, var(--p-text-color) 60%, transparent);
+    --tw-shadow: var(--tw-shadow-colored);
   }
 
   .dark\:hover\:bg-blue-600:hover {
