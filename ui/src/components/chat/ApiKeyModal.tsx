@@ -17,8 +17,6 @@ import { config } from '../../config';
 import Modal from '../ui/Modal';
 import { debounce } from 'lodash';
 import useCountDown from '../../hooks/useCountDown';
-import { useChatContext } from '../../context/ChatContext';
-import { Loader, LoaderCircle } from 'lucide-react';
 import LoadingIcon from '../ui/Loading-icon';
 interface ApiKeyModalProps {
     isOpen: boolean;
