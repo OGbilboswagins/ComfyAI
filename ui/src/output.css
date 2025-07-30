@@ -152,6 +152,9 @@
     white-space: nowrap;
     border-width: 0;
   }
+  .pointer-events-none {
+    pointer-events: none;
+  }
   .\!visible {
     visibility: visible !important;
   }
@@ -1004,6 +1007,9 @@
   .bg-opacity-75 {
     --tw-bg-opacity: 0.75;
   }
+  .bg-debug-btn {
+    background-image: linear-gradient(90deg, #4f8cff 0%, #2357d5 100%);
+  }
   .bg-gradient-to-r {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
   }
@@ -1218,6 +1224,10 @@
   .text-\[\#71A3F2\] {
     --tw-text-opacity: 1;
     color: rgb(113 163 242 / var(--tw-text-opacity, 1));
+  }
+  .text-\[\#fff\] {
+    --tw-text-opacity: 1;
+    color: rgb(255 255 255 / var(--tw-text-opacity, 1));
   }
   .text-amber-600 {
     --tw-text-opacity: 1;
@@ -1502,6 +1512,12 @@
   animation: breathe 3s ease-in-out infinite, colorBreathe 3s ease-in-out infinite;
 }
 
+.hover\:\!scale-\[1\.05\]:hover {
+  --tw-scale-x: 1.05 !important;
+  --tw-scale-y: 1.05 !important;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y)) !important;
+}
+
 .hover\:\!overflow-visible:hover {
   overflow: visible !important;
 }
@@ -1595,6 +1611,10 @@
 .hover\:bg-purple-200:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(233 213 255 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:\!bg-debug-btn-hover:hover {
+  background-image: linear-gradient(90deg, #2357d5 0%, #4f8cff 100%) !important;
 }
 
 .hover\:\!text-\[\#71A3F2\]:hover {
