@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-31 16:01:57
+LastEditTime: 2025-07-31 20:16:19
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -49,7 +49,8 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
     try:
         async with MCPServerSse(
             params= {
-                "url": os.environ.get("MCP_SERVER_URL", "http://localhost:8000/mcp-server/mcp"),
+                # "url": os.environ.get("MCP_SERVER_URL", "http://localhost:8000/mcp-server/mcp"),
+                "url": "https://comfyui-copilot-server-pre.onrender.com/mcp-server/mcp",
                 "timeout": 300.0,
             },
             cache_tools_list=True,
