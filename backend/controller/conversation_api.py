@@ -7,6 +7,7 @@ import asyncio
 import time
 from typing import Optional, Dict, Any, TypedDict, List, Union
 
+from ..utils.globals import set_language
 import server
 from aiohttp import web
 import aiohttp
@@ -330,6 +331,10 @@ async def invoke_chat(request):
     ext = req_json.get('ext')
     historical_messages = req_json.get('messages', [])
     workflow_data = req_json.get('workflow_data')
+    
+    # 获取当前语言
+    language = request.headers.get('Accept-Language', 'en')
+    set_language(language)
 
     # Process images and upload to OSS (similar to reference implementation)
     processed_images = []
@@ -625,6 +630,10 @@ async def invoke_debug(request):
         "openai_api_key": request.headers.get('Openai-Api-Key'),
         "openai_base_url": request.headers.get('Openai-Base-Url', 'https://api.openai.com/v1'),
     }
+
+    # 获取当前语言
+    language = request.headers.get('Accept-Language', 'en')
+    set_language(language)
     
     print(f"Debug agent config: {config}")
     print(f"Session ID: {session_id}")

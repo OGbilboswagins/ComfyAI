@@ -11,6 +11,7 @@ from agents.items import ItemHelpers
 from agents.run import Runner
 from agents.tool import function_tool
 from agents.tracing import set_tracing_disabled
+from ..utils.globals import get_language
 from ..service.workflow_rewrite_tools import *
 from openai.types.responses import ResponseTextDeltaEvent
 
@@ -241,6 +242,7 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
 - Continue the debugging cycle until all errors are fixed or max iterations reached
 - Provide clear, streaming updates about what you're doing
 - Be concise but informative in your responses
+- If there is user history in history_messages, please determine the language based on the language in the history. Otherwise, use {get_language()} as the language.
 
 **Handoff Strategy:**
 - Hand off errors to specialists for fixing
@@ -531,7 +533,7 @@ Start by validating the workflow to see its current state.""",
                     
                     print(f"-- Tool called: {tool_name}")
                     # Add tool call information
-                    tool_text = f"\n🔧 *{current_agent} 正在使用 {tool_name}...*\n"
+                    tool_text = f"\n🔧 *{current_agent} is using {tool_name}...*\n"
                     current_text += tool_text
                     item_updated = True
                     
@@ -548,7 +550,7 @@ Start by validating the workflow to see its current state.""",
                     output = str(event.item.output)
                     # Limit output length to avoid too long display
                     output_preview = output[:200] + "..." if len(output) > 200 else output
-                    tool_result_text = f"✅ *工具执行完成*\n```\n{output_preview}\n```\n"
+                    tool_result_text = f"✅ *Tool execution completed*\n```\n{output_preview}\n```\n"
                     current_text += tool_result_text
                     item_updated = True
                     

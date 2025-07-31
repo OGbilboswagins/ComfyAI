@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-29 16:04:31
+LastEditTime: 2025-07-31 11:20:37
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -12,11 +12,15 @@ import json
 import time
 import uuid
 
+from ..utils.globals import get_language
+
 from ..service.workflow_rewrite_tools import *
 
 
 def create_workflow_rewrite_agent(session_id: str):
     """创建带有session_id的workflow_rewrite_agent实例"""
+    
+    language = get_language()
     return Agent(
         name="Workflow Rewrite Agent",
         model="us.anthropic.claude-sonnet-4-20250514-v1:0",
@@ -25,8 +29,9 @@ def create_workflow_rewrite_agent(session_id: str):
         """,
         instructions="""
         你是专业的ComfyUI工作流改写代理，擅长根据用户的具体需求对现有工作流进行智能修改和优化。
+        如果在history_messages里有用户的历史对话，请根据历史对话中的语言来决定返回的语言。否则使用{}作为返回的语言。
 
-        **当前Session ID:** {}""".format(session_id) + """
+        **当前Session ID:** {}""".format(language, session_id) + """
 
         ## 主要处理场景
 
