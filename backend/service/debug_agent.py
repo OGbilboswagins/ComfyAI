@@ -503,7 +503,7 @@ Start by validating the workflow to see its current state.""",
                 print(f"Handoff to: {new_agent_name}")
                 current_agent = new_agent_name
                 # Add handoff information to the stream
-                handoff_text = f"\n🔄 **Switching to {new_agent_name}**\n\n"
+                handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
                 current_text += handoff_text
                 last_yielded_length = len(current_text)
                 
@@ -527,7 +527,7 @@ Start by validating the workflow to see its current state.""",
                     
                     print(f"-- Tool called: {tool_name}")
                     # Add tool call information
-                    tool_text = f"\n🔧 *{current_agent} is using {tool_name}...*\n\n"
+                    tool_text = f"\n\n🔧 *{current_agent} is using {tool_name}...*\n\n"
                     current_text += tool_text
                     item_updated = True
                     
@@ -544,7 +544,7 @@ Start by validating the workflow to see its current state.""",
                     output = str(event.item.output)
                     # Limit output length to avoid too long display
                     output_preview = output[:200] + "..." if len(output) > 200 else output
-                    tool_result_text = f"\n✅ *Tool execution completed*\n\n```\n{output_preview}\n```\n\n"
+                    tool_result_text = f"\n\n✅ *Tool execution completed*\n\n```\n{output_preview}\n```\n\n"
                     current_text += tool_result_text
                     item_updated = True
                     
@@ -583,7 +583,7 @@ Start by validating the workflow to see its current state.""",
                         if message_content and message_content.strip():
                             # Avoid adding duplicate message content
                             if message_content not in current_text:
-                                current_text += f"\n{message_content}\n\n"
+                                current_text += f"\n\n{message_content}\n\n"
                                 item_updated = True
                                 
                                 # Collect debug event data
