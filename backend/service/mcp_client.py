@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-31 15:04:13
+LastEditTime: 2025-07-31 15:29:12
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -85,8 +85,6 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             
-            # if model_name == "gemini-2.5-flash":
-            #     os.environ["OPENAI_API_KEY"] = ""
             
             # 创建带有session_id的workflow_rewrite_agent实例
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
