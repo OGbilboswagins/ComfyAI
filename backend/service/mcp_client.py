@@ -85,6 +85,9 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             
+            if model_name == "gemini-2.5-flash":
+                os.environ["OPENAI_API_KEY"] = ""
+            
             # 创建带有session_id的workflow_rewrite_agent实例
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
             

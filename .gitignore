@@ -1,6 +1,7 @@
 __pycache__
 hash
 .env
+.env.llm
 # Logs
 logs
 *.log
