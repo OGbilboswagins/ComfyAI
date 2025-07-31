@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-31 15:29:12
+LastEditTime: 2025-07-31 16:01:57
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -85,7 +85,6 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             
-            
             # 创建带有session_id的workflow_rewrite_agent实例
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
             
@@ -158,6 +157,8 @@ You must adhere to the following constraints to complete the task:
             current_tool_call = None  # Track current tool being called
             # Collect workflow update ext data from tools and message outputs
             workflow_update_ext = None
+            # Track if we've seen any handoffs to avoid showing initial handoff
+            handoff_occurred = False
             
             # Enhanced retry mechanism for OpenAI streaming errors
             max_retries = 3
@@ -165,7 +166,7 @@ You must adhere to the following constraints to complete the task:
             
             async def process_stream_events(stream_result):
                 """Process stream events with enhanced error handling"""
-                nonlocal current_text, last_yield_length, tool_call_queue, workflow_update_ext, tool_results, workflow_tools_called
+                nonlocal current_text, last_yield_length, tool_call_queue, workflow_update_ext, tool_results, workflow_tools_called, handoff_occurred
                 
                 try:
                     async for event in stream_result.stream_events():
@@ -185,13 +186,20 @@ You must adhere to the following constraints to complete the task:
                         elif event.type == "agent_updated_stream_event":
                             new_agent_name = event.new_agent.name
                             print(f"Handoff to: {new_agent_name}")
-                            # Add handoff information to the stream
-                            handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
-                            current_text += handoff_text
-                            last_yield_length = len(current_text)
                             
-                            # Yield text update only
-                            yield (current_text, None)
+                            # Only show handoff message if we've already seen handoffs
+                            # This prevents showing the initial handoff to ComfyUI-Copilot
+                            if handoff_occurred:
+                                # Add handoff information to the stream
+                                handoff_text = f"\n🔄 **Switching to {new_agent_name}**\n\n"
+                                current_text += handoff_text
+                                last_yield_length = len(current_text)
+                                
+                                # Yield text update only
+                                yield (current_text, None)
+                            
+                            # Mark that we've seen a handoff
+                            handoff_occurred = True
                             continue
                             
                         elif event.type == "run_item_stream_event":
