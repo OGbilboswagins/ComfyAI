@@ -32,6 +32,9 @@ def create_agent(**kwargs) -> Agent:
         api_key="aib_ComfyUI_Copilot_8d28a3",
         base_url="https://comfyui-copilot-server-pre.onrender.com/v1",
     )
-    model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
+
+    default_model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
+    model_name = kwargs.pop("model") or default_model_name
     model = OpenAIChatCompletionsModel(model_name, openai_client=client)
+
     return Agent(model=model, **kwargs)
