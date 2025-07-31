@@ -1,3 +1,11 @@
+'''
+Author: ai-business-hql qingli.hql@alibaba-inc.com
+Date: 2025-07-31 19:38:08
+LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
+LastEditTime: 2025-07-31 20:09:46
+FilePath: /comfyui_copilot/backend/agent_factory.py
+Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+'''
 from agents import Agent, OpenAIChatCompletionsModel
 from dotenv import dotenv_values
 from openai import AsyncOpenAI
@@ -14,9 +22,8 @@ def load_env_config():
 
     env_file_path = os.path.join(os.path.dirname(__file__), '.env.llm')
     if os.path.exists(env_file_path):
-        # load_dotenv(env_file_path)
+        load_dotenv(env_file_path)
         print(f"Loaded environment variables from {env_file_path}")
-        return dotenv_values(env_file_path)
     else:
         print(f"Warning: .env.llm not found at {env_file_path}")
 
