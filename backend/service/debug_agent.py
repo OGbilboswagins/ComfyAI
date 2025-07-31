@@ -212,7 +212,7 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
    - Hand off to Parameter Agent for parameter-related errors (value_not_in_list, missing models, invalid values)
    - Hand off to Workflow Bugfix Default Agent for other structural issues (node compatibility, complex workflow restructuring)
 3. **After specialist returns**: Continue validation from step 1 to check if the issue is resolved
-4. **Repeat until complete**: Continue this cycle until there are no errors or maximum 6 iterations
+4. **Repeat until complete**: Continue this cycle until there are no errors or maximum 10 iterations
 
 **Critical Guidelines:**
 - ALWAYS validate the workflow first to check for errors
@@ -471,7 +471,7 @@ Start by validating the workflow to see its current state.""",
         result = Runner.run_streamed(
             agent,
             input=messages,
-            max_turns=20,
+            max_turns=50,
         )
         print("=== Debug Coordinator starting ===")
         
@@ -555,7 +555,14 @@ Start by validating the workflow to see its current state.""",
                             for ext_item in tool_output_json["ext"]:
                                 if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
                                     workflow_update_ext = ext_item
-                                    print(f"-- Captured workflow_update ext from tool output")
+                                    print(f"-- Captured {ext_item.get('type')} ext from tool output, yielding immediately")
+                                    
+                                    # 立即yield workflow_update或param_update，让前端实时更新工作流
+                                    ext_with_finished = {
+                                        "data": [ext_item],
+                                        "finished": False  # 标记为未完成，继续debug流程
+                                    }
+                                    yield (current_text, ext_with_finished)
                                     break
                     except (json.JSONDecodeError, TypeError):
                         # Tool output is not JSON, continue normally

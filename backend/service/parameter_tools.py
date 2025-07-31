@@ -495,12 +495,12 @@ def update_workflow_parameter(session_id: str, node_id: str, param_name: str, ne
                 "type": "param_update",
                 "data": {
                     "workflow_data": workflow_data,
-                    "changes": {
+                    "changes": [{  # 包装成数组格式，与前端MessageList期望的格式匹配
                         "node_id": node_id,
                         "parameter": param_name,
                         "old_value": old_value,
                         "new_value": new_value
-                    }
+                    }]
                 }
             }]
         })

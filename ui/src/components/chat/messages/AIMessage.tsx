@@ -230,6 +230,10 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
     try {
       const response = JSON.parse(content) as ChatResponse;
       const guides = response.ext?.find(item => item.type === 'guides')?.data || [];
+      
+      // 检查是否有实时更新的ext数据
+      const hasWorkflowUpdate = response.ext?.some(item => item.type === 'workflow_update');
+      const hasParamUpdate = response.ext?.some(item => item.type === 'param_update');
 
       // Check if this is a special message type based on intent metadata
       if (metadata?.intent) {
@@ -299,6 +303,36 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
                 Analyzing workflow...
             </div>
         )}
+        
+        {/* 显示实时更新状态 */}
+        {(() => {
+          try {
+            const response = JSON.parse(content) as ChatResponse;
+            const hasWorkflowUpdate = response.ext?.some(item => item.type === 'workflow_update');
+            const hasParamUpdate = response.ext?.some(item => item.type === 'param_update');
+            
+            if (!finished && (hasWorkflowUpdate || hasParamUpdate)) {
+              return (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700 text-sm">
+                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">
+                      {hasWorkflowUpdate ? 'Workflow Updated' : 'Parameters Updated'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Changes have been applied to the canvas. Debug process continues...
+                  </div>
+                </div>
+              );
+            }
+          } catch (error) {
+            // Ignore parsing errors
+          }
+          return null;
+        })()}
       </div>
     </BaseMessage>
   );

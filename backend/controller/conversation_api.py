@@ -659,15 +659,34 @@ async def invoke_debug(request):
                         final_ext_data = ext["data"]
                         finished = ext["finished"]
                         
-                        # Only send intermediate response if not finished
-                        if not finished:
+                        # 检查是否包含需要实时发送的workflow_update或param_update
+                        has_realtime_ext = False
+                        if final_ext_data:
+                            for ext_item in final_ext_data:
+                                if ext_item.get("type") in ["workflow_update", "param_update"]:
+                                    has_realtime_ext = True
+                                    break
+                        
+                        # 如果包含实时ext数据或者已完成，则发送响应
+                        if has_realtime_ext or finished:
+                            chat_response = ChatResponse(
+                                session_id=session_id,
+                                text=accumulated_text,
+                                finished=finished,
+                                type="message",
+                                format="markdown",
+                                ext=final_ext_data  # 发送ext数据
+                            )
+                            await response.write(json.dumps(chat_response).encode() + b"\n")
+                        elif not finished:
+                            # 只有文本更新，不发送ext数据
                             chat_response = ChatResponse(
                                 session_id=session_id,
                                 text=accumulated_text,
                                 finished=False,
                                 type="message",
                                 format="markdown",
-                                ext=None  # Don't send ext data in intermediate responses
+                                ext=None
                             )
                             await response.write(json.dumps(chat_response).encode() + b"\n")
                     else:

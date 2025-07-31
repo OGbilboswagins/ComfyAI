@@ -503,30 +503,36 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     );
                 } else if (debugCheckpointExt) {
                     // 使用DebugResult组件来处理有debug checkpoint的消息
-                    ExtComponent = (
-                        <Suspense fallback={<div>Loading...</div>}>
-                            <LazyDebugResult
-                                content={message.content}
-                                name={message.name}
-                                avatar={avatar}
-                                format={message.format}
-                                onFinishLoad={onFinishLoad}
-                            />
-                        </Suspense>
-                    );
-                } else if (workflowUpdateExt) {
-                    // 使用DebugResult组件来处理工作流更新结果消息
-                    ExtComponent = (
-                        <Suspense fallback={<div>Loading...</div>}>
-                            <LazyDebugResult
-                                content={message.content}
-                                name={message.name}
-                                avatar={avatar}
-                                format={message.format}
-                                onFinishLoad={onFinishLoad}
-                            />
-                        </Suspense>
-                    );
+                    // 只有在finished=true时才使用卡片形式的DebugResult，否则不设置ExtComponent，让它走普通AIMessage逻辑
+                    if (message.finished) {
+                        ExtComponent = (
+                            <Suspense fallback={<div>Loading...</div>}>
+                                <LazyDebugResult
+                                    content={message.content}
+                                    name={message.name}
+                                    avatar={avatar}
+                                    format={message.format}
+                                    onFinishLoad={onFinishLoad}
+                                />
+                            </Suspense>
+                        );
+                    }
+                } else if (workflowUpdateExt || paramUpdateExt) {
+                    // 处理工作流更新或参数更新结果消息
+                    // 只有在finished=true时才使用卡片形式的DebugResult，否则不设置ExtComponent，让它走普通AIMessage逻辑
+                    if (message.finished) {
+                        ExtComponent = (
+                            <Suspense fallback={<div>Loading...</div>}>
+                                <LazyDebugResult
+                                    content={message.content}
+                                    name={message.name}
+                                    avatar={avatar}
+                                    format={message.format}
+                                    onFinishLoad={onFinishLoad}
+                                />
+                            </Suspense>
+                        );
+                    }
                 }
 
                 // 如果是工作流成功消息或debug_guide格式，直接返回DebugGuide组件
@@ -534,13 +540,13 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     return ExtComponent;
                 }
 
-                // 如果有debug checkpoint，直接返回DebugResult组件
-                if (debugCheckpointExt && ExtComponent) {
+                // 如果有debug checkpoint且已完成，直接返回DebugResult组件
+                if (debugCheckpointExt && message.finished && ExtComponent) {
                     return ExtComponent;
                 }
 
-                // 如果有workflow_update，直接返回DebugResult组件
-                if (workflowUpdateExt && ExtComponent) {
+                // 如果有workflow_update或param_update且已完成，直接返回DebugResult组件
+                if ((workflowUpdateExt || paramUpdateExt) && message.finished && ExtComponent) {
                     return ExtComponent;
                 }
 
