@@ -471,7 +471,7 @@ Start by validating the workflow to see its current state.""",
         result = Runner.run_streamed(
             agent,
             input=messages,
-            max_turns=50,
+            max_turns=30,
         )
         print("=== Debug Coordinator starting ===")
         
