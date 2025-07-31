@@ -84,6 +84,11 @@ export function ChatInput({
                     "image_enable": true
                 },
                 {
+                    "label": "gpt-4.1-mini",
+                    "name": "gpt-4.1-mini-2025-04-14-GlobalStandard",
+                    "image_enable": true,
+                },
+                {
                     "label": "gpt-4.1",
                     "name": "gpt-4.1-2025-04-14-GlobalStandard",
                     "image_enable": true,

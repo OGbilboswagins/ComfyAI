@@ -420,7 +420,16 @@ Start by validating the workflow to see its current state.""",
             2. **Handle different error types based on analysis:**
             
             **Model Missing Errors** (error_type: "model_missing"):
-            - When can_auto_fix = false and solution_type = "download_required"
+            - Apply ComfyUI model system knowledge for intelligent matching
+            - ComfyUI has four main model systems: SDXL, Flux, wan2.1, wan2.2
+            - When model not found or name differs from local models, check workflow model name against these systems:
+              * SDXL system (examples: SDXL_base, SDXL_refiner, etc.)
+              * Flux system (examples: Flux-dev, Flux-dev-fp8, Flux-fill, etc.)
+              * wan2.1 system (examples: wan2.1_base, wan2.1_t2v, etc.)
+              * wan2.2 system (examples: wan2.2_t2v, wan2.2_iv2, wan2.2_kontext, wan2.2_redux, etc.)
+            - Match by model system first (SDXL/Flux/wan2.1/wan2.2), then by model category (fill/dev/base/t2v/iv2/kontext/redux)
+            - If similar model from same system exists, replace with most similar match
+            - When can_auto_fix = false and solution_type = "download_required" and no similar models found
             - Use suggest_model_download() to provide download instructions
             - Do NOT transfer back - the download suggestion is the final response
             
@@ -441,12 +450,14 @@ Start by validating the workflow to see its current state.""",
             
             4. **Smart Fallback Strategy**:
             - If find_matching_parameter_value() fails, use get_model_files() to check if it's a model issue
+            - Apply model system matching logic (SDXL/Flux/wan2.1/wan2.2 systems with categories)
             - If still unclear, use suggest_model_download() as last resort (no transfer back)
             
             **Auto-Fix Priority** (when can_auto_fix = true):
-            1. Image replacements: Use any available image to replace missing ones
-            2. Enum matches: Use exact/partial/default matches automatically  
-            3. Case corrections: Fix capitalization and formatting issues
+            1. Model replacements: Use intelligent system-based matching (SDXL/Flux/wan2.1/wan2.2)
+            2. Image replacements: Use any available image to replace missing ones
+            3. Enum matches: Use exact/partial/default matches automatically  
+            4. Case corrections: Fix capitalization and formatting issues
             
             **Transfer Rules:**
             - Model missing (suggest_model_download): Provide download instructions and STOP - do not transfer back
@@ -460,7 +471,7 @@ Start by validating the workflow to see its current state.""",
             3. "Status: [fixed/requires-download/requires-manual-action]"
             4. Transfer to ComfyUI-Debug-Coordinator for verification (EXCEPT for model download cases)
             
-            **Key Enhancement**: You can now automatically fix many parameter issues (images, enums) without user intervention, but you still need downloads for missing models. Be proactive in applying fixes when possible. When providing model download suggestions, that is your final action.
+            **Key Enhancement**: You can now automatically fix many parameter issues (images, enums, intelligent model matching) without user intervention, but you still need downloads for missing models when no similar models exist. Be proactive in applying fixes when possible. When providing model download suggestions, that is your final action.
             """,
             tools=[find_matching_parameter_value, get_model_files, 
                 suggest_model_download, update_workflow_parameter, get_current_workflow],
