@@ -6,6 +6,7 @@ LastEditTime: 2025-07-31 16:01:57
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
+from .. import core
 import asyncio
 import os
 import traceback
@@ -17,31 +18,12 @@ from agents.items import ItemHelpers
 from agents.mcp import MCPServerSse
 from agents.run import Runner
 from agents.tracing import set_tracing_disabled
+
+from ..agent_factory import create_agent
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
 from openai import APIError
 
-# Load environment variables from server.env
-def load_env_config():
-    """Load environment variables from .env.llm file"""
-    from dotenv import load_dotenv
-    
-    env_file_path = os.path.join(os.path.dirname(__file__), '.env.llm')
-    if os.path.exists(env_file_path):
-        load_dotenv(env_file_path)
-        print(f"Loaded environment variables from {env_file_path}")
-    else:
-        print(f"Warning: .env.llm not found at {env_file_path}")
-
-# Load environment configuration
-load_env_config()
-
-set_default_openai_api("chat_completions")
-set_tracing_disabled(True)
-
-# @function_tool
-# def get_weather(city: str) -> str:
-#     return f"The weather in {city} is sunny."
 
 class ImageData:
     """Image data structure to match reference implementation"""
@@ -88,7 +70,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             # 创建带有session_id的workflow_rewrite_agent实例
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
             
-            agent = Agent(
+            agent = create_agent(
                 name="ComfyUI-Copilot",
                 instructions=f"""You are a powerful AI assistant for designing image processing workflows, capable of automating problem-solving using tools and commands.
 

@@ -1,16 +1,11 @@
 '''
 Debug Agent for ComfyUI Workflow Error Analysis
 '''
-import os
-import json
-import requests
-from typing import List, Dict, Any, Optional
-from agents._config import set_default_openai_api
-from agents.agent import Agent
+from ..agent_factory import create_agent
+from .. import core
 from agents.items import ItemHelpers
 from agents.run import Runner
 from agents.tool import function_tool
-from agents.tracing import set_tracing_disabled
 from ..utils.globals import get_language
 from ..service.workflow_rewrite_tools import *
 from openai.types.responses import ResponseTextDeltaEvent
@@ -24,22 +19,7 @@ import uuid
 import execution
 
 # Load environment variables from server.env
-def load_env_config():
-    """Load environment variables from .env.llm file"""
-    from dotenv import load_dotenv
-    
-    env_file_path = os.path.join(os.path.dirname(__file__), '.env.llm')
-    if os.path.exists(env_file_path):
-        load_dotenv(env_file_path)
-        print(f"Loaded environment variables from {env_file_path}")
-    else:
-        print(f"Warning: .env.llm not found at {env_file_path}")
 
-# Load environment configuration
-load_env_config()
-
-set_default_openai_api("chat_completions")
-set_tracing_disabled(True)
 
 @function_tool
 async def run_workflow(session_id: str) -> str:
@@ -219,7 +199,7 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
         )
         print(f"Workflow saved with version ID: {save_result}")
         
-        agent = Agent(
+        agent = create_agent(
             name="ComfyUI-Debug-Coordinator",
             instructions=f"""You are a ComfyUI workflow debugging coordinator. Your role is to analyze workflow errors and coordinate with specialized agents to fix them.
 
@@ -227,7 +207,7 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
 
 **Your Process:**
 1. **Validate the workflow**: Use run_workflow("{session_id}") to validate the workflow and capture any errors
-2. **Analyze errors**: If errors occur, use analyze_error_type() to determine the error type and hand off to the appropriate specialist:
+2. **Analyze errors**: If errors occur, use analyze_error_type() to determine the error type and hand off to the appropriate specialist. Note that analyze_error_type can help you determine the error type and which agent to hand off to, but it's only for reference. You still need to judge based on the current error information to determine which type of error it is:
    - Hand off to Link Agent for connection-related errors (missing connections, disconnected inputs, node linking issues)
    - Hand off to Parameter Agent for parameter-related errors (value_not_in_list, missing models, invalid values)
    - Hand off to Workflow Bugfix Default Agent for other structural issues (node compatibility, complex workflow restructuring)
@@ -257,7 +237,7 @@ Start by validating the workflow to see its current state.""",
             tools=[run_workflow, analyze_error_type, save_current_workflow],
         )
         
-        workflow_bugfix_default_agent = Agent(
+        workflow_bugfix_default_agent = create_agent(
             name="Workflow Bugfix Default Agent",
             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
             handoff_description="""
@@ -303,7 +283,7 @@ Start by validating the workflow to see its current state.""",
             handoffs=[agent],
         )
         
-        link_agent = Agent(
+        link_agent = create_agent(
             name="Link Agent",
             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
             handoff_description="""
@@ -390,7 +370,7 @@ Start by validating the workflow to see its current state.""",
             handoffs=[agent],
         )
 
-        parameter_agent = Agent(
+        parameter_agent = create_agent(
             name="Parameter Agent",
             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
             handoff_description="""

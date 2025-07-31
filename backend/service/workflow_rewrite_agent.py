@@ -12,6 +12,7 @@ import json
 import time
 import uuid
 
+from ..agent_factory import create_agent
 from ..utils.globals import get_language
 
 from ..service.workflow_rewrite_tools import *
@@ -21,7 +22,7 @@ def create_workflow_rewrite_agent(session_id: str):
     """创建带有session_id的workflow_rewrite_agent实例"""
     
     language = get_language()
-    return Agent(
+    return create_agent(
         name="Workflow Rewrite Agent",
         model="us.anthropic.claude-sonnet-4-20250514-v1:0",
         handoff_description="""
