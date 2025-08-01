@@ -437,14 +437,10 @@ You must adhere to the following constraints to complete the task:
                         print(f"Using ext from {tool_name}")
                         break
                 
-                # Check if we have workflow_update_ext (from handoff agents like workflow_rewrite_agent)
-                # If so, keep finished = False to allow the agent to continue
-                if workflow_update_ext:
-                    print("Workflow update ext detected from handoff agent, keeping finished = False")
-                    finished = False
-                else:
-                    # No workflow tools and no workflow updates, finished = True
-                    finished = True
+                # When no workflow tools are called (e.g., handoff to workflow_rewrite_agent)
+                # The agent stream has completed at this point, so finished should be True
+                # The workflow_update_ext will be included in final_ext regardless
+                finished = True
             
             
             # Prepare final ext (debug_ext would be empty here since no debug events)
