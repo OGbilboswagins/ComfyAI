@@ -212,29 +212,46 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
                 // 处理工作流更新：实时更新画布 
                 if (workflowUpdateExt && workflowUpdateExt.data) {
-                    const workflowUpdateKey = `workflow_update_${message.id}`;
-                    if (!processedUpdates.current.has(workflowUpdateKey)) {
-                        const { workflow_data } = workflowUpdateExt.data;
-                        if (typeof window !== 'undefined' && (window as any).app && workflow_data) {
-                            try {
-                                // 导入通用的工作流应用函数
-                                import('../../utils/graphUtils').then(({ applyNewWorkflow }) => {
+                    const { workflow_data } = workflowUpdateExt.data;
+                    if (typeof window !== 'undefined' && (window as any).app && workflow_data) {
+                        // 使用更具体的key，包含workflow_data的hash以检测实际内容变化
+                        const contentHash = JSON.stringify(workflow_data).slice(0, 100); // 简单的内容标识
+                        const workflowUpdateKey = `workflow_update_${message.id}_${contentHash}`;
+                        
+                        if (!processedUpdates.current.has(workflowUpdateKey)) {
+                            const applyWorkflowWithRetry = async (retryCount = 0) => {
+                                try {
+                                    const { applyNewWorkflow } = await import('../../utils/graphUtils');
                                     const success = applyNewWorkflow(workflow_data);
                                     
                                     if (success) {
-                                        // console.log('[MessageList] Successfully applied workflow update');
+                                        console.log('[MessageList] Successfully applied workflow update');
+                                        // 标记该更新已处理（只有成功时才标记）
+                                        processedUpdates.current.add(workflowUpdateKey);
                                     } else {
-                                        // console.warn('[MessageList] Failed to apply workflow update');
+                                        console.warn(`[MessageList] Failed to apply workflow update (attempt ${retryCount + 1})`);
+                                        // 重试最多3次
+                                        if (retryCount < 2) {
+                                            setTimeout(() => {
+                                                applyWorkflowWithRetry(retryCount + 1);
+                                            }, 1000 * (retryCount + 1)); // 递增延迟：1s, 2s
+                                        } else {
+                                            console.error('[MessageList] Workflow update failed after 3 attempts');
+                                        }
                                     }
-                                }).catch(error => {
-                                    // console.error('[MessageList] Failed to import graphUtils:', error);
-                                });
-                            } catch (error) {
-                                // console.error('[MessageList] Failed to update canvas:', error);
-                            }
+                                } catch (error) {
+                                    console.error(`[MessageList] Error in workflow update (attempt ${retryCount + 1}):`, error);
+                                    // 重试最多3次
+                                    if (retryCount < 2) {
+                                        setTimeout(() => {
+                                            applyWorkflowWithRetry(retryCount + 1);
+                                        }, 1000 * (retryCount + 1));
+                                    }
+                                }
+                            };
+                            
+                            applyWorkflowWithRetry();
                         }
-                        // 标记该更新已处理
-                        processedUpdates.current.add(workflowUpdateKey);
                     }
                 }
 
@@ -249,34 +266,48 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 //     }
                 // ]
                 if (paramUpdateExt && paramUpdateExt.data) {
-                    const paramUpdateKey = `param_update_${message.id}`;
-                    if (!processedUpdates.current.has(paramUpdateKey)) {
-                        const { changes } = paramUpdateExt.data;
-                        if (typeof window !== 'undefined' && (window as any).app && changes) {
-                            try {
-                                // 导入通用的参数修改函数
-                                import('../../utils/graphUtils').then(({ applyParameterChanges }) => {
+                    const { changes } = paramUpdateExt.data;
+                    if (typeof window !== 'undefined' && (window as any).app && changes) {
+                        // 使用更具体的key，包含changes的hash以检测实际内容变化
+                        const contentHash = JSON.stringify(changes).slice(0, 100); // 简单的内容标识
+                        const paramUpdateKey = `param_update_${message.id}_${contentHash}`;
+                        
+                        if (!processedUpdates.current.has(paramUpdateKey)) {
+                            const applyParamsWithRetry = async (retryCount = 0) => {
+                                try {
+                                    const { applyParameterChanges } = await import('../../utils/graphUtils');
                                     // 支持单个change对象或changes数组
                                     const changesList = Array.isArray(changes) ? changes : [changes];
                                     const success = applyParameterChanges(changesList);
                                     
                                     if (success) {
-                                        // console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
-                                        // changesList.forEach(change => {
-                                        //     console.log(`[MessageList] Updated parameter ${change.parameter} in node ${change.node_id} to:`, change.new_value);
-                                        // });
+                                        console.log(`[MessageList] Successfully applied ${changesList.length} parameter changes`);
+                                        // 标记该更新已处理（只有成功时才标记）
+                                        processedUpdates.current.add(paramUpdateKey);
                                     } else {
-                                        // console.warn('[MessageList] Failed to apply some parameter changes');
+                                        console.warn(`[MessageList] Failed to apply parameter changes (attempt ${retryCount + 1})`);
+                                        // 重试最多3次
+                                        if (retryCount < 2) {
+                                            setTimeout(() => {
+                                                applyParamsWithRetry(retryCount + 1);
+                                            }, 1000 * (retryCount + 1)); // 递增延迟：1s, 2s
+                                        } else {
+                                            console.error('[MessageList] Parameter update failed after 3 attempts');
+                                        }
                                     }
-                                }).catch(error => {
-                                    // console.error('[MessageList] Failed to import graphUtils:', error);
-                                });
-                            } catch (error) {
-                                // console.error('[MessageList] Failed to update canvas:', error);
-                            }
+                                } catch (error) {
+                                    console.error(`[MessageList] Error in parameter update (attempt ${retryCount + 1}):`, error);
+                                    // 重试最多3次
+                                    if (retryCount < 2) {
+                                        setTimeout(() => {
+                                            applyParamsWithRetry(retryCount + 1);
+                                        }, 1000 * (retryCount + 1));
+                                    }
+                                }
+                            };
+                            
+                            applyParamsWithRetry();
                         }
-                        // 标记该更新已处理
-                        processedUpdates.current.add(paramUpdateKey);
                     }
                 }
 
