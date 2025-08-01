@@ -119,6 +119,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
         ) : null;
     }, [isWorkflowUpdate])
 
+    console.log('responseData-', responseData)
     if (!responseData) return null;
     
     return (

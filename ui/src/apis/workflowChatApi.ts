@@ -96,7 +96,7 @@ export namespace WorkflowChatAPI {
   export async function* streamInvokeServer(
     sessionId: string, 
     prompt: string, 
-    images: File[] = [], 
+    images: {url: string}[] = [], 
     intent: string | null = null, 
     ext: any | null = null,
     trace_id?: string,
@@ -111,16 +111,16 @@ export namespace WorkflowChatAPI {
       const messageId = generateUUID();
       
       // Convert images to base64
-      const imagePromises = (images || []).map(file => 
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        })
-      );
+      // const imagePromises = (images || []).map(file => 
+      //   new Promise<string>((resolve, reject) => {
+      //     const reader = new FileReader();
+      //     reader.onloadend = () => resolve(reader.result as string);
+      //     reader.onerror = reject;
+      //     reader.readAsDataURL(file);
+      //   })
+      // );
       
-      const base64Images = await Promise.all(imagePromises);
+      // const base64Images = await Promise.all(imagePromises);
 
       // Convert frontend Message format to OpenAI format
       const openaiMessages = historyMessages.filter(msg => (msg.role !== 'showcase' && msg.role !== 'tool')).map(msg => {
@@ -212,10 +212,7 @@ export namespace WorkflowChatAPI {
           intent: intent,
           ext: finalExt,
           messages: openaiMessages,
-          images: base64Images.map((base64, index) => ({
-            filename: images[index].name,
-            data: base64
-          })),
+          images,
           workflow_data: currentWorkflowData
         }),
         signal: controller.signal

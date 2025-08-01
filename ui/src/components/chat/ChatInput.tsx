@@ -33,6 +33,7 @@ export interface UploadedImage {
     id: string;
     file: File;
     preview: string;
+    url: string;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -159,13 +160,18 @@ export function ChatInput({
                                 alt="uploaded" 
                                 className="w-8 h-8 rounded object-cover"
                             />
-                            <button
-                                onClick={() => onRemoveImage(image.id)}
-                                className="absolute -top-1 -right-1 bg-white border-none text-gray-500 rounded-full p-0.5
-                                         opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <XIcon className="w-3 h-3" />
-                            </button>
+                            {
+                                !!image?.url && image?.url !== '' ?  <button
+                                    onClick={() => onRemoveImage(image.id)}
+                                    className="absolute -top-1 -right-1 bg-white border-none text-gray-500 rounded-full p-0.5
+                                             opacity-0 group-hover:!opacity-100 transition-opacity"
+                                >
+                                    <XIcon className="w-3 h-3" />
+                                </button> : <span className="absolute top-0 left-0 w-full h-full bg-black/50 text-gray-500
+                                    flex items-center justify-center text-xs">
+                                    Uploading...
+                                </span>
+                            }
                         </div>
                     ))}
                 </div>
@@ -268,7 +274,7 @@ export function ChatInput({
 
             {/* 上传图片模态框 */}
             {showUploadModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] flex items-center justify-center">
                     <div className="bg-white rounded-lg p-6 w-96 relative">
                         <button 
                             onClick={() => setShowUploadModal(false)}
@@ -317,14 +323,18 @@ export function ChatInput({
                                             alt="preview" 
                                             className="w-full h-20 object-cover rounded"
                                         />
-                                        <button
-                                            onClick={() => onRemoveImage(image.id)}
-                                            className="absolute -top-1 -right-1 bg-white border-none text-gray-500 
-                                                     rounded-full p-0.5 opacity-0 group-hover:opacity-100 
-                                                     transition-opacity"
-                                        >
-                                            <XIcon className="w-3 h-3" />
-                                        </button>
+                                        {
+                                            !!image?.url && image?.url !== '' ?  <button
+                                                onClick={() => onRemoveImage(image.id)}
+                                                className="absolute -top-1 -right-1 bg-white border-none text-gray-500 rounded-full p-0.5
+                                                        opacity-0 group-hover:!opacity-100 transition-opacity"
+                                            >
+                                                <XIcon className="w-3 h-3" />
+                                            </button> : <span className="absolute top-0 left-0 w-full h-full bg-black/50 text-gray-500
+                                                flex items-center justify-center text-lg">
+                                                Uploading...
+                                            </span>
+                                        }
                                     </div>
                                 ))}
                             </div>

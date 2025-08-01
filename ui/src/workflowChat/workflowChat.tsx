@@ -34,6 +34,9 @@ import type { TabType } from '../context/ChatContext';
 import { ParameterDebugInterface } from "../components/debug/ParameterDebugInterfaceV2";
 import { COPILOT_EVENTS } from "../constants/events";
 import { app } from "../utils/comfyapp";
+import { config } from "../config";
+
+const BASE_URL = config.apiBaseUrl
 
 interface WorkflowChatProps {
     onClose?: () => void;
@@ -402,7 +405,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
             for await (const response of WorkflowChatAPI.streamInvokeServer(
                 sessionId, 
                 input, 
-                uploadedImages.map(img => img.file),
+                uploadedImages.map(img => ({
+                    url: img.url
+                })),
                 null,
                 modelExt,
                 traceId,
@@ -476,7 +481,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
             for await (const response of WorkflowChatAPI.streamInvokeServer(
                 sessionId, 
                 content, 
-                uploadedImages.map(img => img.file),
+                uploadedImages.map(img => ({
+                    url: img.url
+                })),
                 null,
                 modelExt,
                 traceId,
@@ -728,13 +735,54 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         setIsResizing(false);
     };
 
-    const handleUploadImages = (files: FileList) => {
-        const newImages = Array.from(files).map(file => ({
-            id: Math.random().toString(36).substr(2, 9),
+    const uploadImage = async (file: File, id: string) => {
+        const formData = new FormData();
+        formData.append('file', file); 
+        const response = await fetch(`${BASE_URL}/api/chat/imgfile2oss`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        return data.success ? {
+            url: data.data,
             file,
-            preview: URL.createObjectURL(file)
-        }));
+            id
+         } : null;
+    }
+
+    const handleUploadImages = (files: FileList) => {
+        const newImages: UploadedImage[] = [];
+        const promises: Promise<{file: File; url: string; id: string} | null>[] = []
+        Array.from(files).forEach(file => {
+            const id = Math.random().toString(36).substr(2, 9)
+            promises.push(uploadImage(file, id))
+            newImages.push({
+                id,
+                file,
+                preview: URL.createObjectURL(file),
+                url: ''
+            })
+        })
         setUploadedImages(prev => [...prev, ...newImages]);
+        Promise.all(promises).then((data) => {
+            data?.forEach(item => {
+                if (!!item) {
+                    const index = newImages.findIndex(img => img.id === item.id)
+                    newImages.splice(index, 1, {
+                        id: item.id,
+                        file: item?.file,
+                        preview: URL.createObjectURL(item?.file),
+                        url: item?.url
+                    })
+                }
+            })
+            setUploadedImages([...newImages]);
+        });
+        // const newImages = Array.from(files).map(file => ({
+        //     id: Math.random().toString(36).substr(2, 9),
+        //     file,
+        //     preview: URL.createObjectURL(file)
+        // }));
     };
 
     const handleRemoveImage = (imageId: string) => {

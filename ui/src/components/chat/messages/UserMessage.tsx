@@ -54,40 +54,42 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
 
     return (
         <BaseMessage name="User" isUser={true}>
-            <div className="w-full rounded-lg border border-gray-700 p-4 text-gray-700 text-sm break-words relative">
+            <div className="w-full rounded-lg border border-gray-700 p-4 text-gray-700 text-sm break-words">
                 <p className="whitespace-pre-wrap leading-snug">{content}</p>
                 
                 {/* Bottom right icons container */}
-                <div className="absolute bottom-1 right-1.5 flex items-center space-x-1">
-                    {/* Restore checkpoint icon */}
-                    {checkpointId && (
-                        <RestoreCheckpoint 
-                            checkpointId={checkpointId} 
-                            onRestore={() => {
-                                console.log('Workflow restored from user message checkpoint');
-                            }}
-                            title={`Restore to version before this request (Checkpoint ${checkpointId})`}
-                        />
-                    )}
-                    
-                    {/* Trace ID icon */}
-                    {trace_id && (
-                        <div 
-                            className="cursor-pointer opacity-40 hover:opacity-100 transition-opacity"
-                            onMouseEnter={() => setShowTooltip(true)}
-                            onMouseLeave={() => setShowTooltip(false)}
-                            onClick={handleCopyTraceId}
-                        >
-                            <InformationCircleIcon className="h-3.5 w-3.5 text-gray-500 hover:!text-gray-700" />
-                            
-                            {/* Tooltip */}
-                            {showTooltip && (
-                                <div className="absolute right-0 -top-6 bg-gray-700 text-white text-[10px] py-0.5 px-1.5 rounded shadow-sm whitespace-nowrap">
-                                    {copied ? 'Copied!' : `Copy trace ID`}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                <div className="flex justify-end">
+                    <div className="flex items-center space-x-1 -mb-2">
+                        {/* Restore checkpoint icon */}
+                        {checkpointId && (
+                            <RestoreCheckpoint 
+                                checkpointId={checkpointId} 
+                                onRestore={() => {
+                                    console.log('Workflow restored from user message checkpoint');
+                                }}
+                                title={`Restore to version before this request (Checkpoint ${checkpointId})`}
+                            />
+                        )}
+                        
+                        {/* Trace ID icon */}
+                        {trace_id && (
+                            <div 
+                                className="cursor-pointer opacity-40 hover:opacity-100 transition-opacity"
+                                onMouseEnter={() => setShowTooltip(true)}
+                                onMouseLeave={() => setShowTooltip(false)}
+                                onClick={handleCopyTraceId}
+                            >
+                                <InformationCircleIcon className="h-3.5 w-3.5 text-gray-500 hover:!text-gray-700" />
+                                
+                                {/* Tooltip */}
+                                {showTooltip && (
+                                    <div className="absolute right-0 -top-6 bg-gray-700 text-white text-[10px] py-0.5 px-1.5 rounded shadow-sm whitespace-nowrap">
+                                        {copied ? 'Copied!' : `Copy trace ID`}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </BaseMessage>
