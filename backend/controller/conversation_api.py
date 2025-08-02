@@ -336,35 +336,11 @@ async def invoke_chat(request):
     language = request.headers.get('Accept-Language', 'en')
     set_language(language)
 
-    # Process images and upload to OSS (similar to reference implementation)
+    # 图片处理已移至前端，图片信息现在包含在历史消息的OpenAI格式中
+    # 保留空的处理逻辑以向后兼容，但实际不再使用
     processed_images = []
     if images and len(images) > 0:
-        print(f"Processing {len(images)} images")
-        for image in images:
-            try:
-                filename = image.get('filename', 'uploaded_image.jpg')
-                image_data = image.get('data', '')
-                
-                # Extract base64 data after the comma if it's a data URL
-                if image_data.startswith('data:'):
-                    image_data = image_data.split(',')[1]
-                
-                # Decode base64 and upload to OSS
-                image_bytes = base64.b64decode(image_data.encode('utf-8'))
-                image_url = await upload_to_oss(image_bytes, filename)
-                
-                # Create ImageData object similar to reference implementation
-                processed_image = ImageData(
-                    filename=filename,
-                    data=f"data:image/jpeg;base64,{image_data}",  # Keep original base64 for fallback
-                    url=image_url
-                )
-                processed_images.append(processed_image)
-                print(f"Processed image: {filename} -> {image_url}")
-                
-            except Exception as e:
-                print(f"Error processing image {image.get('filename', 'unknown')}: {str(e)}")
-                # Continue with other images even if one fails
+        print(f"Note: Received {len(images)} images in legacy format, but using OpenAI message format instead")
 
     # 历史消息已经从前端传递过来，格式为OpenAI格式，直接使用
     print(f"-- Received {len(historical_messages)} historical messages")
@@ -388,23 +364,9 @@ async def invoke_chat(request):
             print(f"Failed to save workflow data for session {session_id}: {str(e)}")
             # Continue without failing the request
 
-    # Add current user message to OpenAI format
-    current_user_message = {"role": "user", "content": prompt}
-    
-    # For current message with images, format according to OpenAI multimodal format
-    if processed_images and len(processed_images) > 0:
-        content = [{"type": "text", "text": prompt}]
-        for image in processed_images:
-            # Use image URL if available (uploaded to OSS), otherwise use base64 data
-            image_url = image.url if image.url else image.data
-            content.append({
-                "type": "image_url",
-                "image_url": {"url": image_url}
-            })
-        current_user_message["content"] = content
-    
-    # Add current message to historical messages for MCP call
-    openai_messages = historical_messages + [current_user_message]
+    # 历史消息已经从前端传递过来，包含了正确格式的OpenAI消息（包括图片）
+    # 直接使用前端传递的历史消息，无需重新构建当前消息
+    openai_messages = historical_messages
     
     # 不再需要创建用户消息存储到后端，前端负责消息存储
 
@@ -425,8 +387,8 @@ async def invoke_chat(request):
         }
         print(f"config: {config}")
         
-        # Pass messages in OpenAI format and processed images to comfyui_agent_invoke
-        async for result in comfyui_agent_invoke(openai_messages, processed_images if processed_images else None, config):
+        # Pass messages in OpenAI format (images are now included in messages)
+        async for result in comfyui_agent_invoke(openai_messages, None, config):
             # The MCP client now returns tuples (text, ext_with_finished) where ext_with_finished includes finished status
             if isinstance(result, tuple) and len(result) == 2:
                 text, ext_with_finished = result

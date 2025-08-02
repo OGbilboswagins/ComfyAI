@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-14 16:46:20
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-31 15:16:46
+LastEditTime: 2025-08-01 17:12:43
 FilePath: /comfyui_copilot/backend/controller/llm_api.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -30,11 +30,6 @@ llm_config: List[Dict[str, Any]] = [
         "label": "gpt-4.1",
         "name": "gpt-4.1-2025-04-14-GlobalStandard",
         "image_enable": True,
-    },
-    {
-        "label": "qwen-plus",
-        "name": "qwen-plus",
-        "image_enable": False,
     }
 ]
 

@@ -93,11 +93,6 @@ export function ChatInput({
                     "label": "gpt-4.1",
                     "name": "gpt-4.1-2025-04-14-GlobalStandard",
                     "image_enable": true,
-                },
-                {
-                    "label": "qwen-plus",
-                    "name": "qwen-plus",
-                    "image_enable": false,
                 }]);
             }
         };
