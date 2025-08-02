@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-08-01 22:58:28
+ * @LastEditTime: 2025-08-02 11:33:35
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -91,7 +91,41 @@ export namespace WorkflowChatAPI {
     return Promise.resolve();
   }
   
+  
+  // 把img文件存储到comfyUI本地
+  export async function uploadImage(imageFile: File): Promise<{ name: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      formData.append('type', 'input');
 
+      const response = await fetchApi(`/upload/image`, {
+        method: 'POST',
+        headers: {
+          'Accept': '*/*',
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          'Cache-Control': 'max-age=0',
+          'Comfy-User': '',
+          'Origin': BASE_URL,
+          'Referer': `${BASE_URL}/`,
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'same-origin',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    }
+  }
 
   export async function* streamInvokeServer(
     sessionId: string, 
@@ -149,7 +183,7 @@ export namespace WorkflowChatAPI {
         const content: any[] = [
           {
             type: 'input_text',
-            text: prompt
+            text: prompt + ' Current image filenames: ' + images.map(image => image.name).join(', ')
           }
         ];
 

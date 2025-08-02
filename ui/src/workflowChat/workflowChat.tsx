@@ -406,7 +406,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 sessionId, 
                 input, 
                 uploadedImages.map(img => ({
-                    url: img.url
+                    url: img.url,
+                    name: img.file.name
                 })),
                 null,
                 modelExt,
@@ -482,7 +483,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 sessionId, 
                 content, 
                 uploadedImages.map(img => ({
-                    url: img.url
+                    url: img.url,
+                    name: img.file.name
                 })),
                 null,
                 modelExt,
@@ -743,6 +745,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
             body: formData
         });
         const data = await response.json();
+        await WorkflowChatAPI.uploadImage(file);
         return data.success ? {
             url: data.data,
             file,
