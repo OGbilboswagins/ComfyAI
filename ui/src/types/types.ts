@@ -90,6 +90,7 @@ export interface Message {
   trace_id?: string;
   debugGuide?: boolean;
   ext?: ExtItem[];  // 添加ext字段
+  workflow_checkpoint_id?: number;  // 添加工作流检查点ID字段
 }
 
 export interface ToolCall {

@@ -13,6 +13,7 @@ import time
 import uuid
 from agents.tool import function_tool
 import os
+from typing import Dict, Any
 
 from ..agent_factory import create_agent
 from ..utils.globals import get_language
@@ -44,10 +45,23 @@ def get_rewrite_export_schema() -> dict:
     return expert_schema
 
 
-def create_workflow_rewrite_agent(session_id: str):
-    """创建带有session_id的workflow_rewrite_agent实例"""
+def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None):
+    """创建带有session_id和config的workflow_rewrite_agent实例"""
     
     language = get_language()
+    # 导入workflow_rewrite_tools并设置配置
+    from .workflow_rewrite_tools import get_workflow_data_from_config, update_workflow, remove_node, get_node_info
+    from ..service.database import get_workflow_data
+    
+    # 创建带有配置的工具函数
+    @function_tool
+    def get_current_workflow_with_config(session_id: str) -> str:
+        """获取当前session的工作流数据"""
+        workflow_data = get_workflow_data_from_config(config) if config else get_workflow_data(session_id)
+        if not workflow_data:
+            return json.dumps({"error": "No workflow data found for this session"})
+        return json.dumps(workflow_data)
+    
     return create_agent(
         name="Workflow Rewrite Agent",
         model="us.anthropic.claude-sonnet-4-20250514-v1:0",
@@ -73,8 +87,10 @@ def create_workflow_rewrite_agent(session_id: str):
         - **错误处理**：在修改过程中检查潜在的配置错误，提供修正建议
       
         **Tool Usage Guidelines:**
+            - get_current_workflow(): Get current workflow from checkpoint or session
             - remove_node(): Use for incompatible or problematic nodes
             - update_workflow(): Use to save your changes (ALWAYS call this after fixes)
+            - get_node_info(): Get detailed node information
 
       
         ## 响应格式
@@ -82,7 +98,7 @@ def create_workflow_rewrite_agent(session_id: str):
 
         始终以用户的实际需求为导向，提供专业、准确、高效的工作流改写服务。
         """,
-        tools=[get_rewrite_expert_by_name, get_current_workflow, get_node_info, update_workflow, remove_node],
+        tools=[get_rewrite_expert_by_name, get_current_workflow_with_config, get_node_info, update_workflow, remove_node],
     )
 
 # 保持向后兼容性的默认实例

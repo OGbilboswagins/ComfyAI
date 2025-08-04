@@ -86,6 +86,21 @@ class DatabaseManager:
         finally:
             session.close()
     
+    def get_current_workflow_data_ui(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """获取当前session的最新工作流数据（最大ID版本）"""
+        session = self.get_session()
+        try:
+            latest_version = session.query(WorkflowVersion)\
+                .filter(WorkflowVersion.session_id == session_id)\
+                .order_by(WorkflowVersion.id.desc())\
+                .first()
+            
+            if latest_version:
+                return json.loads(latest_version.workflow_data_ui)
+            return None
+        finally:
+            session.close() 
+    
     def get_workflow_version_by_id(self, version_id: int) -> Optional[Dict[str, Any]]:
         """根据版本ID获取工作流数据"""
         session = self.get_session()
@@ -131,6 +146,10 @@ db_manager = DatabaseManager()
 def get_workflow_data(session_id: str) -> Optional[Dict[str, Any]]:
     """获取当前session的工作流数据的便捷函数"""
     return db_manager.get_current_workflow_data(session_id)
+
+def get_workflow_data_ui(session_id: str) -> Optional[Dict[str, Any]]:
+    """获取当前session的工作流数据的便捷函数"""
+    return db_manager.get_current_workflow_data_ui(session_id)
 
 def save_workflow_data(session_id: str, workflow_data: Dict[str, Any], workflow_data_ui: Dict[str, Any] = None, attributes: Optional[Dict[str, Any]] = None) -> int:
     """保存工作流数据的便捷函数"""

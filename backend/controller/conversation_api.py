@@ -330,7 +330,7 @@ async def invoke_chat(request):
     intent = req_json.get('intent')
     ext = req_json.get('ext')
     historical_messages = req_json.get('messages', [])
-    workflow_data = req_json.get('workflow_data')
+    workflow_checkpoint_id = req_json.get('workflow_checkpoint_id')
     
     # 获取当前语言
     language = request.headers.get('Accept-Language', 'en')
@@ -345,24 +345,11 @@ async def invoke_chat(request):
     # 历史消息已经从前端传递过来，格式为OpenAI格式，直接使用
     print(f"-- Received {len(historical_messages)} historical messages")
     
-    # Save current workflow data to database if provided
-    if workflow_data and session_id:
-        try:
-            print(f"Saving workflow data for session {session_id}")
-            save_workflow_data(
-                session_id=session_id,
-                workflow_data=workflow_data,
-                workflow_data_ui=None,  # UI format not available from frontend
-                attributes={
-                    "source": "frontend_current_workflow",
-                    "description": "Current workflow data from canvas",
-                    "timestamp": time.time()
-                }
-            )
-            print(f"Successfully saved workflow data for session {session_id}")
-        except Exception as e:
-            print(f"Failed to save workflow data for session {session_id}: {str(e)}")
-            # Continue without failing the request
+    # Log workflow checkpoint ID if provided (workflow is now pre-saved before invoke)
+    if workflow_checkpoint_id:
+        print(f"Using workflow checkpoint ID: {workflow_checkpoint_id} for session {session_id}")
+    else:
+        print(f"No workflow checkpoint ID provided for session {session_id}")
 
     # 历史消息已经从前端传递过来，包含了正确格式的OpenAI消息（包括图片）
     # 直接使用前端传递的历史消息，无需重新构建当前消息
@@ -381,6 +368,7 @@ async def invoke_chat(request):
         
         config = {
             "session_id": session_id,  # 添加session_id到配置中
+            "workflow_checkpoint_id": workflow_checkpoint_id,  # 添加工作流检查点ID
             "openai_api_key": request.headers.get('Openai-Api-Key'),
             "openai_base_url": request.headers.get('Openai-Base-Url'),
             "model_select": next((x['data'][0] for x in ext if x['type'] == 'model_select' and x.get('data')), None)
@@ -468,7 +456,8 @@ async def save_workflow_checkpoint(request):
         session_id = req_json.get('session_id')
         workflow_api = req_json.get('workflow_api')  # API format workflow
         workflow_ui = req_json.get('workflow_ui')    # UI format workflow  
-        checkpoint_type = req_json.get('checkpoint_type', 'debug_start')  # debug_start or debug_complete
+        checkpoint_type = req_json.get('checkpoint_type', 'debug_start')  # debug_start, debug_complete, user_message_checkpoint
+        message_id = req_json.get('message_id')      # User message ID for linking (optional)
         
         if not session_id or not workflow_api:
             return web.json_response({
@@ -479,9 +468,18 @@ async def save_workflow_checkpoint(request):
         # Save workflow with checkpoint type in attributes
         attributes = {
             "checkpoint_type": checkpoint_type,
-            "description": f"Workflow checkpoint: {checkpoint_type}",
             "timestamp": time.time()
         }
+        
+        # Set description and additional attributes based on checkpoint type
+        if checkpoint_type == "user_message_checkpoint" and message_id:
+            attributes.update({
+                "description": f"Workflow checkpoint before user message {message_id}",
+                "message_id": message_id,
+                "source": "user_message_pre_invoke"
+            })
+        else:
+            attributes["description"] = f"Workflow checkpoint: {checkpoint_type}"
         
         version_id = save_workflow_data(
             session_id=session_id,
@@ -492,12 +490,21 @@ async def save_workflow_checkpoint(request):
         
         print(f"Workflow checkpoint saved with version ID: {version_id}")
         
+        # Return response format based on checkpoint type
+        response_data = {
+            "version_id": version_id,
+            "checkpoint_type": checkpoint_type
+        }
+        
+        if checkpoint_type == "user_message_checkpoint" and message_id:
+            response_data.update({
+                "checkpoint_id": version_id,  # Add checkpoint_id alias for user message checkpoints
+                "message_id": message_id
+            })
+        
         return web.json_response({
             "success": True,
-            "data": {
-                "version_id": version_id,
-                "checkpoint_type": checkpoint_type
-            },
+            "data": response_data,
             "message": f"Workflow checkpoint saved successfully"
         })
         
@@ -507,6 +514,7 @@ async def save_workflow_checkpoint(request):
             "success": False,
             "message": f"Failed to save workflow checkpoint: {str(e)}"
         })
+
 
 
 @server.PromptServer.instance.routes.get("/api/restore-workflow-checkpoint")

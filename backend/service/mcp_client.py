@@ -69,7 +69,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
                 os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             
             # 创建带有session_id的workflow_rewrite_agent实例
-            workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id)
+            workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id, config)
             
             agent = create_agent(
                 name="ComfyUI-Copilot",

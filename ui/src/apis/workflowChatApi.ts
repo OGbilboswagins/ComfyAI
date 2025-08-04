@@ -135,7 +135,8 @@ export namespace WorkflowChatAPI {
     ext: any | null = null,
     trace_id?: string,
     abortSignal?: AbortSignal,
-    historyMessages: Message[] = []
+    historyMessages: Message[] = [],
+    userMessageId?: string
   ): AsyncGenerator<ChatResponse> {
     try {
       const apiKey = getApiKey();
@@ -208,16 +209,24 @@ export namespace WorkflowChatAPI {
       // Handle ext parameter
       let finalExt = ext ? (Array.isArray(ext) ? ext : [ext]) : [];
       
-      // Always get current workflow data for potential workflow modification requests
-      let currentWorkflowData: any = null;
-      try {
-        console.log('Getting current workflow data...');
-        const workflowPrompt = await app.graphToPrompt();
-        currentWorkflowData = workflowPrompt.output;
-        console.log('Successfully retrieved current workflow data');
-      } catch (error) {
-        console.error('Failed to get current workflow data:', error);
-        // Continue without workflow data - the backend will handle the error appropriately
+      // Save current workflow checkpoint before invoking if userMessageId is provided
+      let workflowCheckpointId: number | null = null;
+      if (userMessageId) {
+        try {
+          console.log('Saving workflow checkpoint before invoke...');
+          const workflowPrompt = await app.graphToPrompt();
+          const checkpointData = await saveWorkflowCheckpointBeforeInvoke(
+            sessionId,
+            workflowPrompt.output,  // API format
+            workflowPrompt.workflow,  // UI format
+            userMessageId
+          );
+          workflowCheckpointId = checkpointData.checkpoint_id;
+          console.log(`Successfully saved workflow checkpoint with ID: ${workflowCheckpointId}`);
+        } catch (error) {
+          console.error('Failed to save workflow checkpoint before invoke:', error);
+          // Continue without checkpoint - the backend will handle missing workflow data appropriately
+        }
       }
       
       // Prepare headers
@@ -268,7 +277,7 @@ export namespace WorkflowChatAPI {
           ext: finalExt,
           messages: allOpenaiMessages,
           images: [],  // 保持向后兼容，但现在图片已经在messages中
-          workflow_data: currentWorkflowData
+          workflow_checkpoint_id: workflowCheckpointId
         }),
         signal: controller.signal
       });
@@ -783,6 +792,40 @@ export namespace WorkflowChatAPI {
       return result.data;
     } catch (error) {
       console.error('Error restoring workflow checkpoint:', error);
+      throw error;
+    }
+  }
+
+  export async function saveWorkflowCheckpointBeforeInvoke(
+    sessionId: string,
+    workflowApi: any,
+    workflowUi: any,
+    messageId: string
+  ): Promise<{ checkpoint_id: number; checkpoint_type: string; message_id: string }> {
+    try {
+      const response = await fetch('/api/save-workflow-checkpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'trace-id': generateUUID(),
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          workflow_api: workflowApi,
+          workflow_ui: workflowUi,
+          checkpoint_type: 'user_message_checkpoint',
+          message_id: messageId
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to save workflow checkpoint before invoke');
+      }
+
+      return result.data;
+    } catch (error) {
+      console.error('Error saving workflow checkpoint before invoke:', error);
       throw error;
     }
   }

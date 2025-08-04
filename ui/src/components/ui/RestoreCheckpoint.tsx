@@ -2,6 +2,7 @@ import { Undo2 } from "lucide-react";
 import { useState } from "react";
 import { WorkflowChatAPI } from "../../apis/workflowChatApi";
 import { app } from "../../utils/comfyapp";
+import { loadApiWorkflowWithMissingNodes } from "../../utils/comfyuiWorkflowApi2Ui";
 
 const RestoreCheckpoint = ({ checkpointId, onRestore, title }: { checkpointId: number; onRestore: () => void; title?: string }) => {
   const [isRestoring, setIsRestoring] = useState(false);
@@ -23,7 +24,8 @@ const RestoreCheckpoint = ({ checkpointId, onRestore, title }: { checkpointId: n
                   app.loadGraphData(workflowToLoad);
               } else {
                   // API format - use loadApiJson
-                  app.loadApiJson(workflowToLoad);
+                //   app.loadApiJson(workflowToLoad);
+                  loadApiWorkflowWithMissingNodes(workflowToLoad);
               }
               
               console.log(`Restored workflow checkpoint ${checkpointId}`);
