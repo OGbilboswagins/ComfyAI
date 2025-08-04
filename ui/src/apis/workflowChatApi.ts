@@ -130,7 +130,7 @@ export namespace WorkflowChatAPI {
   export async function* streamInvokeServer(
     sessionId: string, 
     prompt: string, 
-    images: {url: string}[] = [], 
+    images: {url: string, name: string}[] = [], 
     intent: string | null = null, 
     ext: any | null = null,
     trace_id?: string,

@@ -1,4 +1,5 @@
-#comfyui-copilot-plugin {
+#comfyui-copilot-plugin,
+#comfyui-copilot-modal {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;

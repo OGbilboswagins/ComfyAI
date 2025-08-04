@@ -1,4 +1,5 @@
-#comfyui-copilot-plugin {
+#comfyui-copilot-plugin,
+#comfyui-copilot-modal {
   *, ::before, ::after {
     --tw-border-spacing-x: 0;
     --tw-border-spacing-y: 0;
@@ -266,6 +267,9 @@
   }
   .z-50 {
     z-index: 50;
+  }
+  .z-\[1000\] {
+    z-index: 1000;
   }
   .z-\[9999\] {
     z-index: 9999;
@@ -1538,9 +1542,9 @@
   border-color: rgb(113 163 242 / var(--tw-border-opacity, 1)) !important;
 }
 
-.hover\:border-blue-500:hover {
-  --tw-border-opacity: 1;
-  border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
+.hover\:\!border-blue-500:hover {
+  --tw-border-opacity: 1 !important;
+  border-color: rgb(59 130 246 / var(--tw-border-opacity, 1)) !important;
 }
 
 .hover\:\!bg-gray-100:hover {
