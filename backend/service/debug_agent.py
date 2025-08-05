@@ -331,6 +331,7 @@ Start by validating the workflow to see its current state.""",
             - Review missing_connections and possible_connections from the analysis
             - Choose the most efficient combination of existing connections and new nodes
             - Consider connection_summary to understand the scope of work needed
+            - Do not lose or modify parameters that are not reporting errors
             
             4. **Verification and handoff**:
             - After applying fixes: TRANSFER to ComfyUI-Debug-Coordinator for verification
