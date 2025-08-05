@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional, List
 
 from agents.agent import Agent
 from agents.tool import function_tool
+from ..utils.string_utils import error_format
 
 from ..service.database import get_workflow_data, save_workflow_data, get_workflow_data_ui, get_workflow_data_by_id
 from ..utils.comfy_gateway import get_object_info
@@ -147,7 +148,7 @@ def update_workflow(session_id: str, workflow_data: str) -> str:
             "ext": ext_data
         })
     except Exception as e:
-        return json.dumps({"error": f"Failed to update workflow: {str(e)}"})
+        return json.dumps({"error": f"Failed to update workflow: {error_format(e)}"})
 
 @function_tool
 def remove_node(session_id: str, node_id: str) -> str:
