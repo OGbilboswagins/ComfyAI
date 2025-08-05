@@ -21,10 +21,77 @@ declare const LiteGraph: any;
 declare const app: ComfyApp;
 
 /**
- * 优化节点布局，基于WorkflowOption.tsx的逻辑
+ * 计算节点在工作流中的层级（基于数据流方向）
+ * @param workflow - 工作流对象
+ * @returns 节点ID到层级的映射
+ */
+function calculateNodeLayers(workflow: any): Map<number, number> {
+  const nodes = workflow.nodes;
+  const links = workflow.links || [];
+  
+  // 构建节点依赖图
+  const nodeMap = new Map<number, any>();
+  const dependencies = new Map<number, Set<number>>(); // 节点ID -> 依赖的节点ID集合
+  const dependents = new Map<number, Set<number>>(); // 节点ID -> 依赖它的节点ID集合
+  
+  // 初始化节点映射
+  for (const node of nodes) {
+    nodeMap.set(node.id, node);
+    dependencies.set(node.id, new Set());
+    dependents.set(node.id, new Set());
+  }
+  
+  // 分析连线建立依赖关系
+  for (const link of links) {
+    if (Array.isArray(link) && link.length >= 4) {
+      const [, sourceId, , targetId] = link;
+      dependencies.get(targetId)?.add(sourceId);
+      dependents.get(sourceId)?.add(targetId);
+    }
+  }
+  
+  // 使用拓扑排序计算层级
+  const layers = new Map<number, number>();
+  const visited = new Set<number>();
+  
+  function calculateLayer(nodeId: number): number {
+    if (visited.has(nodeId)) {
+      return layers.get(nodeId) || 0;
+    }
+    
+    visited.add(nodeId);
+    
+    const deps = dependencies.get(nodeId) || new Set();
+    if (deps.size === 0) {
+      // 输入节点，层级为0
+      layers.set(nodeId, 0);
+      return 0;
+    }
+    
+    // 层级为所有依赖节点的最大层级 + 1
+    let maxDepLayer = -1;
+    for (const depId of deps) {
+      maxDepLayer = Math.max(maxDepLayer, calculateLayer(depId));
+    }
+    
+    const layer = maxDepLayer + 1;
+    layers.set(nodeId, layer);
+    return layer;
+  }
+  
+  // 计算所有节点的层级
+  for (const node of nodes) {
+    calculateLayer(node.id);
+  }
+  
+  return layers;
+}
+
+/**
+ * 优化节点布局，基于数据流方向从左到右排列
  * @param workflow - 工作流对象
  */
-function optimizeNodeLayout(workflow: ComfyWorkflowJSON): void {
+function optimizeNodeLayout(workflow: any): void {
   const nodes = workflow.nodes;
   if (!nodes || nodes.length === 0) return;
 
@@ -32,41 +99,76 @@ function optimizeNodeLayout(workflow: ComfyWorkflowJSON): void {
   const base_size_x = 250;
   const base_size_y = 60;
   const param_y = 20;
-  const align = 60;
-  const align_y = 50;
-  const max_size_y = 1000;
+  const layer_spacing = 320; // 层级间距
+  const node_spacing_y = 50; // 同层节点间垂直间距
   
   // 起始位置
   const base_x = 100;
   const base_y = 100;
   
-  let last_start_x = base_x;
-  let last_start_y = base_y;
-  let tool_size_y = 0;
+  // 计算节点层级
+  const nodeLayers = calculateNodeLayers(workflow);
+  const maxLayer = Math.max(...Array.from(nodeLayers.values()));
   
-  for (const node of nodes) {
-    // 检查是否需要换列
-    if (tool_size_y > max_size_y) {
-      last_start_x += base_size_x + align;
-      tool_size_y = 0;
-      last_start_y = base_y;
-    }
-
-    // 根据参数计算节点的高度
+  // 按层级分组节点
+  const layerGroups = new Map<number, any[]>();
+  for (let i = 0; i <= maxLayer; i++) {
+    layerGroups.set(i, []);
+  }
+  
+  // 计算节点尺寸并分组
+  const nodeData = nodes.map((node: any) => {
     const inputCount = node.inputs ? node.inputs.length : 0;
     const outputCount = node.outputs ? node.outputs.length : 0;
     const widgetCount = node.widgets_values ? node.widgets_values.length : 0;
     const param_count = Math.max(inputCount, outputCount) + widgetCount;
+    const size_y = Math.max(param_y * param_count + base_size_y, base_size_y);
+    const layer = nodeLayers.get(node.id) || 0;
     
-    const size_y = param_y * param_count + base_size_y;
+    const data = {
+      node,
+      layer,
+      size_y
+    };
     
-    // 设置节点大小和位置
-    node.size = [base_size_x, size_y];
-    node.pos = [last_start_x, last_start_y];
-
-    tool_size_y += size_y + align_y;
-    last_start_y += size_y + align_y;
+    layerGroups.get(layer)?.push(data);
+    return data;
+  });
+  
+  // 为每层节点计算位置
+  for (let layer = 0; layer <= maxLayer; layer++) {
+    const layerNodes = layerGroups.get(layer) || [];
+    if (layerNodes.length === 0) continue;
+    
+    // 按节点高度排序，较高的节点放在中间
+    layerNodes.sort((a, b) => b.size_y - a.size_y);
+    
+    // 计算该层的总高度
+    const totalHeight = layerNodes.reduce((sum, data, index) => {
+      return sum + data.size_y + (index > 0 ? node_spacing_y : 0);
+    }, 0);
+    
+    // 计算该层起始Y位置（垂直居中）
+    let currentY = base_y - totalHeight / 2;
+    
+    // 如果总高度过大，调整起始位置确保不会超出边界
+    if (currentY < 50) {
+      currentY = 50;
+    }
+    
+    // 为该层的每个节点设置位置
+    for (const data of layerNodes) {
+      data.node.size = [base_size_x, data.size_y];
+      data.node.pos = [
+        base_x + layer * layer_spacing,
+        Math.max(currentY, 50) // 确保Y坐标不会太小
+      ];
+      
+      currentY += data.size_y + node_spacing_y;
+    }
   }
+  
+  console.log(`[Layout] Applied layer-based layout with ${maxLayer + 1} layers`);
 }
 
 /**
@@ -110,19 +212,20 @@ export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
   
   // First pass: Create node structures
   let nodeIndex = 0;
-  for (const [id, data] of Object.entries(apiData)) {
+  for (const [id, data] of Object.entries(apiData as any)) {
+    const nodeData = data as any;
     const numericId = isNaN(+id) ? nodeIndex : +id;
     if (typeof numericId === 'number' && numericId > maxNodeId) {
       maxNodeId = numericId;
     }
     
     // Check if node type exists
-    const nodeTypeExists = data.class_type in LiteGraph.registered_node_types;
+    const nodeTypeExists = nodeData.class_type in LiteGraph.registered_node_types;
     
     // Create node structure (position and size will be optimized later)
-    const node: ComfyWorkflowJSON['nodes'][0] = {
+    const node: any = {
       id: numericId,
-      type: data.class_type,
+      type: nodeData.class_type,
       pos: [0, 0], // Temporary position, will be set by optimizeNodeLayout
       size: [210, 58], // Temporary size, will be set by optimizeNodeLayout
       flags: {},
@@ -135,8 +238,8 @@ export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
     };
     
     // Add title if provided
-    if (data._meta?.title) {
-      node.title = data._meta.title;
+    if (nodeData._meta?.title) {
+      node.title = nodeData._meta.title;
     }
     
     // Store mapping
@@ -147,15 +250,16 @@ export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
   
   // Second pass: Process inputs and create widget values/connections
   nodeIndex = 0;
-  for (const [id, data] of Object.entries(apiData)) {
+  for (const [, data] of Object.entries(apiData as any)) {
+    const nodeData = data as any;
     const node = nodes[nodeIndex];
-    const nodeTypeExists = data.class_type in LiteGraph.registered_node_types;
+    const nodeTypeExists = nodeData.class_type in LiteGraph.registered_node_types;
     
     // Separate widget values from connections
     const widgetInputs: Record<string, any> = {};
     const connectionInputs: Array<{name: string; value: [string, number]}> = [];
     
-    for (const [inputName, inputValue] of Object.entries(data.inputs ?? {})) {
+    for (const [inputName, inputValue] of Object.entries(nodeData.inputs ?? {})) {
       if (Array.isArray(inputValue) && inputValue.length === 2 && 
           typeof inputValue[1] === 'number') {
         connectionInputs.push({ name: inputName, value: inputValue as [string, number] });
@@ -167,7 +271,7 @@ export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
     // Process widget values
     if (nodeTypeExists) {
       // For existing nodes, get widget order from node definition
-      const nodeType = LiteGraph.registered_node_types[data.class_type];
+      const nodeType = LiteGraph.registered_node_types[nodeData.class_type];
       try {
         const tempNode = new nodeType();
         if (tempNode.widgets) {
@@ -194,7 +298,7 @@ export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
     }
     
     // Add any remaining widget values (for missing nodes or unmatched widgets)
-    for (const [name, value] of Object.entries(widgetInputs)) {
+    for (const [, value] of Object.entries(widgetInputs)) {
       node.widgets_values.push(
         value && typeof value === 'object' && '__value__' in value
           ? value.__value__
