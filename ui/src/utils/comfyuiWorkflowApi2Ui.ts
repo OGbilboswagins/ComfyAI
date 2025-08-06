@@ -15,6 +15,7 @@ import type {
   ComfyApiWorkflow,
   ComfyApp 
 } from '@comfyorg/comfyui-frontend-types';
+import { getObjectInfoByClass } from '../apis/comfyApiCustom';
 
 // Assuming these are available in the global scope when running as an extension
 declare const LiteGraph: any;
@@ -193,11 +194,11 @@ function optimizeNodeLayout(workflow: any): void {
  *   }
  * };
  * 
- * const workflow = apiToWorkflow(apiWorkflow);
+ * const workflow = await apiToWorkflow(apiWorkflow);
  * app.loadGraphData(workflow);
  * ```
  */
-export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
+export async function apiToWorkflow(apiData: ComfyApiWorkflow): Promise<ComfyWorkflowJSON> {
   // Pre-allocate arrays based on expected size
   const nodeCount = Object.keys(apiData).length;
   const nodes: ComfyWorkflowJSON['nodes'] = [];
@@ -268,42 +269,97 @@ export function apiToWorkflow(apiData: ComfyApiWorkflow): ComfyWorkflowJSON {
       }
     }
     
-    // Process widget values
-    if (nodeTypeExists) {
-      // For existing nodes, get widget order from node definition
-      const nodeType = LiteGraph.registered_node_types[nodeData.class_type];
-      try {
-        const tempNode = new nodeType();
-        if (tempNode.widgets) {
-          for (const widget of tempNode.widgets) {
-            if (widgetInputs.hasOwnProperty(widget.name)) {
-              const value = widgetInputs[widget.name];
-              node.widgets_values.push(
-                value && typeof value === 'object' && '__value__' in value
-                  ? value.__value__
-                  : value
-              );
-              delete widgetInputs[widget.name];
-            }
+    // Process widget values using ComfyUI API
+    try {
+      // Get node definition from ComfyUI API
+      const nodeInfo = await getObjectInfoByClass(nodeData.class_type);
+      
+      if (nodeInfo && nodeInfo[nodeData.class_type]) {
+        const nodeDefinition = nodeInfo[nodeData.class_type];
+        const inputOrder = nodeDefinition.input_order?.required || [];
+        const requiredInputs = nodeDefinition.input?.required || {};
+        
+        // Process widget values in the correct order based on input_order
+        for (const inputName of inputOrder) {
+          // Only process non-connection inputs (widget values)
+          if (widgetInputs.hasOwnProperty(inputName)) {
+            const value = widgetInputs[inputName];
+            node.widgets_values.push(
+              value && typeof value === 'object' && '__value__' in value
+                ? value.__value__
+                : value
+            );
+            delete widgetInputs[inputName];
           }
         }
-        // Clean up temp node - remove from any graph context
-        tempNode.graph = null;
-        tempNode.widgets = null;
-        tempNode.inputs = null;
-        tempNode.outputs = null;
-      } catch (e) {
-        // Fallback if node construction fails
+        
+        // Add any remaining widget values that weren't in the input_order
+        for (const [inputName, value] of Object.entries(widgetInputs)) {
+          // Check if it's actually a widget (not a connection input)
+          if (requiredInputs[inputName] && !Array.isArray(requiredInputs[inputName][0])) {
+            node.widgets_values.push(
+              value && typeof value === 'object' && '__value__' in value
+                ? value.__value__
+                : value
+            );
+          }
+        }
+      } else {
+        // Fallback for missing or unknown nodes - add all widget values
+        for (const [, value] of Object.entries(widgetInputs)) {
+          node.widgets_values.push(
+            value && typeof value === 'object' && '__value__' in value
+              ? value.__value__
+              : value
+          );
+        }
       }
-    }
-    
-    // Add any remaining widget values (for missing nodes or unmatched widgets)
-    for (const [, value] of Object.entries(widgetInputs)) {
-      node.widgets_values.push(
-        value && typeof value === 'object' && '__value__' in value
-          ? value.__value__
-          : value
-      );
+    } catch (error) {
+      console.warn(`[API to Workflow] Failed to get node info for ${nodeData.class_type}:`, error);
+      
+      // Fallback: use the old method for existing nodes
+      if (nodeTypeExists) {
+        const nodeType = LiteGraph.registered_node_types[nodeData.class_type];
+        try {
+          const tempNode = new nodeType();
+          if (tempNode.widgets) {
+            for (const widget of tempNode.widgets) {
+              if (widgetInputs.hasOwnProperty(widget.name)) {
+                const value = widgetInputs[widget.name];
+                node.widgets_values.push(
+                  value && typeof value === 'object' && '__value__' in value
+                    ? value.__value__
+                    : value
+                );
+                delete widgetInputs[widget.name];
+              }
+            }
+          }
+          // Clean up temp node
+          tempNode.graph = null;
+          tempNode.widgets = null;
+          tempNode.inputs = null;
+          tempNode.outputs = null;
+        } catch (e) {
+          // Final fallback - add all remaining values
+          for (const [, value] of Object.entries(widgetInputs)) {
+            node.widgets_values.push(
+              value && typeof value === 'object' && '__value__' in value
+                ? value.__value__
+                : value
+            );
+          }
+        }
+      } else {
+        // Add all remaining widget values for missing nodes
+        for (const [, value] of Object.entries(widgetInputs)) {
+          node.widgets_values.push(
+            value && typeof value === 'object' && '__value__' in value
+              ? value.__value__
+              : value
+          );
+        }
+      }
     }
     
     // Process connections
@@ -441,22 +497,22 @@ export function addCNRMetadata(
  * @example
  * ```typescript
  * // Simple usage - will use fuzzy search for missing nodes
- * loadApiWorkflowWithMissingNodes(llmGeneratedWorkflow);
+ * await loadApiWorkflowWithMissingNodes(llmGeneratedWorkflow);
  * 
  * // With specific node pack suggestions (optional)
  * const metadata = {
  *   "CustomNode": { cnr_id: "my-custom-nodes", ver: "1.0.0" }
  * };
- * loadApiWorkflowWithMissingNodes(llmGeneratedWorkflow, "LLM Generated", metadata);
+ * await loadApiWorkflowWithMissingNodes(llmGeneratedWorkflow, "LLM Generated", metadata);
  * ```
  */
-export function loadApiWorkflowWithMissingNodes(
+export async function loadApiWorkflowWithMissingNodes(
   apiData: ComfyApiWorkflow, 
   fileName: string = "API Workflow",
   nodeMetadata?: Record<string, { cnr_id: string; ver?: string }>
-): void {
+): Promise<void> {
   // Convert API format to workflow format
-  const workflow = apiToWorkflow(apiData);
+  const workflow = await apiToWorkflow(apiData);
   
   // Add CNR metadata if provided
   if (nodeMetadata) {
@@ -581,7 +637,7 @@ export class LLMWorkflowExtension {
       };
       
       // 3. Load the workflow with proper missing node handling
-      loadApiWorkflowWithMissingNodes(
+      await loadApiWorkflowWithMissingNodes(
         apiWorkflow,
         `LLM: ${prompt.substring(0, 50)}...`,
         nodeMetadata
