@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-06 18:05:17
+LastEditTime: 2025-08-06 19:32:27
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -89,7 +89,10 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
           * 确保连接的参数类型完全匹配，避免类型不兼容的连接
         - **连线检查**：在添加、删除或修改节点时，务必检查所有相关的输入和输出连接是否正确配置
         - **连接关系维护**：修改节点时必须保持原有的连接逻辑，确保数据流向正确
-        - **节点连线规则**：特别注意，任何对工作流的修改都必须检查并保持节点间的正确连线，连线的时候注意参数类型，不要把不相匹配的参数连线
+        - **类型严格匹配**：在进行任何连线操作时，必须严格验证输入输出类型匹配
+          * 在修改连线前，先使用get_node_info()获取节点的完整输入输出规格信息
+          * 仔细检查源节点的输出类型(output_type)与目标节点的输入类型(input_type)
+          * 如果类型不匹配，寻找正确的源节点或添加类型转换节点
         - **性能考虑**：避免不必要的重复节点，优化工作流执行效率
         - **用户友好**：保持工作流结构清晰，便于用户理解和后续修改
         - **错误处理**：在修改过程中检查潜在的配置错误，提供修正建议
@@ -98,7 +101,7 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
             - get_current_workflow(): Get current workflow from checkpoint or session
             - remove_node(): Use for incompatible or problematic nodes
             - update_workflow(): Use to save your changes (ALWAYS call this after fixes)
-            - get_node_info(): Get detailed node information
+            - get_node_info(): Get detailed node information and verify input/output types before connecting
 
       
         ## 响应格式
