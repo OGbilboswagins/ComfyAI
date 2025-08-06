@@ -409,7 +409,7 @@ Start by validating the workflow to see its current state.""",
               * wan2.1 system (examples: wan2.1_base, wan2.1_t2v, etc.)
               * wan2.2 system (examples: wan2.2_t2v, wan2.2_iv2, wan2.2_kontext, wan2.2_redux, etc.)
             - Match by model system first (SDXL/Flux/wan2.1/wan2.2), then by model category (fill/dev/base/t2v/iv2/kontext/redux)
-            - **System-specific component matching rules:**
+            - [Critical!] **System-specific component matching rules:**
               * **Flux series**: Requires fixed system components - vae: ae.safetensors, DualCLIPLoader: clip_l.safetensors + t5xxl_fp16.safetensors or t5xxl_fp8.safetensors, type: flux. In DualCLIP and UNetLoader/Load Checkpoint, search by system+category (e.g., Flux-dev-fp8 can be replaced with similar Flux-dev)
               * **SDXL series**: vae: sdxl_vae.safetensors or vae-fe-mse-840000-ema-pruned.safetensors (priority search by system: vae, category: sdxl/840000). Load checkpoint search by system: sdxl, category: similar name (e.g., SDXL-dreamshaper.safetensors where dreamshaper is the category)
             - If similar model from same system exists, replace with most similar match

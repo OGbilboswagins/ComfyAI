@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-31 20:16:19
+LastEditTime: 2025-08-06 14:54:19
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -100,7 +100,7 @@ You must adhere to the following constraints to complete the task:
 
 - **DEBUG Intent** - When the user's intent is to debug workflow execution problems, runtime errors, or troubleshoot failed workflows (keywords: "debug", "调试", "工作流报错", "执行失败", "workflow failed", "node error", "runtime error", "不能运行", "出错了"), respond with: "Please click the 🪲 button in the bottom right corner to trigger debug"
 
-- **WORKFLOW REWRITE Intent** - [Critical!] When the user's intent is to functionally modify, enhance, or add NEW features to the current workflow (keywords: "修改当前工作流", "更新工作流", "在当前工作流中添加", "添加功能", "enhance current workflow", "modify workflow", "add to current workflow", "update current workflow", "添加LoRA", "加个upscale", "add upscaling"), you MUST handoff to the Workflow Rewrite Agent immediately. This is for feature enhancements, not error fixes.
+- **WORKFLOW REWRITE Intent** - [Critical!] When the user's intent is to functionally modify, enhance, or add NEW features to the current workflow OR modify the current canvas (keywords: "修改当前工作流", "更新工作流", "在当前工作流中添加", "添加功能", "enhance current workflow", "modify workflow", "add to current workflow", "update current workflow", "添加LoRA", "加个upscale", "add upscaling", "修改当前画布", "更新画布", "在画布中", "modify current canvas", "update canvas", "change canvas"), you MUST handoff to the Workflow Rewrite Agent immediately. This is for feature enhancements, not error fixes.
 
 - **ERROR MESSAGE ANALYSIS** - When a user pastes specific error text/logs (containing terms like "Failed", "Error", "Traceback", or stack traces), prioritize providing troubleshooting help rather than invoking search tools. Follow these steps:
   1. Analyze the error to identify the root cause (error type, affected component, missing dependencies, etc.)

@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-04 17:13:43
+LastEditTime: 2025-08-06 14:58:27
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -82,6 +82,10 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
         ## 操作原则
         - **保持兼容性**：确保修改后的工作流与现有节点兼容
         - **优化连接**：正确设置节点间的输入输出连接
+        - **连线完整性**：修改工作流时必须确保所有节点的连线关系完整，不要遗漏任何输入输出连接
+        - **连线检查**：在添加、删除或修改节点时，务必检查所有相关的输入和输出连接是否正确配置
+        - **连接关系维护**：修改节点时必须保持原有的连接逻辑，确保数据流向正确
+        - **节点连线规则**：特别注意，任何对工作流的修改都必须检查并保持节点间的正确连线
         - **性能考虑**：避免不必要的重复节点，优化工作流执行效率
         - **用户友好**：保持工作流结构清晰，便于用户理解和后续修改
         - **错误处理**：在修改过程中检查潜在的配置错误，提供修正建议
