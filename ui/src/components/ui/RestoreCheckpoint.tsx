@@ -32,8 +32,8 @@ const RestoreCheckpoint = ({ checkpointId, onRestore, title }: { checkpointId: n
                   app.loadGraphData(workflowToLoad);
               } else {
                   // API format - use loadApiJson
-                  app.loadApiJson(workflowToLoad);
-                //   loadApiWorkflowWithMissingNodes(workflowToLoad);
+                //   app.loadApiJson(workflowToLoad);
+                  loadApiWorkflowWithMissingNodes(workflowToLoad);
               }
               
               console.log(`Restored workflow checkpoint ${checkpointId}`);

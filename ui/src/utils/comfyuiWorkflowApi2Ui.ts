@@ -269,7 +269,7 @@ export async function apiToWorkflow(apiData: ComfyApiWorkflow): Promise<ComfyWor
       }
     }
     
-    // Process widget values using ComfyUI API
+    // Process widget values using ComfyUI API to get correct order
     try {
       // Get node definition from ComfyUI API
       const nodeInfo = await getObjectInfoByClass(nodeData.class_type);
@@ -279,31 +279,64 @@ export async function apiToWorkflow(apiData: ComfyApiWorkflow): Promise<ComfyWor
         const inputOrder = nodeDefinition.input_order?.required || [];
         const requiredInputs = nodeDefinition.input?.required || {};
         
+        console.log(`[API to Workflow] Processing ${nodeData.class_type} with input_order:`, inputOrder);
+        console.log(`[API to Workflow] Available widget inputs:`, Object.keys(widgetInputs));
+        
         // Process widget values in the correct order based on input_order
         for (const inputName of inputOrder) {
-          // Only process non-connection inputs (widget values)
-          if (widgetInputs.hasOwnProperty(inputName)) {
-            const value = widgetInputs[inputName];
-            node.widgets_values.push(
-              value && typeof value === 'object' && '__value__' in value
-                ? value.__value__
-                : value
-            );
+          const inputConfig = requiredInputs[inputName];
+          if (!inputConfig) continue;
+          
+          // Check if this is a widget input (not a connection)
+          // Connection inputs have types like "MODEL", "CONDITIONING", "LATENT", "VAE", "CLIP"
+          // Widget inputs have types like "INT", "FLOAT", or arrays of choices
+          const inputType = inputConfig[0];
+          const isConnectionInput = typeof inputType === 'string' && 
+                                  (inputType === 'MODEL' || inputType === 'CONDITIONING' || 
+                                   inputType === 'LATENT' || inputType === 'VAE' || 
+                                   inputType === 'CLIP' || inputType === 'IMAGE' ||
+                                   inputType === 'CONTROL_NET' || inputType === 'STYLE_MODEL');
+          
+          if (!isConnectionInput) {
+            // This is a widget input
+            if (widgetInputs.hasOwnProperty(inputName)) {
+              // Use provided value
+              const value = widgetInputs[inputName];
+              node.widgets_values.push(
+                value && typeof value === 'object' && '__value__' in value
+                  ? value.__value__
+                  : value
+              );
+              console.log(`[API to Workflow] Added widget ${inputName}:`, value);
+              
+              // Check if this parameter has control_after_generate (like seed)
+              if (inputConfig[1] && inputConfig[1].control_after_generate) {
+                // Add the control mode (default to "randomize" if not specified)
+                const controlMode = "randomize"; // This could be "fixed", "increment", "decrement", or "randomize"
+                node.widgets_values.push(controlMode);
+                console.log(`[API to Workflow] Added control_after_generate for ${inputName}:`, controlMode);
+              }
+              
+            } else if (inputConfig[1] && 'default' in inputConfig[1]) {
+              // Use default value from node definition
+              const defaultValue = inputConfig[1].default;
+              node.widgets_values.push(defaultValue);
+              console.log(`[API to Workflow] Added default widget ${inputName}:`, defaultValue);
+              
+              // Check if this parameter has control_after_generate
+              if (inputConfig[1].control_after_generate) {
+                const controlMode = "randomize";
+                node.widgets_values.push(controlMode);
+                console.log(`[API to Workflow] Added default control_after_generate for ${inputName}:`, controlMode);
+              }
+            }
+            // Remove processed input to avoid duplication
             delete widgetInputs[inputName];
           }
         }
         
-        // Add any remaining widget values that weren't in the input_order
-        for (const [inputName, value] of Object.entries(widgetInputs)) {
-          // Check if it's actually a widget (not a connection input)
-          if (requiredInputs[inputName] && !Array.isArray(requiredInputs[inputName][0])) {
-            node.widgets_values.push(
-              value && typeof value === 'object' && '__value__' in value
-                ? value.__value__
-                : value
-            );
-          }
-        }
+        console.log(`[API to Workflow] Final ${nodeData.class_type} widgets_values:`, node.widgets_values);
+        
       } else {
         // Fallback for missing or unknown nodes - add all widget values
         for (const [, value] of Object.entries(widgetInputs)) {
@@ -511,19 +544,24 @@ export async function loadApiWorkflowWithMissingNodes(
   fileName: string = "API Workflow",
   nodeMetadata?: Record<string, { cnr_id: string; ver?: string }>
 ): Promise<void> {
-  // Convert API format to workflow format
-  const workflow = await apiToWorkflow(apiData);
-  
-  // Add CNR metadata if provided
-  if (nodeMetadata) {
-    addCNRMetadata(workflow, nodeMetadata);
+  try {
+    // Convert API format to workflow format
+    const workflow = await apiToWorkflow(apiData);
+    
+    // Add CNR metadata if provided
+    if (nodeMetadata) {
+      addCNRMetadata(workflow, nodeMetadata);
+    }
+    
+    // Load using the standard workflow loader which handles missing nodes properly
+    app.loadGraphData(workflow, true, true, fileName, {
+      showMissingNodesDialog: true,
+      showMissingModelsDialog: true
+    });
+  } catch (error) {
+    console.error("[LLM Extension] Failed to generate workflow:", error);
+    app.loadApiJson(apiData, fileName);
   }
-  
-  // Load using the standard workflow loader which handles missing nodes properly
-  app.loadGraphData(workflow, true, true, fileName, {
-    showMissingNodesDialog: true,
-    showMissingModelsDialog: true
-  });
 }
 
 // ============================================================================
@@ -1110,3 +1148,71 @@ const simpleExample: ComfyWorkflowJSON = {
   },
   "version": 0.4
 };
+
+// ============================================================================
+// DEBUG AND TESTING FUNCTIONS
+// ============================================================================
+
+/**
+ * Debug function to test KSampler parameter conversion
+ * Call this in browser console: testKSamplerParameterFix()
+ */
+(globalThis as any).testKSamplerParameterFix = async function() {
+  const testApiWorkflow: ComfyApiWorkflow = {
+    "8": {
+      "inputs": {
+        "seed": 920015823038803,
+        "steps": 20,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "scheduler": "normal", 
+        "denoise": 1,
+        "model": ["2", 0],
+        "positive": ["8", 0],
+        "negative": ["8", 1],
+        "latent_image": ["8", 2]
+      },
+      "class_type": "KSampler",
+      "_meta": {
+        "title": "KSampler"
+      }
+    }
+  };
+
+  try {
+    console.log("🧪 [Debug] Testing KSampler parameter conversion...");
+    const workflow = await apiToWorkflow(testApiWorkflow);
+    
+    const ksamplerNode = workflow.nodes.find((node: any) => node.type === "KSampler");
+    if (!ksamplerNode) {
+      console.error("❌ [Debug] KSampler node not found");
+      return;
+    }
+
+    console.log("✅ [Debug] KSampler node found:");
+    console.log("📋 [Debug] Widget values:", ksamplerNode.widgets_values);
+    console.log("🔗 [Debug] Input connections:", ksamplerNode.inputs?.map((i: any) => i.name));
+    
+    // Expected widget values in input_order: seed, control_after_generate, steps, cfg, sampler_name, scheduler, denoise
+    // Note: model, positive, negative, latent_image are connections, not widgets
+    // control_after_generate is added automatically for seed parameter
+    const expectedWidgets = [920015823038803, "randomize", 20, 1, "euler", "normal", 1];
+    const actualWidgets = ksamplerNode.widgets_values;
+    
+    if (actualWidgets.length === expectedWidgets.length && 
+        actualWidgets.every((val: any, i: number) => val === expectedWidgets[i])) {
+      console.log("🎉 [Debug] SUCCESS! All KSampler parameters are correctly set and in proper order!");
+      console.log("✅ [Debug] No more null values in widget parameters!");
+    } else {
+      console.log("❌ [Debug] Parameter mismatch:");
+      console.log("   Expected:", expectedWidgets);
+      console.log("   Actual:  ", actualWidgets);
+    }
+    
+    return workflow;
+  } catch (error) {
+    console.error("❌ [Debug] Test failed:", error);
+  }
+};
+
+console.log("🔧 [Debug] KSampler parameter fix loaded. Run 'testKSamplerParameterFix()' in console to test.");
