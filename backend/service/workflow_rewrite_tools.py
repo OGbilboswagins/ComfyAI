@@ -148,7 +148,8 @@ def update_workflow(session_id: str, workflow_data: str) -> str:
             "ext": ext_data
         })
     except Exception as e:
-        return json.dumps({"error": f"Failed to update workflow: {error_format(e)}"})
+        print(f"Failed to update workflow: {str(e)}")
+        return json.dumps({"error": f"Failed to update workflow"})
 
 @function_tool
 def remove_node(session_id: str, node_id: str) -> str:
