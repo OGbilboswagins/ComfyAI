@@ -54,11 +54,8 @@ async def run_workflow(session_id: str) -> str:
 
 @function_tool
 def analyze_error_type(error_data: str) -> str:
-    """分析错误类型，判断应该使用哪个agent，输入应为JSON字符串"""
+    """分析错误类型，判断应该使用哪个agent，输入可以是JSON字符串或普通文本"""
     try:
-        # 解析JSON字符串
-        error_dict = json.loads(error_data) if isinstance(error_data, str) else error_data
-        
         error_analysis = {
             "error_type": "unknown",
             "recommended_agent": "workflow_bugfix_default_agent",
@@ -66,82 +63,95 @@ def analyze_error_type(error_data: str) -> str:
             "affected_nodes": []
         }
         
-        # 检查新的返回格式
-        if "success" in error_dict:
-            if error_dict["success"]:
-                # 工作流验证成功
-                error_analysis["error_type"] = "no_error"
-                error_analysis["recommended_agent"] = "none"
-                error_analysis["error_details"] = [{"message": "Workflow validation successful"}]
-                return json.dumps(error_analysis)
-            else:
-                # 工作流验证失败，继续分析错误类型
-                pass
+        # 将输入转换为字符串进行关键词匹配
+        error_text = str(error_data).lower()
         
-        # 检查是否有node_errors (ComfyUI验证错误格式)
-        if "node_errors" in error_dict and error_dict["node_errors"]:
-            node_errors = error_dict["node_errors"]
-            parameter_errors = 0
-            connection_errors = 0
-            other_errors = 0
-            
-            for node_id, node_error in node_errors.items():
-                error_analysis["affected_nodes"].append(node_id)
-                
-                if "errors" in node_error:
-                    for error in node_error["errors"]:
-                        error_detail = {
-                            "node_id": node_id,
-                            "error_type": error.get("type", "unknown"),
-                            "message": error.get("message", ""),
-                            "details": error.get("details", "")
-                        }
-                        error_analysis["error_details"].append(error_detail)
-                        
-                        # 改进的错误类型判断
-                        error_detail_str = json.dumps(error_detail).lower()
-                        error_type = error.get("type", "").lower()
-                        # error_message = error.get("message", "").lower()
-                        
-                        # 优先判断连接相关错误（结构性错误）
-                        if (any(keyword in error_detail_str for keyword in [
-                            "connection", "input connection", "required input", "missing input",
-                            "not connected", "no connection", "link", "output", "socket"
-                        ]) or 
-                        error_type in ["missing_input", "invalid_connection", "connection_error"]):
-                            connection_errors += 1
-                        
-                        # 参数相关错误的判断（更精确）
-                        elif (error_type in ["value_not_in_list", "invalid_input", "invalid_value"] or
-                            any(keyword in error_detail_str for keyword in [
-                                "value not in list", "invalid value", "not found in list",
-                                "parameter value", "invalid parameter", "model not found", "invalid image file"
-                            ])):
-                            parameter_errors += 1
-                        
-                        # 其他结构性错误
-                        else:
-                            other_errors += 1
-            
-            # 根据错误类型决定使用哪个agent
-            if connection_errors > 0 and parameter_errors == 0 and other_errors == 0:
-                # 纯连接错误，使用专门的link_agent
-                error_analysis["error_type"] = "connection_error"
-                error_analysis["recommended_agent"] = "link_agent"
-            elif connection_errors > 0:
-                # 混合错误，优先处理连接问题
-                error_analysis["error_type"] = "mixed_connection_error"
-                error_analysis["recommended_agent"] = "link_agent"
-            elif parameter_errors > 0:
-                error_analysis["error_type"] = "parameter_error"
-                error_analysis["recommended_agent"] = "parameter_agent"
-            else:
-                error_analysis["error_type"] = "structural_error"
-                error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
+        # 检查成功状态
+        if any(keyword in error_text for keyword in [
+            '"success": true', "'success': true", "validation successful", "workflow validation successful"
+        ]):
+            error_analysis["error_type"] = "no_error"
+            error_analysis["recommended_agent"] = "none"
+            error_analysis["error_details"] = [{"message": "Workflow validation successful"}]
+            return json.dumps(error_analysis)
         
-        elif "error" in error_dict:
-            # 处理其他格式的错误
-            error_analysis = error_dict.get("error", {})
+        # 统计不同类型的错误
+        parameter_errors = 0
+        connection_errors = 0
+        other_errors = 0
+        
+        # 提取节点ID（简单的正则匹配）
+        import re
+        node_id_matches = re.findall(r'"(\d+)":', error_text) or re.findall(r"'(\d+)':", error_text)
+        if node_id_matches:
+            error_analysis["affected_nodes"] = list(set(node_id_matches))
+        
+        # 连接相关错误的关键词（优先判断，因为结构性错误更重要）
+        connection_keywords = [
+            "connection", "input connection", "required input", "missing input",
+            "not connected", "no connection", "link", "output", "socket",
+            "missing_input", "invalid_connection", "connection_error"
+        ]
+        
+        # 参数相关错误的关键词
+        parameter_keywords = [
+            "value not in list", "invalid value", "not found in list",
+            "parameter value", "invalid parameter", "model not found", 
+            "invalid image file", "value_not_in_list", "invalid_input"
+        ]
+        
+        # 计算错误类型出现次数
+        for keyword in connection_keywords:
+            if keyword in error_text:
+                connection_errors += error_text.count(keyword)
+        
+        for keyword in parameter_keywords:
+            if keyword in error_text:
+                parameter_errors += error_text.count(keyword)
+        
+        # 如果没有匹配到特定错误类型，检查是否有一般性错误指示
+        if connection_errors == 0 and parameter_errors == 0:
+            general_error_keywords = ["error", "failed", "exception", "invalid"]
+            for keyword in general_error_keywords:
+                if keyword in error_text:
+                    other_errors += 1
+                    break
+        
+        # 根据错误类型决定使用哪个agent
+        if connection_errors > 0 and parameter_errors == 0 and other_errors == 0:
+            # 纯连接错误，使用专门的link_agent
+            error_analysis["error_type"] = "connection_error"
+            error_analysis["recommended_agent"] = "link_agent"
+        elif connection_errors > 0:
+            # 混合错误，优先处理连接问题
+            error_analysis["error_type"] = "mixed_connection_error"
+            error_analysis["recommended_agent"] = "link_agent"
+        elif parameter_errors > 0:
+            error_analysis["error_type"] = "parameter_error"
+            error_analysis["recommended_agent"] = "parameter_agent"
+        elif other_errors > 0:
+            error_analysis["error_type"] = "structural_error"
+            error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
+        else:
+            # 没有检测到明确的错误模式，使用默认agent
+            error_analysis["error_type"] = "unknown"
+            error_analysis["recommended_agent"] = "workflow_bugfix_default_agent"
+        
+        # 添加错误详情（基于文本内容）
+        if connection_errors > 0:
+            error_analysis["error_details"].append({
+                "error_type": "connection_error",
+                "message": f"Detected {connection_errors} connection-related issues",
+                "details": "Connection or input/output related errors found"
+            })
+        
+        if parameter_errors > 0:
+            error_analysis["error_details"].append({
+                "error_type": "parameter_error", 
+                "message": f"Detected {parameter_errors} parameter-related issues",
+                "details": "Parameter value or configuration related errors found"
+            })
+        
         return json.dumps(error_analysis)
         
     except Exception as e:

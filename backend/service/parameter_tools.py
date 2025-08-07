@@ -73,34 +73,8 @@ async def find_matching_parameter_value(node_name: str, param_name: str, current
             "is_file_related": False,
         }
         
-        # 识别model相关错误
-        if (any(model_keyword in current_value.lower() for model_keyword in [
-            ".ckpt", ".safetensors", ".pt", ".pth", ".bin", "checkpoint", "lora", "vae", "controlnet", "clip", "unet"
-        ]) or any(model_keyword in param_name.lower() for model_keyword in [
-            "model", "checkpoint", "lora", "vae", "clip", "controlnet", "unet"
-        ]) or any(model_keyword in error_lower for model_keyword in [
-            "model not found", "checkpoint", "missing model", "file not found"
-        ])):
-            error_analysis["error_type"] = "model_missing"
-            error_analysis["is_model_related"] = True
-            
-            return json.dumps({
-                "found_match": False,
-                "error_type": "model_missing",
-                "message": f"Missing model file: {current_value}",
-                "recommendation": "Check for available model replacements, otherwise download required.",
-                "next_action": "check_available_models_or_suggest_download",
-                "details": {
-                    "node_name": node_name,
-                    "param_name": param_name,
-                    "missing_file": current_value,
-                    "is_model_related": True,
-                    "param_config": param_config
-                }
-            })
-        
-        # 识别image文件相关错误
-        elif (any(img_ext in current_value.lower() for img_ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"]) or
+        # 优先识别image文件相关错误（在model检测之前，因为image文件可能包含model关键词）
+        if (any(img_ext in current_value.lower() for img_ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"]) or
               param_name.lower() in ["image", "img", "picture", "photo"] or
               any(img_keyword in error_lower for img_keyword in ["invalid image", "image file", "image not found"])):
             error_analysis["error_type"] = "image_file_missing"
@@ -133,6 +107,32 @@ async def find_matching_parameter_value(node_name: str, param_name: str, current
                 "message": f"Missing image file: {current_value}",
                 "suggestion": "Please add a valid image file to your ComfyUI input folder or choose an existing one",
                 "can_auto_fix": False
+            })
+        
+        # 识别model相关错误（在image检测之后）
+        elif (any(model_keyword in current_value.lower() for model_keyword in [
+            ".ckpt", ".safetensors", ".pt", ".pth", ".bin", "checkpoint", "lora", "vae", "controlnet", "clip", "unet"
+        ]) or any(model_keyword in param_name.lower() for model_keyword in [
+            "model", "checkpoint", "lora", "vae", "clip", "controlnet", "unet"
+        ]) or any(model_keyword in error_lower for model_keyword in [
+            "model not found", "checkpoint", "missing model", "file not found"
+        ])):
+            error_analysis["error_type"] = "model_missing"
+            error_analysis["is_model_related"] = True
+            
+            return json.dumps({
+                "found_match": False,
+                "error_type": "model_missing",
+                "message": f"Missing model file: {current_value}",
+                "recommendation": "Check for available model replacements, otherwise download required.",
+                "next_action": "check_available_models_or_suggest_download",
+                "details": {
+                    "node_name": node_name,
+                    "param_name": param_name,
+                    "missing_file": current_value,
+                    "is_model_related": True,
+                    "param_config": param_config
+                }
             })
         
         # 处理枚举类型的参数（原有逻辑，但增强）
