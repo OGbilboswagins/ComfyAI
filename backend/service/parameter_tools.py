@@ -250,9 +250,6 @@ async def find_matching_parameter_value(node_name: str, param_name: str, current
 async def get_model_files(model_type: str = "checkpoints") -> str:
     """获取可用的模型文件列表"""
     try:
-        # 获取所有节点信息
-        object_info = await get_object_info()
-        
         # 定义模型类型到节点的映射
         model_type_mapping = {
             "checkpoints": ["CheckpointLoaderSimple", "CheckpointLoader"],
@@ -267,15 +264,36 @@ async def get_model_files(model_type: str = "checkpoints") -> str:
         # 查找对应的节点
         model_files = {}
         for node_name in model_type_mapping.get(model_type.lower(), []):
-            if node_name in object_info:
-                node_info = object_info[node_name]
-                if 'input' in node_info:
+            try:
+                # 使用 get_object_info_by_class 获取单个节点信息，减少数据量
+                node_data = await get_object_info_by_class(node_name)
+                
+                # 处理不同的返回格式
+                node_info = None
+                if node_name in node_data:
+                    # 格式：{"NodeName": {...}}
+                    node_info = node_data[node_name]
+                elif 'input' in node_data:
+                    # 格式：直接返回节点信息 {...}
+                    node_info = node_data
+                
+                if node_info and 'input' in node_info:
                     # 查找包含文件列表的参数
                     for input_type in ['required', 'optional']:
                         if input_type in node_info['input']:
                             for param_name, param_config in node_info['input'][input_type].items():
-                                if isinstance(param_config, tuple) and isinstance(param_config[0], list) and len(param_config[0]) > 0:
-                                    model_files[f"{node_name}.{param_name}"] = param_config[0]
+                                # 检查参数配置格式：[file_list, {...}] 或 [file_list]
+                                if isinstance(param_config, list) and len(param_config) > 0:
+                                    if isinstance(param_config[0], list) and len(param_config[0]) > 0:
+                                        # 检查是否为文件列表（包含文件扩展名或路径）
+                                        file_list = param_config[0]
+                                        if any(isinstance(item, str) and ('.' in item or '/' in item) for item in file_list):
+                                            model_files[f"{node_name}.{param_name}"] = file_list
+                            
+            except Exception as e:
+                # 单个节点查询失败，继续处理其他节点
+                print(f"Failed to get info for node {node_name}: {e}")
+                continue
         
         if model_files:
             return json.dumps({
