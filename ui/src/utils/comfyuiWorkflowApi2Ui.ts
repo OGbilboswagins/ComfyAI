@@ -1185,7 +1185,7 @@ const simpleExample: ComfyWorkflowJSON = {
     
     const ksamplerNode = workflow.nodes.find((node: any) => node.type === "KSampler");
     if (!ksamplerNode) {
-      console.error("❌ [Debug] KSampler node not found");
+      console.error("× [Debug] KSampler node not found");
       return;
     }
 
