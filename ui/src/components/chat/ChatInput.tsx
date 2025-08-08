@@ -1,7 +1,7 @@
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
-import { ChangeEvent, KeyboardEvent, useState, useRef, useEffect, ReactNode } from 'react';
+import { ChangeEvent, KeyboardEvent, useState, useRef, useEffect, useLayoutEffect, ReactNode } from 'react';
 import { SendIcon, ImageIcon, PlusIcon, XIcon, StopIcon } from './Icons';
 import React from 'react';
 import { WorkflowChatAPI } from '../../apis/workflowChatApi';
@@ -58,11 +58,55 @@ export function ChatInput({
     const [models, setModels] = useState<{
         label: ReactNode; name: string; image_enable: boolean 
 }[]>([]);
+    const [textareaScrollHeight, setTextareaScrollHeight] = useState(0);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Auto-resize textarea based on content
+    // 精确监听 textarea 的 scrollHeight 变化（处理 flex 布局）
     useEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const updateScrollHeight = () => {
+            // 使用 requestAnimationFrame 确保布局完成
+            requestAnimationFrame(() => {
+                // 临时保存原始样式
+                const originalStyle = textarea.style.cssText;
+                
+                // 强制重新计算
+                textarea.style.height = 'auto';
+                textarea.style.minHeight = 'auto';
+                
+                const height = textarea.scrollHeight;
+                setTextareaScrollHeight(height);
+                
+                // 恢复原始样式
+                textarea.style.cssText = originalStyle;
+            });
+        };
+
+        const resizeObserver = new ResizeObserver(updateScrollHeight);
+        resizeObserver.observe(textarea);
+
+        // 监听内容变化
+        const mutationObserver = new MutationObserver(updateScrollHeight);
+        mutationObserver.observe(textarea, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+
+        // 初始计算
+        updateScrollHeight();
+
+        return () => {
+            resizeObserver.disconnect();
+            mutationObserver.disconnect();
+        };
+    }, []);
+
+    // Auto-resize textarea based on content - 使用 useLayoutEffect 防止闪烁
+    useLayoutEffect(() => {
         if (textareaRef.current) {
             // Reset height to auto to get the correct scrollHeight
             textareaRef.current.style.height = 'auto';

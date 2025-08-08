@@ -4,7 +4,7 @@
 
 import { BaseMessage } from './BaseMessage';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 
 interface ExtItem {
@@ -16,11 +16,16 @@ interface UserMessageProps {
     content: string;
     trace_id?: string;
     ext?: ExtItem[];
+    onFinishLoad?: () => void
 }
 
-export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
+export function UserMessage({ content, trace_id, ext, onFinishLoad }: UserMessageProps) {
     const [showTooltip, setShowTooltip] = useState(false);
     const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        onFinishLoad?.()
+    }, [])
 
     const handleCopyTraceId = async () => {
         if (trace_id) {
@@ -32,6 +37,7 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
 
     // Check if there's a checkpoint in ext data for workflow_update or param_update
     let checkpointId: number | null = null;
+    let images: any[] = [];
     if (ext) {        
         // Look for workflow_rewrite_checkpoint or debug_checkpoint related to workflow updates
         const checkpointExt = ext.find((item) => 
@@ -48,6 +54,10 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
             item.type === 'workflow_update' || item.type === 'param_update'
         );
         
+        const hasImages = ext.some((item) => item.type === 'img');
+        if (hasImages) {
+            ext.filter((item) => item.type === 'img').forEach((item) => images = images.concat(item.data));
+        }
         // If we have workflow/param updates but no checkpoint, we could show a message about it
         // But for now, we only show restore button if we have a checkpoint
     }
@@ -55,6 +65,15 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
     return (
         <BaseMessage name="User" isUser={true}>
             <div className="w-full rounded-lg border border-gray-700 p-4 text-gray-700 text-sm break-words">
+                {
+                    images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {images.map((image) => (
+                                <img src={image.url} alt={image.name} className="w-16 h-16 object-cover" />
+                            ))}
+                        </div>
+                    )
+                }
                 <p className="whitespace-pre-wrap leading-snug">{content}</p>
                 
                 {/* Bottom right icons container */}

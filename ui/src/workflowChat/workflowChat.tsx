@@ -392,6 +392,17 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
             trace_id: traceId,
         };
 
+        if (uploadedImages.length > 0) {
+            userMessage.ext = [
+                {
+                    type: 'img',
+                    data: uploadedImages.map(img => ({
+                        url: img.url,
+                        name: img.file.name
+                    }))
+                }
+            ]
+        }
         dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
         setInput("");
 

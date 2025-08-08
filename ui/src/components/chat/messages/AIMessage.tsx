@@ -3,7 +3,7 @@
 // Copyright (C) 2025 ComfyUI-Copilot Authors
 // Licensed under the MIT License.
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { MemoizedReactMarkdown } from "../../markdown";
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -24,6 +24,7 @@ interface AIMessageProps {
   metadata?: any;
   finished?: boolean;
   debugGuide?: boolean;
+  onFinishLoad?: () => void;
 }
 
 // Card component for node explanation intent
@@ -65,8 +66,12 @@ const NodeParamsCard = ({ content }: { content: React.ReactNode }) => {
   );
 };
 
-export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata, finished, debugGuide }: AIMessageProps) {
+export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata, finished, debugGuide, onFinishLoad }: AIMessageProps) {
   const markdownWrapper = useRef<HTMLDivElement | null>(null)
+  
+  useEffect(() => {
+    onFinishLoad?.()
+  }, [])
   
   // Renders markdown content with customized styles and components
   const renderMarkdown = (text: string, specialClass?: string) => {
@@ -179,8 +184,8 @@ export function AIMessage({ content, name = 'Assistant', avatar, format, onOptio
             return (<div className={`${isGif ? '' : 'w-1/2'} mx-auto`}>
               <img
                 {...props}
-                loading="lazy"
-                className="w-full h-auto block" 
+                loading="eager"
+                className="w-full h-auto" 
                 onError={(e) => {
                   console.warn('Image failed to load:', props.src, 'Error:', e);
                   e.currentTarget.style.opacity = '0';
