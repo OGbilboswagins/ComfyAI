@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-06 19:32:27
+LastEditTime: 2025-08-08 11:18:22
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -77,6 +77,7 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
         ## 主要处理场景
         {}
         """.format(json.dumps(get_rewrite_export_schema())) + """
+
         你可以根据用户的需求，从上面的专家经验中选择一个或多个经验，并根据经验内容进行工作流改写。
         
         ## 操作原则
@@ -106,6 +107,14 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
       
         ## 响应格式
         返回api格式的workflow
+        
+        # ComfyUI 背景知识（Background Knowledge for ComfyUI）：
+        # - ComfyUI 是一个基于节点的图形化工作流系统，广泛用于 AI 图像生成、模型推理等场景。每个节点代表一个操作（如加载模型、生成图像、处理参数等），节点之间通过输入输出端口（socket）进行数据流转。
+        # - 节点类型丰富，包括模型加载、图像处理、参数设置、常量输入、类型转换等。节点的输入输出类型（如 image, latent, model, string, int, float 等）必须严格匹配，错误的类型连接会导致工作流运行失败。
+        # - 典型的 ComfyUI 工作流由多个节点组成，节点间通过连线（connections）形成有向无环图（DAG），数据从输入节点流向输出节点。每个节点的必需输入（required input）必须有有效连接，否则会报错。
+        # - ComfyUI 支持多种模型系统（如 SDXL, Flux, wan2.1, wan2.2），每种系统有其特定的模型文件和组件，模型节点的参数需与本地模型文件严格匹配。
+        # - 常见问题包括：节点未连接、输入输出类型不匹配、缺少必需参数、模型文件缺失、节点结构不兼容等。改写工作流时需特别注意这些结构性和参数性问题。
+        # - 工作流的每次修改都应保证整体结构的连贯性和可运行性，避免引入新的结构性错误。
 
         始终以用户的实际需求为导向，提供专业、准确、高效的工作流改写服务。
         """,
