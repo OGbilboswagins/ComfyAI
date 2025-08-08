@@ -514,7 +514,10 @@ Start by validating the workflow to see its current state.""",
                 print(f"Handoff to: {new_agent_name}")
                 current_agent = new_agent_name
                 # Add handoff information to the stream
-                handoff_text = f"\n\n🔄 **Switching to {new_agent_name}**\n\n"
+                if not current_text or current_text == '': 
+                    handoff_text = f"▸ **Switching to {new_agent_name}**\n\n"
+                else:
+                    handoff_text = f"\n\n▸ **Switching to {new_agent_name}**\n\n"
                 current_text += handoff_text
                 last_yielded_length = len(current_text)
                 
@@ -538,7 +541,7 @@ Start by validating the workflow to see its current state.""",
                     
                     print(f"-- Tool called: {tool_name}")
                     # Add tool call information
-                    tool_text = f"\n\n🔧 *{current_agent} is using {tool_name}...*\n\n"
+                    tool_text = f"\n\n⚙ *{current_agent} is using {tool_name}...*\n\n"
                     current_text += tool_text
                     item_updated = True
                     
@@ -555,7 +558,7 @@ Start by validating the workflow to see its current state.""",
                     output = str(event.item.output)
                     # Limit output length to avoid too long display
                     output_preview = output[:200] + "..." if len(output) > 200 else output
-                    tool_result_text = f"\n\n✅ *Tool execution completed*\n\n```\n{output_preview}\n```\n\n"
+                    tool_result_text = f"\n\n● *Tool execution completed*\n\n```\n{output_preview}\n```\n\n"
                     current_text += tool_result_text
                     item_updated = True
                     
@@ -670,7 +673,7 @@ Start by validating the workflow to see its current state.""",
             
     except Exception as e:
         print(f"Error in debug_workflow_errors: {str(e)}")
-        error_message = current_text + f"\n\n❌ Error occurred during debugging: {str(e)}\n\n"
+        error_message = current_text + f"\n\n× Error occurred during debugging: {str(e)}\n\n"
 
         # Include workflow_update ext if captured from tools before the error
         final_error_ext = None
