@@ -167,7 +167,7 @@ const TabButton = ({
 );
 
 export default function WorkflowChat({ onClose, visible = true, triggerUsage = false, onUsageTriggered }: WorkflowChatProps) {
-    const { state, dispatch, isAutoScroll, showcasIng } = useChatContext();
+    const { state, dispatch, isAutoScroll, showcasIng, abortControllerRef } = useChatContext();
     const { messages, installedNodes, loading, sessionId, selectedNode, activeTab } = state;
     const messageDivRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState<string>('');
@@ -182,7 +182,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     const [announcement, setAnnouncement] = useState<string>('');
     const [showAnnouncement, setShowAnnouncement] = useState<boolean>(false);
     // 添加 AbortController 引用
-    const abortControllerRef = useRef<AbortController | null>(null);
+    // const abortControllerRef = useRef<AbortController | null>(null);
     const currentSelectedNode = useRef<any>(selectedNode)
     const [dispatchEventType, setDispatchEventType] = useState<DispatchEventType>(DispatchEventType.NONE);
     // 使用自定义 hooks，只在visible为true且activeTab为chat时启用

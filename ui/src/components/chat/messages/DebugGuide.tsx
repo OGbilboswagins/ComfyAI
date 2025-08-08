@@ -5,6 +5,7 @@ import { queuePrompt } from '../../../utils/queuePrompt';
 import { app } from '../../../utils/comfyapp';
 import { WorkflowChatAPI } from '../../../apis/workflowChatApi';
 import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
+import { useChatContext } from '../../../context/ChatContext';
 
 interface DebugGuideProps {
     content: string;
@@ -17,6 +18,7 @@ interface DebugGuideProps {
 }
 
 export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, onUpdateMessage, onFinishLoad, messageId }: DebugGuideProps) {
+    const { dispatch, abortControllerRef } = useChatContext();
     const [isDebugging, setIsDebugging] = useState(false);
     const [streamingText, setStreamingText] = useState('');
     const [showStreamingMessage, setShowStreamingMessage] = useState(false);
@@ -76,6 +78,8 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
         try {
             // Save checkpoint before debugging
             await saveCheckpointBeforeDebug();
+            
+            dispatch({ type: 'SET_LOADING', payload: true });
             
             await handleQueueError(messageId);
         } finally {
@@ -145,8 +149,14 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
             
             let accumulatedText = '';
             let finalExt: any = null;
+
+            // 创建新的 AbortController
+            if (!!abortControllerRef) {
+                abortControllerRef.current = new AbortController();
+            }
+
             // Use the streaming debug agent API
-            for await (const result of WorkflowChatAPI.streamDebugAgent(prompt)) {
+            for await (const result of WorkflowChatAPI.streamDebugAgent(prompt, abortControllerRef?.current?.signal || undefined)) {
                 if (result.text) {
                     accumulatedText = result.text;
                     if (result.ext) {
