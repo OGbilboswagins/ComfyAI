@@ -1,7 +1,16 @@
+/*
+ * @Author: ai-business-hql qingli.hql@alibaba-inc.com
+ * @Date: 2025-07-30 16:30:22
+ * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
+ * @LastEditTime: 2025-08-06 11:30:42
+ * @FilePath: /comfyui_copilot/ui/src/components/ui/RestoreCheckpoint.tsx
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 import { Undo2 } from "lucide-react";
 import { useState } from "react";
 import { WorkflowChatAPI } from "../../apis/workflowChatApi";
 import { app } from "../../utils/comfyapp";
+import { loadApiWorkflowWithMissingNodes } from "../../utils/comfyuiWorkflowApi2Ui";
 
 const RestoreCheckpoint = ({ checkpointId, onRestore, title }: { checkpointId: number; onRestore: () => void; title?: string }) => {
   const [isRestoring, setIsRestoring] = useState(false);
@@ -23,7 +32,8 @@ const RestoreCheckpoint = ({ checkpointId, onRestore, title }: { checkpointId: n
                   app.loadGraphData(workflowToLoad);
               } else {
                   // API format - use loadApiJson
-                  app.loadApiJson(workflowToLoad);
+                //   app.loadApiJson(workflowToLoad);
+                  loadApiWorkflowWithMissingNodes(workflowToLoad);
               }
               
               console.log(`Restored workflow checkpoint ${checkpointId}`);

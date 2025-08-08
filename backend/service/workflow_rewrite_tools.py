@@ -6,9 +6,46 @@ from typing import Dict, Any, Optional, List
 
 from agents.agent import Agent
 from agents.tool import function_tool
+from ..utils.string_utils import error_format
 
-from ..service.database import get_workflow_data, save_workflow_data
+from ..service.database import get_workflow_data, save_workflow_data, get_workflow_data_ui, get_workflow_data_by_id
 from ..utils.comfy_gateway import get_object_info
+
+def get_workflow_data_from_config(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """获取工作流数据，优先使用checkpoint_id，如果没有则使用session_id"""
+    workflow_checkpoint_id = config.get('workflow_checkpoint_id')
+    session_id = config.get('session_id')
+    
+    if workflow_checkpoint_id:
+        try:
+            checkpoint_data = get_workflow_data_by_id(workflow_checkpoint_id)
+            if checkpoint_data and checkpoint_data.get('workflow_data'):
+                return checkpoint_data['workflow_data']
+        except Exception as e:
+            print(f"Failed to get workflow data from checkpoint {workflow_checkpoint_id}: {str(e)}")
+    
+    if session_id:
+        return get_workflow_data(session_id)
+    
+    return None
+
+def get_workflow_data_ui_from_config(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """获取工作流UI数据，优先使用checkpoint_id，如果没有则使用session_id"""
+    workflow_checkpoint_id = config.get('workflow_checkpoint_id')
+    session_id = config.get('session_id')
+    
+    if workflow_checkpoint_id:
+        try:
+            checkpoint_data = get_workflow_data_by_id(workflow_checkpoint_id)
+            if checkpoint_data and checkpoint_data.get('workflow_data_ui'):
+                return checkpoint_data['workflow_data_ui']
+        except Exception as e:
+            print(f"Failed to get workflow UI data from checkpoint {workflow_checkpoint_id}: {str(e)}")
+    
+    if session_id:
+        return get_workflow_data_ui(session_id)
+    
+    return None
 
 @function_tool
 def get_current_workflow(session_id: str) -> str:
@@ -47,7 +84,7 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
         checkpoint_id = save_workflow_data(
             session_id,
             current_workflow,
-            workflow_data_ui=None,  # UI format not available in tools
+            workflow_data_ui=get_workflow_data_ui(session_id),
             attributes={
                 "checkpoint_type": "workflow_rewrite_start",
                 "description": f"Checkpoint before {action_description}",
@@ -111,7 +148,8 @@ def update_workflow(session_id: str, workflow_data: str) -> str:
             "ext": ext_data
         })
     except Exception as e:
-        return json.dumps({"error": f"Failed to update workflow: {str(e)}"})
+        print(f"Failed to update workflow: {str(e)}")
+        return json.dumps({"error": f"Failed to update workflow"})
 
 @function_tool
 def remove_node(session_id: str, node_id: str) -> str:

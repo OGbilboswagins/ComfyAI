@@ -2,7 +2,7 @@
  * @Author: ai-business-hql ai.bussiness.hql@gmail.com
  * @Date: 2025-02-17 20:53:45
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-19 14:57:20
+ * @LastEditTime: 2025-08-06 11:27:06
  * @FilePath: /comfyui_copilot/ui/src/apis/comfyApiCustom.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -29,6 +29,21 @@ export async function getObjectInfo(): Promise<ObjectInfo> {
 export async function getInstalledNodes() {
   const objectInfos = await getObjectInfo();
   return Object.keys(objectInfos);
+}
+
+/**
+ * Get object info for a specific node class
+ * @param nodeClass The class name of the node to get info for
+ * @returns Promise with the node definition object
+ */
+export async function getObjectInfoByClass(nodeClass: string): Promise<any> {
+  try {
+    const response = await fetch(`/object_info/${nodeClass}`, { method: "GET" });
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching object info for ${nodeClass}:`, error);
+    throw error;
+  }
 }
 
 export async function runPrompt(json_data: any): Promise<any> {

@@ -384,8 +384,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         
         const traceId = generateUUID();
 
+        const userMessageId = generateUUID();
         const userMessage: Message = {
-            id: generateUUID(),
+            id: userMessageId,
             role: "user",
             content: input,
             trace_id: traceId,
@@ -424,7 +425,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 modelExt,
                 traceId,
                 abortControllerRef.current.signal,
-                state.messages
+                state.messages,
+                userMessageId  // Pass the user message ID
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,
@@ -473,8 +475,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         
         const traceId = generateUUID();
 
+        const userMessageId = generateUUID();
         const userMessage: Message = {
-            id: generateUUID(),
+            id: userMessageId,
             role: "user",
             content: content,
             trace_id: traceId,
@@ -501,7 +504,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                 modelExt,
                 traceId,
                 abortControllerRef.current.signal,
-                state.messages
+                state.messages,
+                userMessageId  // Pass the user message ID
             )) {
                 const aiMessage: Message = {
                     id: aiMessageId,

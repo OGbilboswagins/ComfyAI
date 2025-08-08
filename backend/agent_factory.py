@@ -36,7 +36,7 @@ set_tracing_disabled(True)
 def create_agent(**kwargs) -> Agent:
     # 通过用户配置拿/环境变量
     client = AsyncOpenAI(
-        api_key="aib_ComfyUI_Copilot_8d28a3",
+        api_key="",
         base_url="https://comfyui-copilot-server-pre.onrender.com/v1",
     )
 

@@ -86,6 +86,21 @@ class DatabaseManager:
         finally:
             session.close()
     
+    def get_current_workflow_data_ui(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """获取当前session的最新工作流数据（最大ID版本）"""
+        session = self.get_session()
+        try:
+            latest_version = session.query(WorkflowVersion)\
+                .filter(WorkflowVersion.session_id == session_id)\
+                .order_by(WorkflowVersion.id.desc())\
+                .first()
+            
+            if latest_version:
+                return json.loads(latest_version.workflow_data_ui)
+            return None
+        finally:
+            session.close() 
+    
     def get_workflow_version_by_id(self, version_id: int) -> Optional[Dict[str, Any]]:
         """根据版本ID获取工作流数据"""
         session = self.get_session()
@@ -124,6 +139,25 @@ class DatabaseManager:
             raise e
         finally:
             session.close()
+    
+    def update_workflow_ui(self, version_id: int, workflow_data_ui: Dict[str, Any]) -> bool:
+        """只更新指定版本的workflow_data_ui字段，不影响其他字段"""
+        session = self.get_session()
+        try:
+            version = session.query(WorkflowVersion)\
+                .filter(WorkflowVersion.id == version_id)\
+                .first()
+            
+            if version:
+                version.workflow_data_ui = json.dumps(workflow_data_ui)
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
 # 全局数据库管理器实例
 db_manager = DatabaseManager()
@@ -132,10 +166,18 @@ def get_workflow_data(session_id: str) -> Optional[Dict[str, Any]]:
     """获取当前session的工作流数据的便捷函数"""
     return db_manager.get_current_workflow_data(session_id)
 
+def get_workflow_data_ui(session_id: str) -> Optional[Dict[str, Any]]:
+    """获取当前session的工作流数据的便捷函数"""
+    return db_manager.get_current_workflow_data_ui(session_id)
+
 def save_workflow_data(session_id: str, workflow_data: Dict[str, Any], workflow_data_ui: Dict[str, Any] = None, attributes: Optional[Dict[str, Any]] = None) -> int:
     """保存工作流数据的便捷函数"""
     return db_manager.save_workflow_version(session_id, workflow_data, workflow_data_ui, attributes)
 
 def get_workflow_data_by_id(version_id: int) -> Optional[Dict[str, Any]]:
     """根据版本ID获取工作流数据的便捷函数"""
-    return db_manager.get_workflow_version_by_id(version_id) 
+    return db_manager.get_workflow_version_by_id(version_id)
+
+def update_workflow_ui_by_id(version_id: int, workflow_data_ui: Dict[str, Any]) -> bool:
+    """只更新指定版本的workflow_data_ui字段的便捷函数"""
+    return db_manager.update_workflow_ui(version_id, workflow_data_ui) 
