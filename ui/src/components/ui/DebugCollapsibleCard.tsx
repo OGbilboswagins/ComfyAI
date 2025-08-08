@@ -7,51 +7,52 @@
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface IProps {
   title?: string | React.ReactNode;
   isWorkflowUpdate?: boolean;
   className?: string;
+  onFinishLoad?: () => void;
   children: React.ReactNode;
 }
 
 const DebugCollapsibleCard: React.FC<IProps> = (props) => {
-  const { title = '', isWorkflowUpdate = false,className = '', children } = props;
+  const { title = '', isWorkflowUpdate = false, className = '', onFinishLoad, children } = props;
   
   const [isOpen, setIsOpen] = useState(false);
 
-  const color = isWorkflowUpdate 
-  ? '#166534'
-  : '#E5E7EB';
+  useEffect(() => {
+    onFinishLoad?.();
+  }, []);
   
   return (
-    <div className={`relative shadow-gray-200 dark:shadow-gray-600 rounded-lg p-2 overflow-hidden ${className} ${!isOpen ? 'h-[200px]' : 'h-auto'}`}>
-      <div className="flex justify-between items-center">
+    <div className={`relative rounded-lg flex flex-col debug-collapsible-card ${className} ${!isOpen ? 'h-[200px]' : ''}`}>
+      <div className="card-border rounded-lg" />
+      <div className="flex flex-1 justify-between items-center pb-2 border-b border-[#29292f]">
         <div>
         {
-          typeof title === 'string' ? <h3 className="text-sm text-gray-900 dark:text-white font-medium">{title}</h3> : title
+          typeof title === 'string' ? <h3 className="text-sm text-[#fff] font-medium">{title}</h3> : title
         }
         </div>
         <button
           onClick={() => {
-            console.log('setOpen--->')
             setIsOpen(!isOpen)
           }}
         >
           {
-            isOpen ? <ChevronUp color={color} /> : <ChevronDown color={color} />
+            isOpen ? <ChevronUp color={'#E5E7EB'} /> : <ChevronDown color={'#E5E7EB'} />
           }
         </button>
       </div>
-      <div className="dark:border-gray-700">
+      <div className="overflow-hidden">
       {
         children
       }
       </div>
-      {
-        !isOpen && <div className="absolute bottom-0 left-0 right-0 h-40 w-full z-5 bg-gradient-to-t from-[#fff] to-transparent pointer-events-none" />
-      }
+      {/* {
+        !isOpen && <div className="absolute bottom-0 left-0 right-0 h-12 w-full z-5 bg-debug-collapsible-card-bg pointer-events-none" />
+      } */}
     </div>
   )
 }

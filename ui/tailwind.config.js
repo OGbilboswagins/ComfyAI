@@ -39,7 +39,8 @@ export default {
         }
       },
       backgroundImage: {
-        'showcase-bg': 'linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 5%, transparent) 20%, color-mix(in srgb, var(--p-text-color) 40%, transparent) 100%)',
+        'showcase-bg': 'linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 20%, transparent) 40%, color-mix(in srgb, var(--p-text-color) 23%, transparent) 70%, color-mix(in srgb, var(--p-text-color) 25%, transparent) 100%)',
+        'debug-collapsible-card-bg': 'linear-gradient(color-mix(in srgb, var(--p-text-color) 0%, transparent) 0%, color-mix(in srgb, var(--p-text-color) 60%, transparent) 100%)',
         'debug-btn': 'linear-gradient(90deg, #4f8cff 0%, #2357d5 100%)',
         'debug-btn-hover': 'linear-gradient(90deg, #2357d5 0%, #4f8cff 100%)',
       } 

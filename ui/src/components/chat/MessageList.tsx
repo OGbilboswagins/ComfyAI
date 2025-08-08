@@ -12,6 +12,7 @@ import { addNodeOnGraph } from "../../utils/graphUtils";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Showcase from "./messages/Showcase";
 import { useChatContext } from "../../context/ChatContext";
+import { debounce } from "lodash";
 
 // Define types for ext items to avoid implicit any
 interface ExtItem {
@@ -28,15 +29,9 @@ interface NodeWithPosition {
     type: string;
     pos: [number, number];
 }
-
-const enum LoadMoreStatus {
-    USED = 'used',
-    NOT_USED = 'not_used'
-}
 interface LoadMoreButtonProps {
     id?: string
-    buttonType?: 'loadmore';
-    buttonStatus?: LoadMoreStatus
+    buttonType?: 'loadmore'
 }
 
 interface MessageListProps {
@@ -56,6 +51,8 @@ const getAvatar = (name?: string) => {
 
 type FinallyMessageProps = Message | LoadMoreButtonProps
 
+const LazyAIMessage = lazy(() => import('./messages/AIMessage').then(m => ({ default: m.AIMessage })));
+const LazyUserMessage = lazy(() => import('./messages/UserMessage').then(m => ({ default: m.UserMessage })));
 // Use lazy loading for components that are conditionally rendered
 const LazyWorkflowOption = lazy(() => import('./messages/WorkflowOption').then(m => ({ default: m.WorkflowOption })));
 const LazyNodeSearch = lazy(() => import('./messages/NodeSearch').then(m => ({ default: m.NodeSearch })));
@@ -74,9 +71,13 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     const [currentMessages, setCurrentMessages] = useState<FinallyMessageProps[]>([])
     const scrollRef = useRef<HTMLDivElement>(null)
     const lastMessagesCount = useRef<number>(0)
-    const currentScrollHeight = useRef<number>(0) 
+    const scrollHeightLast = useRef<number>(0) // 上一次的scrollHeight
+    const scrollHeightBeforeLoadMore = useRef<number>(0) // loadmore之前的scrollHeight
+    const currentScrollTop = useRef<number>(0) 
     const isLoadHistory = useRef<boolean>(false)
-    
+    const isFinishLoad = useRef<boolean>(false)
+    const finishLoadedCount = useRef<number>(0)
+    const lastMessageCount = useRef<number>(0)
     // 用于跟踪已经处理过的工作流和参数更新，防止重复执行
     const processedUpdates = useRef<Set<string>>(new Set())
     
@@ -151,42 +152,130 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     useEffect(() => {
         const el = scrollRef.current
         if (!el) return;
-          
-        const handleScroll = () => {
-            if (!!scrollRef.current) {
-                isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 10
-            }
-            currentScrollHeight.current = el.scrollHeight
+
+        const updateScrollHeight = () => {
+            requestAnimationFrame(() => {
+                console.log('updateScrollHeight1--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+                console.log('updateScrollHeight2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current, isLoadHistory.current, isAutoScroll.current)
+                if (isLoadHistory.current) {
+                    el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
+                    // debounce(() => {
+                    //     isLoadHistory.current = false
+                    // }, 500)()
+                } else if (isAutoScroll.current) {
+                    console.log('scrollTop1--->', el.scrollTop, el.scrollHeight, el.clientHeight)
+                    el.scrollTop = el.scrollHeight - el.clientHeight
+                    console.log('scrollTop2--->', el.scrollTop, el.scrollHeight, el.clientHeight)
+                }
+                // isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 0
+                // currentScrollHeight.current = el.scrollHeight
+                // currentScrollTop.current = el.scrollTop
+                console.log('updateScrollHeight3--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+            });
         };
 
+        // ResizeObserver 监听尺寸变化
+        const resizeObserver = new ResizeObserver(updateScrollHeight);
+        resizeObserver.observe(el);
+
+        // MutationObserver 监听内容变化
+        const mutationObserver = new MutationObserver(updateScrollHeight);
+        mutationObserver.observe(el, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            characterData: true
+        });
+
+        updateScrollHeight();
+
+        const handleScroll = () => {   
+            console.log('handleScroll--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
+            console.log('handleScroll--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
+            console.log('handleScroll--->', isLoadHistory.current, isAutoScroll.current)
+            if (isLoadHistory.current) {
+                if (el.scrollHeight > scrollHeightLast.current) {
+                    el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
+                    console.log('el.scrollTop--->', el.scrollTop)
+                    scrollHeightLast.current = el.scrollHeight
+                } else {
+                    isLoadHistory.current = false
+                    scrollHeightLast.current = el.scrollHeight
+                    scrollHeightBeforeLoadMore.current = el.scrollHeight
+                }
+            } else {
+                if (isAutoScroll.current && el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
+                    el.scrollTop = el.scrollHeight - el.clientHeight
+                }
+                scrollHeightLast.current = el.scrollHeight
+                scrollHeightBeforeLoadMore.current = el.scrollHeight
+            }
+            console.log('scrollHeightBeforeLoadMore--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
+            // isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 0
+            // currentScrollHeight.current = el.scrollHeight
+            // currentScrollTop.current = el.scrollTop
+        }
+
+        const handleScrollEnd = () => {
+            console.log('handleScrollEnd--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+            isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
+            // currentScrollHeight.current = el.scrollHeight
+            // currentScrollTop.current = el.scrollTop
+        }
+
         el.addEventListener('scroll', handleScroll);
-        return () => el.removeEventListener('scroll', handleScroll);
+        el.addEventListener('scrollend', handleScrollEnd);
+        return () => {
+            resizeObserver.disconnect();
+            mutationObserver.disconnect();
+            el.removeEventListener('scroll', handleScroll);
+            el.removeEventListener('scrollend', handleScrollEnd);
+        }
     }, [])
 
     const onFinishLoad = () => {
-        // setTimeout(() => { 
-            if (!!scrollRef?.current && isAutoScroll.current) {
-                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-            }
-        // }, 100)
+        // 滚动补偿，组件加载之后会重新计算一次scrollheight，导致滚动位置不准确
+        // 如果当前是自动滚动，则滚动到最底部
+        // 如果当前是手动滚动，则保持当前位置不变
+        // if (!!scrollRef?.current) {
+        //     finishLoadedCount.current++
+        //     const list = currentMessages?.filter((item: FinallyMessageProps) => (isLoadMoreButtonProps(item) && item?.buttonType !== 'loadmore' || !isLoadMoreButtonProps(item)))
+        //     console.log('onFinishLoad--->', finishLoadedCount.current, list.length, lastMessageCount.current)
+        //     if (finishLoadedCount.current === list.length) {
+        //         console.log('onFinishLoad1--->')
+        //         if (isLoadHistory.current) {
+        //             scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
+        //             // isLoadHistory.current = false
+        //         } else {
+        //             scrollRef.current.scrollTop = scrollRef.current.scrollHeight - scrollRef.current.clientHeight
+        //             isAutoScroll.current = true
+        //         }
+        //         currentScrollHeight.current = scrollRef.current.scrollHeight
+        //         currentScrollTop.current = scrollRef.current.scrollTop
+        //         isFinishLoad.current = true
+        //         lastMessageCount.current = list.length
+        //     }
+        // }
     }
 
     // 渲染对应的消息组件
-    const renderMessage = (message: Message) => {
+    const renderMessage = (message: Message, index: number) => {
         // 移除频繁的日志输出
         // console.log('[MessageList] Rendering message:', message);
-        
         if (message.role === 'user') {
-            return <UserMessage 
-                key={message.id} 
-                content={message.content} 
-                trace_id={message.trace_id}
-                ext={message.ext}
-            />;
+            return <Suspense fallback={<div>Loading...</div>}>
+                <LazyUserMessage 
+                    key={message.id} 
+                    content={message.content} 
+                    trace_id={message.trace_id}
+                    ext={message.ext}
+                    onFinishLoad={onFinishLoad}
+                />
+            </Suspense>
         }
 
         if (message.role === 'showcase') {
-            return <Showcase />
+            return <Showcase onFinishLoad={onFinishLoad} />
         }
 
         if (message.role === 'ai' || message.role === 'tool') {
@@ -356,18 +445,21 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     if (message.metadata?.intent === 'downstream_subgraph_search') {
                         // Return the AIMessage with the extComponent
                         return (
-                            <AIMessage 
-                                key={message.id}
-                                content={message.content}
-                                name={message.name}
-                                avatar={avatar}
-                                format={message.format}
-                                onOptionClick={onOptionClick}
-                                extComponent={dsExtComponent}
-                                metadata={message.metadata}
-                                finished={message.finished}
-                                debugGuide={message.debugGuide}
-                            />
+                            <Suspense fallback={<div>Loading...</div>}>
+                                <LazyAIMessage 
+                                    key={message.id}
+                                    content={message.content}
+                                    name={message.name}
+                                    avatar={avatar}
+                                    format={message.format}
+                                    onOptionClick={onOptionClick}
+                                    extComponent={dsExtComponent}
+                                    metadata={message.metadata}
+                                    finished={message.finished}
+                                    debugGuide={message.debugGuide}
+                                    onFinishLoad={dsExtComponent ? undefined : onFinishLoad}
+                                />
+                            </Suspense>
                         );
                     }
                     
@@ -584,18 +676,21 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 // 如果有response.text，使用AIMessage渲染
                 if (response.text || ExtComponent) {
                     return (
-                        <AIMessage 
-                            key={message.id}
-                            content={message.content}
-                            name={message.name}
-                            avatar={avatar}
-                            format={message.format}
-                            onOptionClick={onOptionClick}
-                            extComponent={ExtComponent}
-                            metadata={message.metadata}
-                            finished={message.finished}
-                            debugGuide={message.debugGuide}
-                        />
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <LazyAIMessage 
+                                key={message.id}
+                                content={message.content}
+                                name={message.name}
+                                avatar={avatar}
+                                format={message.format}
+                                onOptionClick={onOptionClick}
+                                extComponent={ExtComponent}
+                                metadata={message.metadata}
+                                finished={message.finished}
+                                debugGuide={message.debugGuide}
+                                onFinishLoad={ExtComponent ? undefined : onFinishLoad}
+                            />
+                        </Suspense>
                     );
                 }
 
@@ -606,34 +701,40 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
                 // 默认返回AIMessage
                 return (
-                    <AIMessage 
-                        key={message.id}
-                        content={message.content}
-                        name={message.name}
-                        avatar={avatar}
-                        format={message.format}
-                        onOptionClick={onOptionClick}
-                        metadata={message.metadata}
-                        finished={message.finished}
-                        debugGuide={message.debugGuide}
-                    />
+                    <Suspense fallback={<div>Loading...</div>}>
+                        <LazyAIMessage 
+                            key={message.id}
+                            content={message.content}
+                            name={message.name}
+                            avatar={avatar}
+                            format={message.format}
+                            onOptionClick={onOptionClick}
+                            metadata={message.metadata}
+                            finished={message.finished}
+                            debugGuide={message.debugGuide}
+                            onFinishLoad={onFinishLoad}
+                        />
+                    </Suspense>
                 );
             } catch (error) {
                 // console.error('[MessageList] Error parsing message content:', error);
                 // 如果解析JSON失败,使用AIMessage
                 // console.error('解析JSON失败', message.content);
                 return (
-                    <AIMessage 
-                        key={message.id}
-                        content={message.content}
-                        name={message.name}
-                        avatar={avatar}
-                        format={message.format}
-                        onOptionClick={onOptionClick}
-                        metadata={message.metadata}
-                        finished={message.finished}
-                        debugGuide={message.debugGuide}
-                    />
+                    <Suspense fallback={<div>Loading...</div>}>
+                        <LazyAIMessage 
+                            key={message.id}
+                            content={message.content}
+                            name={message.name}
+                            avatar={avatar}
+                            format={message.format}
+                            onOptionClick={onOptionClick}
+                            metadata={message.metadata}
+                            finished={message.finished}
+                            debugGuide={message.debugGuide}
+                            onFinishLoad={onFinishLoad}
+                        />
+                    </Suspense>
                 );
             }
         }
@@ -641,22 +742,17 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         return null;
     }
 
-    const renderLoadMore = (message: LoadMoreButtonProps) => {
-        const isNotUsed = message?.buttonStatus === LoadMoreStatus.NOT_USED
-        return <div 
-            key={message.id}
-            className='flex justify-center items-center'
+    const renderLoadMore = (message: LoadMoreButtonProps) => <div 
+        key={message.id}
+        className='flex justify-center items-center'
+    >
+        <button 
+            className='w-full h-[24px] text-gray-700 text-xs bg-transparent hover:!bg-gray-100 px-2 py-1 rounded-md'
+            onClick={handleLoadMore}
         >
-            {
-                isNotUsed ? <button 
-                    className='w-full h-[24px] text-gray-700 text-xs bg-transparent hover:!bg-gray-100 px-2 py-1 rounded-md'
-                    onClick={handleLoadMore}
-                >
-                    Load more
-                </button> : <div className='w-full h-[24px] bg-transparent' />
-            }
-        </div>
-    }
+            Load more
+        </button>
+    </div>
 
     function isLoadMoreButtonProps(item: any): item is LoadMoreButtonProps {
         return item && typeof item === 'object' && item.buttonType === 'loadmore';
@@ -674,13 +770,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         let list: FinallyMessageProps[] = []
         if (lastMessagesCount.current > 0 && lastMessagesCount.current < processedMessages.length) {
             list = processedMessages.slice(lastMessagesCount.current)
-            if (processedMessages[lastMessagesCount.current].role === 'user') {
-                list.unshift({  
-                    id: `${processedMessages[lastMessagesCount.current].id}_loadmore`,
-                    buttonType: 'loadmore',
-                    buttonStatus: LoadMoreStatus.USED
-                })
-            }
             setCurrentMessages(pre => [...pre, ...list]);
         } else {
             let count = 0;
@@ -690,19 +779,11 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     if (count > DEFAULT_COUNT + currentIndex) {
                         list.unshift({
                             id: `${processedMessages[i].id}_loadmore`,
-                            buttonType: 'loadmore',
-                            buttonStatus: LoadMoreStatus.NOT_USED
+                            buttonType: 'loadmore'
                         })
                         break;
                     } else {
                         count++;    
-                        if (list?.length > 0) {
-                            list.unshift({
-                                id: `${processedMessages[i].id}_loadmore`,
-                                buttonType: 'loadmore',
-                                buttonStatus: LoadMoreStatus.USED
-                            })
-                        }
                         list = [
                             ...processedMessages?.slice(Math.min(endIndex, i === 0 ? i : i + 1), endIndex + 1), 
                             ...list
@@ -717,18 +798,23 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }, [messages, currentIndex])
 
     useLayoutEffect(() => {
-        if (!!scrollRef?.current) {
-            if (isLoadHistory.current) {
-                // 加载历史数据需要修改scrolltop保证当前视图不变
-                scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
-                isLoadHistory.current = false
-            } else {
-                if (isAutoScroll.current) {
-                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-                }
-            }
-            currentScrollHeight.current = scrollRef.current.scrollHeight
-        }
+        console.log('currentMessages--->', currentMessages)
+        finishLoadedCount.current = 0
+        isFinishLoad.current = false
+        // if (!!scrollRef?.current) {
+        //     if (isLoadHistory.current) {
+        //         console.log('----->', scrollRef.current.scrollTop, scrollRef.current.scrollHeight, currentScrollHeight.current)
+        //         // 加载历史数据需要修改scrolltop保证当前视图不变
+        //         scrollRef.current.scrollTop = scrollRef.current.scrollHeight - currentScrollHeight.current
+        //         isLoadHistory.current = false
+        //     } else {
+        //         // if (isAutoScroll.current) {
+        //             console.log('useEffect--->', scrollRef.current.scrollTop, scrollRef.current.scrollHeight)
+        //             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        //         // }
+        //     }
+        //     currentScrollHeight.current = scrollRef.current.scrollHeight
+        // }
     }, [currentMessages])
 
     return (
@@ -736,11 +822,11 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
             className='flex-1 flex-col overflow-y-auto p-4 h-0'
             ref={scrollRef} 
             style={{
-                display: isActive ? 'block' : 'none',
+                display: isActive ? 'flex' : 'none',
             }}
         >
             {
-                currentMessages?.map((message) => !!message && (isLoadMoreButtonProps(message) ? renderLoadMore(message as LoadMoreButtonProps) : renderMessage(message as Message)))
+                currentMessages?.map((message, index) => !!message && (isLoadMoreButtonProps(message) ? renderLoadMore(message as LoadMoreButtonProps) : renderMessage(message as Message, index)))
             }
             {loading && <LoadingMessage />}
         </div>

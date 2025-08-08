@@ -175,9 +175,14 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
                 <h2 className="text-xl text-gray-900 dark:text-white font-semibold mb-6">Set API Key</h2>
                 
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email
-                    </label>
+                    <div className='flex flex-row justify-between'>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Email
+                        </label>
+                        <div className="text-sm text-red-600 dark:text-red-300">
+                            <span>{(!!email && email !== ''&& !isEmailValid) ? 'Please enter a valid email' : ''}</span>
+                        </div>
+                    </div>
                     <div className="relative mb-4 flex flex-row gap-2">
                         <Input
                             value={email}
@@ -196,11 +201,25 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
                             {loading ? <LoadingIcon /> : (countDown > 0 ? `Resend in ${countDown}s` : 'Send')}
                         </button>
                     </div>
-                    {
-                        !!email && email !== ''&& !isEmailValid && <div className="text-sm text-red-600 dark:text-red-300">
-                            <span>Please enter a valid email</span>
-                        </div>
-                    }
+                    <div className="text-xs text-gray-600">
+                        By clicking the "Send" button below and submitting your information to us, you agree to our&nbsp;
+                        <a        
+                            href="https://cdn.contract.alibaba.com/terms/privacy_policy_full/20250219145958852/20250219145958852.html?lng=en"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className='underline underline-offset-2'
+                        >
+                            Privacy Policy
+                        </a> and&nbsp; 
+                        <a
+                            href="https://cdn.contract.alibaba.com/terms/c_end_product_protocol/20250219150239949/20250219150239949.html?lng=en"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className='underline underline-offset-2'
+                        >
+                            Terms of Use
+                        </a>.
+                    </div>
                 </div>
                 {/* Main API Key */}
                 <div className="mb-6">
@@ -216,7 +235,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
                             className='mb-4'
                         />
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                    <div className="text-xs text-gray-600 dark:text-gray-300">
                         <span>Don't have an API key? </span>
                         <a 
                             href="https://form.typeform.com/to/tkg91K8D"
@@ -306,7 +325,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
                                 }`}
                             >
                                 {verifyingKey ? (
-                                    <span className="flex items-center">
+                                    <span className="flex items-center text-xs">
                                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

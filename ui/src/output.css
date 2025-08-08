@@ -404,8 +404,14 @@
   .h-10 {
     height: 2.5rem;
   }
+  .h-12 {
+    height: 3rem;
+  }
   .h-14 {
     height: 3.5rem;
+  }
+  .h-16 {
+    height: 4rem;
   }
   .h-2 {
     height: 0.5rem;
@@ -421,9 +427,6 @@
   }
   .h-4 {
     height: 1rem;
-  }
-  .h-40 {
-    height: 10rem;
   }
   .h-5 {
     height: 1.25rem;
@@ -823,6 +826,10 @@
   .border-none {
     border-style: none;
   }
+  .border-\[\#29292f\] {
+    --tw-border-opacity: 1;
+    border-color: rgb(41 41 47 / var(--tw-border-opacity, 1));
+  }
   .border-\[\#71A3F2\] {
     --tw-border-opacity: 1;
     border-color: rgb(113 163 242 / var(--tw-border-opacity, 1));
@@ -1017,19 +1024,14 @@
   .bg-debug-btn {
     background-image: linear-gradient(90deg, #4f8cff 0%, #2357d5 100%);
   }
+  .bg-debug-collapsible-card-bg {
+    background-image: linear-gradient(color-mix(in srgb, var(--p-text-color) 0%, transparent) 0%, color-mix(in srgb, var(--p-text-color) 60%, transparent) 100%);
+  }
   .bg-gradient-to-r {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
   }
-  .bg-gradient-to-t {
-    background-image: linear-gradient(to top, var(--tw-gradient-stops));
-  }
   .bg-showcase-bg {
-    background-image: linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 5%, transparent) 20%, color-mix(in srgb, var(--p-text-color) 40%, transparent) 100%);
-  }
-  .from-\[\#fff\] {
-    --tw-gradient-from: #fff var(--tw-gradient-from-position);
-    --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 20%, transparent) 40%, color-mix(in srgb, var(--p-text-color) 23%, transparent) 70%, color-mix(in srgb, var(--p-text-color) 25%, transparent) 100%);
   }
   .from-gray-50 {
     --tw-gradient-from: color-mix(in srgb, var(--p-text-color) 5%, transparent) var(--tw-gradient-from-position);
@@ -1038,9 +1040,6 @@
   }
   .to-gray-100 {
     --tw-gradient-to: color-mix(in srgb, var(--p-text-color) 10%, transparent) var(--tw-gradient-to-position);
-  }
-  .to-transparent {
-    --tw-gradient-to: transparent var(--tw-gradient-to-position);
   }
   .fill-current {
     fill: currentColor;
@@ -1228,6 +1227,10 @@
   .leading-snug {
     line-height: 1.375;
   }
+  .text-\[\#4fabdb\] {
+    --tw-text-opacity: 1;
+    color: rgb(79 171 219 / var(--tw-text-opacity, 1));
+  }
   .text-\[\#71A3F2\] {
     --tw-text-opacity: 1;
     color: rgb(113 163 242 / var(--tw-text-opacity, 1));
@@ -1235,6 +1238,9 @@
   .text-\[\#fff\] {
     --tw-text-opacity: 1;
     color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+  }
+  .text-\[\#fff\]\/70 {
+    color: rgb(255 255 255 / 0.7);
   }
   .text-amber-600 {
     --tw-text-opacity: 1;
@@ -1331,6 +1337,9 @@
   .underline {
     text-decoration-line: underline;
   }
+  .underline-offset-2 {
+    text-underline-offset: 2px;
+  }
   .placeholder-gray-500::-moz-placeholder {
     color: color-mix(in srgb, var(--p-text-color) 50%, transparent);
   }
@@ -1396,10 +1405,6 @@
     --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
     --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
-  .shadow-gray-200 {
-    --tw-shadow-color: color-mix(in srgb, var(--p-text-color) 20%, transparent);
-    --tw-shadow: var(--tw-shadow-colored);
   }
   .outline-none {
     outline: 2px solid transparent;
@@ -1517,6 +1522,62 @@
 
 .animate-breathe-green {
   animation: breathe 3s ease-in-out infinite, colorBreathe 3s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.debug-collapsible-card {
+  --line: hsl(240, 9%, 17%);
+  box-shadow: 0px -16px 24px 0px rgba(255, 255, 255, 0.25) inset;
+  background-color: hsla(240, 15%, 9%, 1);
+  background-image: radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsl(189, 99%, 26%) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsl(189, 97%, 36%) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsl(188, 94%, 13%) 0px, transparent 85%);
+}
+
+.debug-collapsible-card .card-border {
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  background-image: linear-gradient(
+    0deg,
+    hsl(0, 0%, 100%) -50%,
+    hsl(0, 0%, 40%) 100%
+  );
+}
+
+.debug-collapsible-card .card-border::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  z-index: 200;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%), rotate(0deg);
+  transform-origin: left;
+  width: 200%;
+  height: 10rem;
+  background-image: linear-gradient(
+    0deg,
+    hsla(0, 0%, 100%, 0) 0%,
+    hsl(189, 100%, 50%) 40%,
+    hsl(189, 100%, 50%) 60%,
+    hsla(0, 0%, 40%, 0) 100%
+  );
+  animation: rotate 8s linear infinite;
 }
 
 .hover\:\!scale-\[1\.05\]:hover {
@@ -1920,11 +1981,6 @@
 
   .dark\:placeholder-gray-400::placeholder {
     color: color-mix(in srgb, var(--p-text-color) 40%, transparent);
-  }
-
-  .dark\:shadow-gray-600 {
-    --tw-shadow-color: color-mix(in srgb, var(--p-text-color) 60%, transparent);
-    --tw-shadow: var(--tw-shadow-colored);
   }
 
   .dark\:hover\:bg-blue-600:hover {
