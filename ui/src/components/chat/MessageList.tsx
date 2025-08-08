@@ -311,6 +311,75 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     }
                 }
 
+                // 检查是否需要保存当前工作流的UI格式数据
+                // 如果ext数据中包含checkpoint_id且消息已完成，保存当前前端的workflow_ui
+                if (response.ext && message.finished) {
+                    const checkpointExt = response.ext.find((item: ExtItem) => 
+                        item.data && item.data.checkpoint_id && 
+                        (item.type === 'debug_checkpoint' || item.type === 'workflow_rewrite_complete' || item.type === 'workflow_update_complete')
+                    );
+                    
+                    if (checkpointExt && checkpointExt.data?.checkpoint_id) {
+                        const checkpointId = checkpointExt.data.checkpoint_id;
+                        const saveWorkflowUIKey = `save_workflow_ui_${message.id}_${checkpointId}`;
+                        
+                        if (!processedUpdates.current.has(saveWorkflowUIKey)) {
+                            const saveWorkflowUIWithRetry = async (retryCount = 0) => {
+                                try {
+                                    // 获取当前工作流的UI格式数据
+                                    if (typeof window !== 'undefined' && (window as any).app) {
+                                        const app = (window as any).app;
+                                        if (app.graph) {
+                                            const workflowPrompt = await app.graphToPrompt();
+                                            const workflowUI = workflowPrompt.workflow; // UI format
+                                            
+                                            if (workflowUI) {
+                                                // 调用API更新workflow_ui字段
+                                                const response = await fetch('/api/update-workflow-ui', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json'
+                                                    },
+                                                    body: JSON.stringify({
+                                                        checkpoint_id: checkpointId,
+                                                        workflow_data_ui: workflowUI
+                                                    })
+                                                });
+                                                
+                                                const result = await response.json();
+                                                if (result.success) {
+                                                    console.log(`[MessageList] Successfully saved workflow UI for checkpoint ${checkpointId}`);
+                                                    processedUpdates.current.add(saveWorkflowUIKey);
+                                                } else {
+                                                    console.warn(`[MessageList] Failed to save workflow UI for checkpoint ${checkpointId}: ${result.message}`);
+                                                    // 重试最多3次
+                                                    if (retryCount < 2) {
+                                                        setTimeout(() => {
+                                                            saveWorkflowUIWithRetry(retryCount + 1);
+                                                        }, 1000 * (retryCount + 1));
+                                                    } else {
+                                                        console.error(`[MessageList] Save workflow UI failed after 3 attempts for checkpoint ${checkpointId}`);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error(`[MessageList] Error saving workflow UI (attempt ${retryCount + 1}):`, error);
+                                    // 重试最多3次
+                                    if (retryCount < 2) {
+                                        setTimeout(() => {
+                                            saveWorkflowUIWithRetry(retryCount + 1);
+                                        }, 1000 * (retryCount + 1));
+                                    }
+                                }
+                            };
+                            
+                            saveWorkflowUIWithRetry();
+                        }
+                    }
+                }
+
                 // 根据扩展类型添加对应组件
                 let ExtComponent = null;
                 if (workflowExt) {

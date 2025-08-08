@@ -19,7 +19,7 @@ import sys
 import os
 
 from ..service.debug_agent import debug_workflow_errors
-from ..service.database import save_workflow_data, get_workflow_data_by_id
+from ..service.database import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
 from ..service.mcp_client import comfyui_agent_invoke, ImageData
 
 
@@ -754,3 +754,52 @@ async def invoke_debug(request):
 
     await response.write_eof()
     return response
+
+
+@server.PromptServer.instance.routes.post("/api/update-workflow-ui")
+async def update_workflow_ui(request):
+    """
+    Update workflow_data_ui field for a specific checkpoint without affecting other fields
+    """
+    print("Received update-workflow-ui request")
+    req_json = await request.json()
+    
+    try:
+        checkpoint_id = req_json.get('checkpoint_id')
+        workflow_data_ui = req_json.get('workflow_data_ui')
+        
+        if not checkpoint_id or not workflow_data_ui:
+            return web.json_response({
+                "success": False,
+                "message": "Missing required parameters: checkpoint_id and workflow_data_ui"
+            })
+        
+        try:
+            checkpoint_id = int(checkpoint_id)
+        except ValueError:
+            return web.json_response({
+                "success": False,
+                "message": "Invalid checkpoint_id format"
+            })
+        
+        # Update only the workflow_data_ui field
+        success = update_workflow_ui_by_id(checkpoint_id, workflow_data_ui)
+        
+        if success:
+            print(f"Successfully updated workflow_data_ui for checkpoint ID: {checkpoint_id}")
+            return web.json_response({
+                "success": True,
+                "message": f"Workflow UI data updated successfully for checkpoint {checkpoint_id}"
+            })
+        else:
+            return web.json_response({
+                "success": False,
+                "message": f"Checkpoint {checkpoint_id} not found"
+            })
+        
+    except Exception as e:
+        print(f"Error updating workflow UI data: {str(e)}")
+        return web.json_response({
+            "success": False,
+            "message": f"Failed to update workflow UI data: {str(e)}"
+        })
