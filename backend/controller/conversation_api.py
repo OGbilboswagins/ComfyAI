@@ -99,55 +99,7 @@ async def upload_to_oss(file_data: bytes, filename: str) -> str:
         return f"data:image/jpeg;base64,{base64_data}"
 
 
-@server.PromptServer.instance.routes.get("/verify_openai_key")
-async def verify_openai_key(req):
-    """
-    Verify if an OpenAI API key is valid by calling the OpenAI models endpoint
-    
-    Returns:
-        JSON response with success status and message
-    """
-    try:
-        openai_api_key = req.headers.get('Openai-Api-Key')
-        openai_base_url = req.headers.get('Openai-Base-Url', 'https://api.openai.com/v1')
-        
-        if not openai_api_key:
-            return web.json_response({
-                "success": False, 
-                "message": "No API key provided"
-            })
-        
-        # Use a direct HTTP request instead of the OpenAI client
-        # This gives us more control over the request method and error handling
-        headers = {
-            "Authorization": f"Bearer {openai_api_key}"
-        }
-        
-        # Make a simple GET request to the models endpoint
-        response = requests.get(f"{openai_base_url}/models", headers=headers)
-        
-        # Check if the request was successful
-        if response.status_code == 200:
-            return web.json_response({
-                "success": True, 
-                "data": True, 
-                "message": "API key is valid"
-            })
-        else:
-            print(f"API key validation failed with status code: {response.status_code}")
-            return web.json_response({
-                "success": False, 
-                "data": False,
-                "message": f"Invalid API key: HTTP {response.status_code} - {response.text}"
-            })
-            
-    except Exception as e:
-        print(f"Error verifying OpenAI API key: {str(e)}")
-        return web.json_response({
-            "success": False, 
-            "data": False, 
-            "message": f"Invalid API key: {str(e)}"
-        })
+
 
 @server.PromptServer.instance.routes.post("/api/chat/invoke")
 async def invoke_chat(request):

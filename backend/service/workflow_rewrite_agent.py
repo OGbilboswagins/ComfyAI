@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-08 11:18:22
+LastEditTime: 2025-08-11 17:28:30
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -16,7 +16,7 @@ import os
 from typing import Dict, Any
 
 from ..agent_factory import create_agent
-from ..utils.globals import get_language
+from ..utils.globals import CLAUDE_4_MODEL_NAME, get_language
 
 from ..service.workflow_rewrite_tools import *
 
@@ -64,7 +64,7 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
     
     return create_agent(
         name="Workflow Rewrite Agent",
-        model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+        model=CLAUDE_4_MODEL_NAME,
         handoff_description="""
         我是工作流改写代理，专门负责根据用户需求修改和优化当前画布上的ComfyUI工作流。
         """,

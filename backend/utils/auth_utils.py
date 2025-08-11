@@ -6,7 +6,7 @@ Authentication utilities for ComfyUI Copilot
 """
 
 from typing import Optional
-from .globals import set_comfyui_copilot_api_key, get_comfyui_copilot_api_key
+from .globals import set_comfyui_copilot_api_key, get_comfyui_copilot_api_key, set_session_id
 
 
 def extract_and_store_api_key(request) -> Optional[str]:
@@ -20,6 +20,10 @@ def extract_and_store_api_key(request) -> Optional[str]:
         The extracted API key if successful, None otherwise
     """
     try:
+        session_id = request.get('session_id')
+        if session_id:
+            set_session_id(session_id)
+        
         auth_header = request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Bearer '):
             api_key = auth_header[7:]  # Remove 'Bearer ' prefix

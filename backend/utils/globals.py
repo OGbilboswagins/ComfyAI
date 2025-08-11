@@ -90,5 +90,14 @@ def set_comfyui_copilot_api_key(api_key: str) -> None:
     """Set the ComfyUI Copilot API key."""
     _global_state.set('comfyui_copilot_api_key', api_key)
 
+def get_session_id() -> Optional[str]:
+    """Get the session id."""
+    return _global_state.get('session_id')
+
+def set_session_id(session_id: str) -> None:
+    """Set the session id."""
+    _global_state.set('session_id', session_id)
+
 # LLM_DEFAULT_BASE_URL = "https://comfyui-copilot-server.onrender.com/v1"
 LLM_DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
+CLAUDE_4_MODEL_NAME = "us.anthropic.claude-sonnet-4-20250514-v1:0"
