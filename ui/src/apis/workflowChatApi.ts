@@ -609,16 +609,20 @@ export namespace WorkflowChatAPI {
   }
 
   export async function listModels(): Promise<{ models: {label: string; name: string; image_enable: boolean }[] }> {
-    const headers  = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'accept': 'application/json',
       'trace-id': generateUUID(),
+    };
+    
+    const openaiApiKey = localStorage.getItem('openaiApiKey');
+    if(openaiApiKey) {
+      headers['Openai-Api-Key'] = openaiApiKey;
     }
-    if(localStorage.getItem('openaiApiKey')) {
-      headers['Openai-Api-Key'] = localStorage.getItem('openaiApiKey');
-    }
-    if(localStorage.getItem('openaiBaseUrl')) {
-      headers['Openai-Base-Url'] = localStorage.getItem('openaiBaseUrl');
+    
+    const openaiBaseUrl = localStorage.getItem('openaiBaseUrl');
+    if(openaiBaseUrl) {
+      headers['Openai-Base-Url'] = openaiBaseUrl;
     }
 
     const response = await fetch('/api/model_config', {
