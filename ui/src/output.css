@@ -433,6 +433,9 @@
   .h-3\.5 {
     height: 0.875rem;
   }
+  .h-3\/5 {
+    height: 60%;
+  }
   .h-4 {
     height: 1rem;
   }
@@ -846,6 +849,10 @@
     --tw-border-opacity: 1;
     border-color: rgb(151 151 151 / var(--tw-border-opacity, 1));
   }
+  .border-\[\#d1d5db\] {
+    --tw-border-opacity: 1;
+    border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+  }
   .border-blue-100 {
     --tw-border-opacity: 1;
     border-color: rgb(219 234 254 / var(--tw-border-opacity, 1));
@@ -908,6 +915,10 @@
     --tw-border-opacity: 1;
     border-color: rgb(254 240 138 / var(--tw-border-opacity, 1));
   }
+  .border-t-\[\#00D9FF\] {
+    --tw-border-opacity: 1;
+    border-top-color: rgb(0 217 255 / var(--tw-border-opacity, 1));
+  }
   .border-t-gray-800 {
     border-top-color: color-mix(in srgb, var(--p-text-color) 80%, transparent);
   }
@@ -932,8 +943,8 @@
   .bg-black\/40 {
     background-color: rgb(0 0 0 / 0.4);
   }
-  .bg-black\/50 {
-    background-color: rgb(0 0 0 / 0.5);
+  .bg-black\/80 {
+    background-color: rgb(0 0 0 / 0.8);
   }
   .bg-blue-100 {
     --tw-bg-opacity: 1;
@@ -1599,6 +1610,10 @@
     0 0 0 6px hsl(189, 97%, 36%);
 }
 
+.loading-spin {
+  animation: rotate 1s linear infinite;
+}
+
 .hover\:\!overflow-visible:hover {
   overflow: visible !important;
 }
@@ -2016,4 +2031,3 @@
   margin-top: 0.25rem !important;
   margin-bottom: 0.25rem !important;
 }
-

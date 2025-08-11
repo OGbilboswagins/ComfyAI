@@ -35,6 +35,7 @@ import { ParameterDebugInterface } from "../components/debug/ParameterDebugInter
 import { COPILOT_EVENTS } from "../constants/events";
 import { app } from "../utils/comfyapp";
 import { config } from "../config";
+import { mergeByKeyCombine } from "../utils/tools";
 
 const BASE_URL = config.apiBaseUrl
 
@@ -802,7 +803,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     })
                 }
             })
-            setUploadedImages([...newImages]);
+            setUploadedImages(prev => mergeByKeyCombine(prev, newImages, 'id'));
         });
         // const newImages = Array.from(files).map(file => ({
         //     id: Math.random().toString(36).substr(2, 9),

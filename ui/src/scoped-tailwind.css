@@ -150,3 +150,6 @@
     0 0 0 6px hsl(189, 97%, 36%);
 }
 
+.loading-spin {
+  animation: rotate 1s linear infinite;
+}
