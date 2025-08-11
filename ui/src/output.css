@@ -285,6 +285,10 @@
     margin-top: 0.25rem !important;
     margin-bottom: 0.25rem !important;
   }
+  .mx-\[1px\] {
+    margin-left: 1px;
+    margin-right: 1px;
+  }
   .mx-auto {
     margin-left: auto;
     margin-right: auto;
@@ -292,6 +296,10 @@
   .my-4 {
     margin-top: 1rem;
     margin-bottom: 1rem;
+  }
+  .my-\[1px\] {
+    margin-top: 1px;
+    margin-bottom: 1px;
   }
   .-mb-2 {
     margin-bottom: -0.5rem;
@@ -1022,16 +1030,13 @@
     --tw-bg-opacity: 0.75;
   }
   .bg-debug-btn {
-    background-image: linear-gradient(90deg, #4f8cff 0%, #2357d5 100%);
+    background-image: linear-gradient(325deg, hsl(189, 97%, 36%) 0%, hsl(189, 99%, 26%) 55%, hsl(189, 97%, 36%) 90%);
   }
   .bg-debug-collapsible-card-bg {
     background-image: linear-gradient(color-mix(in srgb, var(--p-text-color) 0%, transparent) 0%, color-mix(in srgb, var(--p-text-color) 60%, transparent) 100%);
   }
   .bg-gradient-to-r {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-  }
-  .bg-showcase-bg {
-    background-image: linear-gradient(135deg, color-mix(in srgb, var(--p-text-color) 20%, transparent) 40%, color-mix(in srgb, var(--p-text-color) 23%, transparent) 70%, color-mix(in srgb, var(--p-text-color) 25%, transparent) 100%);
   }
   .from-gray-50 {
     --tw-gradient-from: color-mix(in srgb, var(--p-text-color) 5%, transparent) var(--tw-gradient-from-position);
@@ -1381,11 +1386,6 @@
     --tw-shadow-colored: 0 0 12px 2px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
-  .shadow-\[0_4px_24px_rgba\(0\2c 0\2c 0\2c 0\.12\)\] {
-    --tw-shadow: 0 4px 24px rgba(0,0,0,0.12);
-    --tw-shadow-colored: 0 4px 24px var(--tw-shadow-color);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
   .shadow-lg {
     --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
@@ -1510,8 +1510,7 @@
 
 @keyframes colorBreathe {
   0%, 100% {
-    color: #22c55e;
-    /* green-500 */
+    color: hsl(189, 97%, 36%);
   }
 
   50% {
@@ -1530,8 +1529,7 @@
   }
 }
 
-.debug-collapsible-card {
-  --line: hsl(240, 9%, 17%);
+.beautify-card {
   box-shadow: 0px -16px 24px 0px rgba(255, 255, 255, 0.25) inset;
   background-color: hsla(240, 15%, 9%, 1);
   background-image: radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -1542,7 +1540,7 @@
     radial-gradient(at 100% 99%, hsl(188, 94%, 13%) 0px, transparent 85%);
 }
 
-.debug-collapsible-card .card-border {
+.beautify-card .card-border {
   overflow: hidden;
   pointer-events: none;
   position: absolute;
@@ -1559,7 +1557,7 @@
   );
 }
 
-.debug-collapsible-card .card-border::before {
+.beautify-card .card-border::before {
   content: "";
   pointer-events: none;
   position: fixed;
@@ -1580,10 +1578,25 @@
   animation: rotate 8s linear infinite;
 }
 
-.hover\:\!scale-\[1\.05\]:hover {
-  --tw-scale-x: 1.05 !important;
-  --tw-scale-y: 1.05 !important;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y)) !important;
+.debug-btn {
+  transition: 0.8s;
+  background-size: 280% auto;
+  box-shadow:
+    0px 0px 20px rgba(71, 184, 255, 0.5),
+    0px 5px 5px -1px rgba(58, 125, 233, 0.25),
+    inset 4px 4px 8px rgba(175, 230, 255, 0.5),
+    inset -4px -4px 8px rgba(19, 95, 216, 0.35);
+}
+
+.debug-btn:hover {
+  background-position: right top;
+}
+
+.debug-btn:is(:focus, :focus-visible, :active) {
+  outline: none;
+  box-shadow:
+    0 0 0 3px hsla(360 100% 100% / 1),
+    0 0 0 6px hsl(189, 97%, 36%);
 }
 
 .hover\:\!overflow-visible:hover {
@@ -1681,10 +1694,6 @@
   background-color: rgb(233 213 255 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:\!bg-debug-btn-hover:hover {
-  background-image: linear-gradient(90deg, #2357d5 0%, #4f8cff 100%) !important;
-}
-
 .hover\:\!text-\[\#71A3F2\]:hover {
   --tw-text-opacity: 1 !important;
   color: rgb(113 163 242 / var(--tw-text-opacity, 1)) !important;
@@ -1741,18 +1750,6 @@
 
 .hover\:opacity-100:hover {
   opacity: 1;
-}
-
-.hover\:\!shadow-\[0_0_0_4px_rgba\(59\2c 130\2c 246\2c 0\.15\)\]:hover {
-  --tw-shadow: 0 0 0 4px rgba(59,130,246,0.15) !important;
-  --tw-shadow-colored: 0 0 0 4px var(--tw-shadow-color) !important;
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
-}
-
-.hover\:\!shadow-\[0_0_12px_2px_\#3b82f6\]:hover {
-  --tw-shadow: 0 0 12px 2px #3b82f6 !important;
-  --tw-shadow-colored: 0 0 12px 2px var(--tw-shadow-color) !important;
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
 }
 
 .hover\:shadow-sm:hover {
@@ -2019,3 +2016,4 @@
   margin-top: 0.25rem !important;
   margin-bottom: 0.25rem !important;
 }
+

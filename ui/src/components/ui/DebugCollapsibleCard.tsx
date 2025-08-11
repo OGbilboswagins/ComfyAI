@@ -27,7 +27,7 @@ const DebugCollapsibleCard: React.FC<IProps> = (props) => {
   }, []);
   
   return (
-    <div className={`relative rounded-lg flex flex-col debug-collapsible-card ${className} ${!isOpen ? 'h-[200px]' : ''}`}>
+    <div className={`relative rounded-lg flex flex-col beautify-card ${className} ${!isOpen ? 'h-[200px]' : ''}`}>
       <div className="card-border rounded-lg" />
       <div className="flex flex-1 justify-between items-center pb-2 border-b border-[#29292f]">
         <div>

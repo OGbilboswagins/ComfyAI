@@ -59,7 +59,7 @@
 
 @keyframes colorBreathe {
   0%, 100% {
-      color: #22c55e; /* green-500 */
+      color: hsl(189, 97%, 36%);
   }
   50% {
     color: var(--p-text-color) / 20; /* gray-200 */
@@ -76,9 +76,7 @@
   }
 }
 
-.debug-collapsible-card {
-  --line: hsl(240, 9%, 17%);
-
+.beautify-card {
   box-shadow: 0px -16px 24px 0px rgba(255, 255, 255, 0.25) inset;
   background-color: hsla(240, 15%, 9%, 1);
   background-image: radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -89,7 +87,7 @@
     radial-gradient(at 100% 99%, hsl(188, 94%, 13%) 0px, transparent 85%);
 }
 
-.debug-collapsible-card .card-border {
+.beautify-card .card-border {
   overflow: hidden;
   pointer-events: none;
 
@@ -108,7 +106,7 @@
   );
 }
 
-.debug-collapsible-card .card-border::before {
+.beautify-card .card-border::before {
   content: "";
   pointer-events: none;
 
@@ -128,6 +126,27 @@
     hsl(189, 100%, 50%) 60%,
     hsla(0, 0%, 40%, 0) 100%
   );
-
   animation: rotate 8s linear infinite;
 }
+
+.debug-btn {
+  transition: 0.8s;
+  background-size: 280% auto;
+  box-shadow:
+    0px 0px 20px rgba(71, 184, 255, 0.5),
+    0px 5px 5px -1px rgba(58, 125, 233, 0.25),
+    inset 4px 4px 8px rgba(175, 230, 255, 0.5),
+    inset -4px -4px 8px rgba(19, 95, 216, 0.35);
+}
+
+.debug-btn:hover {
+  background-position: right top;
+}
+
+.debug-btn:is(:focus, :focus-visible, :active) {
+  outline: none;
+  box-shadow:
+    0 0 0 3px hsla(360 100% 100% / 1),
+    0 0 0 6px hsl(189, 97%, 36%);
+}
+
