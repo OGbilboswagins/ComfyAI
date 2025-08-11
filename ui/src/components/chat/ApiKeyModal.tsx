@@ -235,7 +235,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
                             className='mb-4'
                         />
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300">
+                    {/* <div className="text-xs text-gray-600 dark:text-gray-300">
                         <span>Don't have an API key? </span>
                         <a 
                             href="https://form.typeform.com/to/tkg91K8D"
@@ -245,7 +245,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
                         >
                             Click here to request one
                         </a>
-                    </div>
+                    </div> */}
                 </div>
                 
                 {/* OpenAI Configuration */}
