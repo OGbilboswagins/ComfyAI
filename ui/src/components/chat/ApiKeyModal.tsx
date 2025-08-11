@@ -170,8 +170,8 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 w-[480px] shadow-2xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 w-[480px] max-h-[80vh] shadow-2xl overflow-y-auto">
                 <h2 className="text-xl text-gray-900 dark:text-white font-semibold mb-6">Set API Key</h2>
                 
                 <div className="mb-6">

@@ -7,6 +7,7 @@ import React from 'react';
 import { WorkflowChatAPI } from '../../apis/workflowChatApi';
 import { generateUUID } from '../../utils/uuid';
 import { Portal } from './Portal';
+import ImageLoading from '../ui/Image-Loading';
 
 // Debug icon component
 const DebugIcon = ({ className }: { className: string }) => (
@@ -147,6 +148,11 @@ export function ChatInput({
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
+            if (uploadedImages?.length >= 3) {
+                alert('You can only upload up to 3 images');
+                return;
+            }
+
             const invalidFiles: string[] = [];
             const validFiles: File[] = [];
 
@@ -164,7 +170,7 @@ export function ChatInput({
                 alert(`The following files couldn't be uploaded:\n${invalidFiles.join('\n')}`);
             }
 
-            if (validFiles.length > 3) {
+            if (uploadedImages?.length + validFiles.length > 3) {
                 alert('You can only upload up to 3 images');
                 return;
             }
@@ -197,13 +203,13 @@ export function ChatInput({
         <div className={`relative ${uploadedImages.length > 0 ? 'mt-12' : ''}`}>
             {/* 已上传图片预览 */}
             {uploadedImages.length > 0 && (
-                <div className="absolute -top-10 left-0 flex gap-2">
+                <div className="absolute -top-10 left-0 grid grid-cols-3 gap-2 w-1/2">
                     {uploadedImages.map(image => (
                         <div key={image.id} className="relative group">
                             <img 
                                 src={image.preview} 
                                 alt="uploaded" 
-                                className="w-8 h-8 rounded object-cover"
+                                className="w-full h-12 object-contain"
                             />
                             {
                                 !!image?.url && image?.url !== '' ?  <button
@@ -212,10 +218,7 @@ export function ChatInput({
                                              opacity-0 group-hover:!opacity-100 transition-opacity"
                                 >
                                     <XIcon className="w-3 h-3" />
-                                </button> : <span className="absolute top-0 left-0 w-full h-full bg-black/50 text-gray-500
-                                    flex items-center justify-center text-xs">
-                                    Uploading...
-                                </span>
+                                </button> : <ImageLoading />
                             }
                         </div>
                     ))}
@@ -373,19 +376,16 @@ export function ChatInput({
                                             <img 
                                                 src={image.preview} 
                                                 alt="preview" 
-                                                className="w-full h-20 object-cover rounded"
+                                                className="w-full h-20 object-contain"
                                             />
                                             {
-                                                !!image?.url && image?.url !== '' ?  <button
+                                                !!image?.url && image?.url !== '' ? <button
                                                     onClick={() => onRemoveImage(image.id)}
                                                     className="absolute -top-1 -right-1 bg-white border-none text-gray-500 rounded-full p-0.5
                                                             opacity-0 group-hover:!opacity-100 transition-opacity"
                                                 >
                                                     <XIcon className="w-3 h-3" />
-                                                </button> : <span className="absolute top-0 left-0 w-full h-full bg-black/50 text-gray-500
-                                                    flex items-center justify-center text-lg">
-                                                    Uploading...
-                                                </span>
+                                                </button> : <ImageLoading />
                                             }
                                         </div>
                                     ))}
