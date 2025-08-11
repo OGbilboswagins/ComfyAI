@@ -100,7 +100,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
         </div>
 
         const helpText = isWorkflowUpdate ? (
-            <div className="mt-3 text-xs text-gray-700">
+            <div className="mt-3 text-xs text-[#fff]/70">
                 💡 If you're not satisfied with the changes, click the restore button to revert to the previous version.
             </div>
         ) : null

@@ -88,7 +88,8 @@ const ChatContext = createContext<{
   dispatch: Dispatch<ChatAction>;
   isAutoScroll: React.MutableRefObject<boolean>;
   showcasIng: React.MutableRefObject<boolean>;
-}>({ state: initialState, dispatch: () => null, isAutoScroll: {current: true}, showcasIng: {current: false} });
+  abortControllerRef: React.RefObject<AbortController | null>;
+}>({ state: initialState, dispatch: () => null, isAutoScroll: {current: true}, showcasIng: {current: false}, abortControllerRef: {current: null} });
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -96,6 +97,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // 处理chat是否自动滚动-true: 表示会自动根据内容滚动到最下面，false: 表示不会自动滚动
   const isAutoScroll = useRef<boolean>(true);
   const showcasIng = useRef<boolean>(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Update localStorage cache when messages or sessionId changes
   React.useEffect(() => {
@@ -105,7 +107,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [state.messages, state.sessionId]);
 
   return (
-    <ChatContext.Provider value={{ state, dispatch, isAutoScroll, showcasIng }}>
+    <ChatContext.Provider value={{ state, dispatch, isAutoScroll, showcasIng, abortControllerRef }}>
       {children}
     </ChatContext.Provider>
   );
