@@ -36,16 +36,20 @@ set_default_openai_api("chat_completions")
 set_tracing_disabled(True)
 def create_agent(**kwargs) -> Agent:
     # 通过用户配置拿/环境变量
+    config = kwargs.pop("config") if "config" in kwargs else {}
     client = AsyncOpenAI(
         api_key=get_comfyui_copilot_api_key() or "",
         base_url=LLM_DEFAULT_BASE_URL,
+        default_headers={"X-Session-ID": config.get("session_id")},
     )
-    config = kwargs.pop("config") if "config" in kwargs else {}
-    if config and config.get("openai_api_key") and config.get("openai_api_key") != "":
-        client.api_key = config.get("openai_api_key")
-    if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
-        client.base_url = config.get("openai_base_url")
-    
+    if config:
+        if config.get("openai_api_key") and config.get("openai_api_key") != "":
+            client.api_key = config.get("openai_api_key")
+        if config.get("openai_base_url") and config.get("openai_base_url") != "":
+            client.base_url = config.get("openai_base_url")
+        # if config.get("session_id") and config.get("session_id") != "":
+        #     client.default_headers["X-Session-ID"] = config.get("session_id")
+
     default_model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
     model_name = kwargs.pop("model") or default_model_name
     model = OpenAIChatCompletionsModel(model_name, openai_client=client)

@@ -132,15 +132,6 @@ def update_workflow(session_id: str, workflow_data: str) -> str:
                 }
             })
         
-        # 添加修改后的版本信息（给AI响应）
-        ext_data.append({
-            "type": "workflow_rewrite_complete",
-            "data": {
-                "version_id": version_id,
-                "checkpoint_type": "workflow_rewrite_complete"
-            }
-        })
-        
         return json.dumps({
             "success": True,
             "version_id": version_id,
