@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 import { Message } from "../../types/types";
-import { UserMessage } from "./messages/UserMessage";
-import { AIMessage } from "./messages/AIMessage";
 // Import as components to be used directly, not lazy-loaded
 import { LoadingMessage } from "./messages/LoadingMessage";
 import { generateUUID } from "../../utils/uuid";
@@ -12,7 +10,6 @@ import { addNodeOnGraph } from "../../utils/graphUtils";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Showcase from "./messages/Showcase";
 import { useChatContext } from "../../context/ChatContext";
-import { debounce } from "lodash";
 
 // Define types for ext items to avoid implicit any
 interface ExtItem {

@@ -1,6 +1,7 @@
 import { BaseMessage } from './BaseMessage';
 import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 import DebugCollapsibleCard from '../../ui/DebugCollapsibleCard';
+import Markdown from '../../ui/Markdown';
 
 interface DebugResultProps {
     content: string;
@@ -116,10 +117,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                     {/* {title} */}
                     
                     {format === 'markdown' ? (
-                        <div 
-                            className='text-[#fff]/70 text-sm leading-relaxed h-full'
-                            dangerouslySetInnerHTML={{ __html: formatContent(response?.text || '') }}
-                        />
+                        <Markdown response={response || {}} />
                     ) : (
                         <pre className='whitespace-pre-wrap text-[#fff]/70 text-sm leading-relaxed h-full'>
                             {response?.text || ''}
