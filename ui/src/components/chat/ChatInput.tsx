@@ -1,7 +1,7 @@
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
-import { ChangeEvent, KeyboardEvent, useState, useRef, useEffect, useLayoutEffect, ReactNode } from 'react';
+import { ChangeEvent, KeyboardEvent, useState, useRef, useEffect, useLayoutEffect, ReactNode, forwardRef, useImperativeHandle } from 'react';
 import { SendIcon, ImageIcon, PlusIcon, XIcon, StopIcon } from './Icons';
 import React from 'react';
 import { WorkflowChatAPI } from '../../apis/workflowChatApi';
@@ -37,10 +37,14 @@ export interface UploadedImage {
     url: string;
 }
 
+export interface ChatInputRef {
+    refreshModels: () => void;
+}
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const SUPPORTED_FORMATS = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-export function ChatInput({ 
+export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({ 
     input, 
     loading, 
     onChange, 
@@ -53,12 +57,12 @@ export function ChatInput({
     onModelChange,
     onStop,
     onAddDebugMessage,
-}: ChatInputProps) {
+}, ref) => {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [models, setModels] = useState<{
         label: ReactNode; name: string; image_enable: boolean 
 }[]>([]);
-    const [textareaScrollHeight, setTextareaScrollHeight] = useState(0);
+
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -76,9 +80,6 @@ export function ChatInput({
                 // 强制重新计算
                 textarea.style.height = 'auto';
                 textarea.style.minHeight = 'auto';
-                
-                const height = textarea.scrollHeight;
-                setTextareaScrollHeight(height);
                 
                 // 恢复原始样式
                 textarea.style.cssText = originalStyle;
@@ -115,33 +116,39 @@ export function ChatInput({
         }
     }, [input]);
 
+    // Function to load models from API
+    const loadModels = async () => {
+        try {
+            const result = await WorkflowChatAPI.listModels();
+            setModels(result.models);
+        } catch (error) {
+            console.error('Failed to load models:', error);
+            // Fallback to default models if API fails
+            setModels([{
+                "label": "gemini-2.5-flash",
+                "name": "gemini-2.5-flash",
+                "image_enable": true
+            },
+            {
+                "label": "gpt-4.1-mini",
+                "name": "gpt-4.1-mini-2025-04-14-GlobalStandard",
+                "image_enable": true,
+            },
+            {
+                "label": "gpt-4.1",
+                "name": "gpt-4.1-2025-04-14-GlobalStandard",
+                "image_enable": true,
+            }]);
+        }
+    };
+
+    // Expose refreshModels method to parent component
+    useImperativeHandle(ref, () => ({
+        refreshModels: loadModels
+    }), []);
+
     // Load models on component mount
     useEffect(() => {
-        const loadModels = async () => {
-            try {
-                const result = await WorkflowChatAPI.listModels();
-                setModels(result.models);
-            } catch (error) {
-                console.error('Failed to load models:', error);
-                // Fallback to default models if API fails
-                setModels([{
-                    "label": "gemini-2.5-flash",
-                    "name": "gemini-2.5-flash",
-                    "image_enable": true
-                },
-                {
-                    "label": "gpt-4.1-mini",
-                    "name": "gpt-4.1-mini-2025-04-14-GlobalStandard",
-                    "image_enable": true,
-                },
-                {
-                    "label": "gpt-4.1",
-                    "name": "gpt-4.1-2025-04-14-GlobalStandard",
-                    "image_enable": true,
-                }]);
-            }
-        };
-
         loadModels();
     }, []);
 
@@ -408,4 +415,6 @@ export function ChatInput({
             )}
         </div>
     );
-} 
+});
+
+ChatInput.displayName = 'ChatInput'; 

@@ -24,6 +24,7 @@ interface ChatHeaderProps {
     title?: string;
     onSelectSession?: (sessionId: string, messages: Message[]) => void;
     currentSessionId?: string | null;
+    onConfigurationUpdated?: () => void;
 }
 
 export function ChatHeader({ 
@@ -33,7 +34,8 @@ export function ChatHeader({
     onHeightResize,
     title = "ComfyUI-Copilot",
     onSelectSession,
-    currentSessionId
+    currentSessionId,
+    onConfigurationUpdated
 }: ChatHeaderProps) {
     const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
     const [isSessionHistoryModalOpen, setIsSessionHistoryModalOpen] = useState(false);
@@ -137,6 +139,7 @@ export function ChatHeader({
                 onClose={() => setIsApiKeyModalOpen(false)}
                 onSave={handleSaveApiKey}
                 initialApiKey={localStorage.getItem('chatApiKey') || ''}
+                onConfigurationUpdated={onConfigurationUpdated}
             />
 
             <SessionHistoryModal

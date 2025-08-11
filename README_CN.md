@@ -27,9 +27,23 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 ## 🌟 介绍
 
-欢迎使用 **ComfyUI-Copilot**，这是一个基于 ComfyUI 框架构建的智能助手，通过自然语言交互简化并增强 AI 算法调试和部署过程。
+说到 AI 绘画界的瑞士军刀，ComfyUI 绝对可以 C 位出道。这个强大的开源生图工具，提供了低代码形式的AI算法调试和部署能力，能够快速生成文本、图像、音频等丰富内容。让你的「闲置显卡」瞬间变成艺术工坊，实在是甲方看了沉默、美工看了流泪...
+但！是！
+当一上头打开了 ComfyUI 界面，往往会遭受灵魂暴击：
+❌ 报错提示比摩斯密码还难懂
+❌ 节点连线比蜘蛛网还复杂
+❌ 参数调整比女朋友的心思还难猜
+❌ 好不容易求到了大佬的工作流文件，打开后发现：
+<img src="assets/broken_workflow_funny.png">
 
-无论是生成文本、图像还是音频，ComfyUI-Copilot 都提供直观的节点推荐、工作流构建辅助和模型查询服务，以简化您的开发过程。
+在这种情况下，**ComfyUI-Copilot** 来了！让你用自然语言对话就能完成AI生图开发，新手5分钟上手，老手效率翻倍！
+
+为你枯燥繁琐的ComfyUI工作流搭建、工作流Debug、工作流优化和迭代过程，全程保驾护航！ComfyUI-Copilot 提供直观的工作流生成、工作流Debug、工作流调优修改、批量参数跑图探索和各项辅助工作流搭建手段（节点推荐和介绍、模型推荐、下游子图推荐），堪称ComfyUI界的cursor。
+相比上一个版本，从协助您完成工作流开发过程，到代替您完成开发过程，ComfyUI-Copilot 已经从辅助工具升级为工作流开发助手。以下是v2.0新增核心功能：
+* 新增了工作流Debug功能，能够自动分析工作流中的错误，并提供修复建议
+* 新增了工作流改写功能，可以根据您的描述，优化当前工作流结构，修改参数新增节点
+* 优化了AI工作流生成能力，能够根据您的需求，生成符合您需求的工作流
+* 架构升级为了mcp结构，可感知您本地ComfyUI的环境安装情况，从而给出最优的解决方案
 
 <div align="center">
 <img src="assets/Framework.png"/>
@@ -70,6 +84,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 我们很高兴地宣布 GenLab 现已正式上线，带来两个强大的新功能：
 
 ###### a. 🔍 参数探索：对参数进行遍历，生成的结果在视觉层面进行比较，帮助您快速找到最佳参数配置
+- 现在可以对可执行的工作流进行参数优化
 - 使用方法：
  - 1、点击您希望探索的节点
  - 2、选择要探索的参数
@@ -79,6 +94,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
      https://github.com/user-attachments/assets/8069744a-411e-4a25-b1a5-4503a303bc6c
 
 ###### b. ✏️ 提示词重写助手：新功能帮助用户生成丰富、高质量的"咒语"
+ - 优化您的提示词，以提升生成内容的质量与多样性
   
    https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b
 
@@ -155,6 +171,11 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 ## 📞 联系我们
 
 如有任何疑问或建议，请随时联系：ComfyUI-Copilot@service.alibaba.com。
+
+Discord 社群：
+<div align="center">
+<img src='assets/discordqrcode.png' width='300'>
+</div>
 
 微信服务群：
 <div align="center">

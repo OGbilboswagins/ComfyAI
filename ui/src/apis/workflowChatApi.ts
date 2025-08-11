@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-08-04 16:20:04
+ * @LastEditTime: 2025-08-11 15:45:42
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -609,14 +609,21 @@ export namespace WorkflowChatAPI {
   }
 
   export async function listModels(): Promise<{ models: {label: string; name: string; image_enable: boolean }[] }> {
-    
+    const headers  = {
+      'Content-Type': 'application/json',
+      'accept': 'application/json',
+      'trace-id': generateUUID(),
+    }
+    if(localStorage.getItem('openaiApiKey')) {
+      headers['Openai-Api-Key'] = localStorage.getItem('openaiApiKey');
+    }
+    if(localStorage.getItem('openaiBaseUrl')) {
+      headers['Openai-Base-Url'] = localStorage.getItem('openaiBaseUrl');
+    }
+
     const response = await fetch('/api/model_config', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json',
-        'trace-id': generateUUID(),
-      },
+      headers: headers,
     });
     
     const result = await response.json();

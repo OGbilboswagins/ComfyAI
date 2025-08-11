@@ -13,7 +13,7 @@ import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Message } from "../types/types";
 import { WorkflowChatAPI } from "../apis/workflowChatApi";
 import { ChatHeader } from "../components/chat/ChatHeader";
-import { ChatInput } from "../components/chat/ChatInput";
+import { ChatInput, ChatInputRef } from "../components/chat/ChatInput";
 import { SelectedNodeInfo } from "../components/chat/SelectedNodeInfo";
 import { MessageList } from "../components/chat/MessageList";
 import { generateUUID } from "../utils/uuid";
@@ -184,6 +184,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     // 添加 AbortController 引用
     const abortControllerRef = useRef<AbortController | null>(null);
     const currentSelectedNode = useRef<any>(selectedNode)
+    const chatInputRef = useRef<ChatInputRef>(null);
     const [dispatchEventType, setDispatchEventType] = useState<DispatchEventType>(DispatchEventType.NONE);
     // 使用自定义 hooks，只在visible为true且activeTab为chat时启用
     useMousePosition(visible && activeTab === 'chat');
@@ -743,6 +744,13 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         localStorage.setItem(`messages_${sessionId}`, JSON.stringify(messages));
     };
 
+    const handleConfigurationUpdated = () => {
+        // Refresh the models list in ChatInput when API configuration is updated
+        if (chatInputRef.current) {
+            chatInputRef.current.refreshModels();
+        }
+    };
+
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsResizing(true);
         e.preventDefault();
@@ -887,6 +895,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     title={`ComfyUI-Copilot`}
                     onSelectSession={handleSelectSession}
                     currentSessionId={sessionId}
+                    onConfigurationUpdated={handleConfigurationUpdated}
                 />
                 
                 {/* Tab navigation */}
@@ -945,6 +954,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     )}
 
                     <ChatInput 
+                        ref={chatInputRef}
                         input={input}
                         loading={loading}
                         onChange={handleMessageChange}

@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-08 17:25:45
+LastEditTime: 2025-08-11 15:11:17
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -49,8 +49,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
     try:
         async with MCPServerSse(
             params= {
-                # "url": os.environ.get("MCP_SERVER_URL", "http://localhost:8000/mcp-server/mcp"),
-                "url": "https://comfyui-copilot-server-pre.onrender.com/mcp-server/mcp",
+                "url": "https://comfyui-copilot-server.onrender.com/mcp-server/mcp",
                 "timeout": 300.0,
             },
             cache_tools_list=True,
@@ -63,10 +62,6 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             session_id = config.get("session_id", "default_session") if config else "default_session"
             if config and config.get("model_select") and config.get("model_select") != "":
                 model_name = config.get("model_select")
-            if config and config.get("openai_api_key") and config.get("openai_api_key") != "":
-                os.environ["OPENAI_API_KEY"] = config.get("openai_api_key")
-            if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
-                os.environ["OPENAI_BASE_URL"] = config.get("openai_base_url")
             
             # 创建带有session_id的workflow_rewrite_agent实例
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id, config)
@@ -117,6 +112,7 @@ You must adhere to the following constraints to complete the task:
                 mcp_servers=[server],
                 model=model_name,
                 handoffs=[workflow_rewrite_agent_instance],
+                config=config
             )
 
             # Use messages directly as agent input since they're already in OpenAI format

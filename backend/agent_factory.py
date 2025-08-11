@@ -2,12 +2,13 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-31 19:38:08
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-07-31 20:09:46
+LastEditTime: 2025-08-11 16:57:23
 FilePath: /comfyui_copilot/backend/agent_factory.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
 from agents import Agent, OpenAIChatCompletionsModel
 from dotenv import dotenv_values
+from .utils.globals import LLM_DEFAULT_BASE_URL, get_comfyui_copilot_api_key
 from openai import AsyncOpenAI
 
 import os
@@ -36,12 +37,17 @@ set_tracing_disabled(True)
 def create_agent(**kwargs) -> Agent:
     # 通过用户配置拿/环境变量
     client = AsyncOpenAI(
-        api_key="",
-        base_url="https://comfyui-copilot-server-pre.onrender.com/v1",
+        api_key=get_comfyui_copilot_api_key() or "",
+        base_url=LLM_DEFAULT_BASE_URL,
     )
-
+    config = kwargs.pop("config") if "config" in kwargs else {}
+    if config and config.get("openai_api_key") and config.get("openai_api_key") != "":
+        client.api_key = config.get("openai_api_key")
+    if config and config.get("openai_base_url") and config.get("openai_base_url") != "":
+        client.base_url = config.get("openai_base_url")
+    
     default_model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
     model_name = kwargs.pop("model") or default_model_name
     model = OpenAIChatCompletionsModel(model_name, openai_client=client)
-
+    
     return Agent(model=model, **kwargs)

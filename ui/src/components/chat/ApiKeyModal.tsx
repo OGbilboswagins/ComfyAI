@@ -23,11 +23,12 @@ interface ApiKeyModalProps {
     onClose: () => void;
     onSave: (apiKey: string) => void;
     initialApiKey?: string;
+    onConfigurationUpdated?: () => void;
 }
 
 const BASE_URL = config.apiBaseUrl
 
-export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: ApiKeyModalProps) {
+export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onConfigurationUpdated }: ApiKeyModalProps) {
     const [apiKey, setApiKey] = useState(initialApiKey);
     const [email, setEmail] = useState('');
     const [isEmailValid, setIsEmailValid] = useState(false);
@@ -154,6 +155,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
         // Save the main API key
         onSave(apiKey);
         
+        // Check if OpenAI configuration has changed
+        const previousOpenaiApiKey = localStorage.getItem('openaiApiKey') || '';
+        const previousOpenaiBaseUrl = localStorage.getItem('openaiBaseUrl') || 'https://api.openai.com/v1';
+        const hasOpenaiConfigChanged = openaiApiKey.trim() !== previousOpenaiApiKey || openaiBaseUrl !== previousOpenaiBaseUrl;
+        
         // Save or clear OpenAI configuration in localStorage
         if (openaiApiKey.trim()) {
             localStorage.setItem('openaiApiKey', openaiApiKey);
@@ -162,6 +168,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '' }: Api
             // If the OpenAI API key is empty, remove it from localStorage
             localStorage.removeItem('openaiApiKey');
             localStorage.removeItem('openaiBaseUrl');
+        }
+        
+        // Call configuration updated callback if OpenAI config has changed
+        if (hasOpenaiConfigChanged && onConfigurationUpdated) {
+            onConfigurationUpdated();
         }
         
         onClose();
