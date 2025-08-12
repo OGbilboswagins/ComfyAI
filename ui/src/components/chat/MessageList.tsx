@@ -794,7 +794,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         } else {
             // 加载历史消息
             let count = 0;
-            let endIndex = processedMessages?.length
+            let endIndex = 0;
             showLoadMoreButton.current = false;
             for (let i = processedMessages?.length - currentMessages?.length - 1; i >= 0; i--) {
                 // 用户提问或者是debug算一个回合，3个回合才显示loadmore按钮
@@ -807,6 +807,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     }
                 }
             }
+            console.log('loadhistory--->', processedMessages, endIndex, currentMessages)
             setCurrentMessages(prev => [...processedMessages.slice(endIndex, processedMessages?.length - currentMessages?.length), ...prev])
             lastMessagesCount.current = processedMessages.length
         }

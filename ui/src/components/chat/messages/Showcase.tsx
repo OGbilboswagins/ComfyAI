@@ -106,7 +106,7 @@ const Showcase: React.FC<{onFinishLoad?: () => void}> = ({onFinishLoad}) => {
       </div>
       {
         getShowcaes()?.list?.map((item, index) => <div 
-          className='sticky top-0 left-0 w-full overflow-hidden'
+          className='sticky w-full overflow-hidden'
           key={index.toString()}
           onClick={() => {
             isAutoScroll.current = true
