@@ -28,97 +28,68 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 ## 🌟 Introduction
 
-Welcome to **ComfyUI-Copilot**, an intelligent assistant built on the Comfy-UI framework that simplifies and enhances the AI algorithm debugging and deployment process through natural language interactions.
+When it comes to the Swiss Army knife of AI art generation, ComfyUI absolutely deserves the spotlight. This powerful open-source image generation tool provides low-code AI algorithm debugging and deployment capabilities, enabling rapid generation of rich content including text, images, and audio. It transforms your "idle graphics card" into an instant art workshop, truly leaving clients speechless and designers in tears...
+
+But! Here's the catch!
+
+When you enthusiastically open the ComfyUI interface, you're often hit with a soul-crushing reality:
+❌ Error messages more cryptic than Morse code
+❌ Node connections more complex than spider webs  
+❌ Parameter adjustments harder to figure out than your girlfriend's mood
+❌ Finally getting a workflow file from an expert, only to open it and find:
+<img src="assets/broken_workflow_funny.png">
+
+Let **ComfyUI-Copilot** save you! Use natural language conversations to complete AI image generation development in ComfyUI - beginners can get started in 5 minutes, experts can double their efficiency!
+
+ComfyUI-Copilot provides comprehensive support for your tedious ComfyUI workflow building, workflow debugging, workflow optimization and iteration processes! It offers intuitive workflow generation, workflow debugging, workflow tuning and modification, batch parameter exploration, and various auxiliary workflow building tools (node recommendations and introductions, model recommendations, downstream subgraph recommendations), making it the Cursor of the ComfyUI world.
+
+Compared to the previous version, ComfyUI-Copilot has evolved from assisting you in workflow development to replacing you in the development process, upgrading from an auxiliary tool to a workflow development assistant.
 
 Whether it's generating text, images, or audio, ComfyUI-Copilot offers intuitive node recommendations, workflow building aids, and model querying services to streamline your development process.
+
+Compared to the previous version, ComfyUI-Copilot has evolved from assisting you in workflow development to replacing you in the development process, upgrading from an auxiliary tool to a workflow development assistant. Here are the core new features of v2.0:
+* Added workflow Debug functionality that can automatically analyze errors in workflows and provide repair suggestions
+* Added workflow rewriting functionality that can optimize current workflow structure and modify parameters to add nodes based on your description
+* Optimized AI workflow generation capability that can generate workflows that meet your needs based on your requirements
+* Architecture upgraded to MCP structure, which can perceive your local ComfyUI environment installation status to provide optimal solutions
 
 <div align="center">
 <img src="assets/Framework.png"/>
 </div>
 
-
 ---
 
-## 🤔 Why Choose ComfyUI-Copilot?
+## 🔥 Core Features (V2.0.0)
 
-- 🍀 **Ease of Use**: Lower the barriers to entry with natural language interaction, making Comfy-UI accessible even for beginners.
-- 🍀 **Smart Recommendations**: Leverage AI-driven node suggestions and workflow implementations to boost development efficiency.
-- 🍀 **Real-Time Assistance**: Benefit from round-the-clock interactive support to address any issues encountered during development.
+- 1. 💎 **Generate First Version Workflow**: Based on your text description, we provide workflows that meet your needs, returning 3 high-quality workflows from our library and 1 AI-generated workflow. You can import them into ComfyUI with one click to start generating images.
+  - Simply type in the input box: I want a workflow for xxx
+  <img src="assets/工作流生成.gif"/>
+- 2. 💎 **Workflow Debug**: Automatically analyze errors in workflows, help you fix parameter errors and workflow connection errors, and provide optimization suggestions.
+  - Among the 4 workflows returned above, when you select one and click Accept, it will be imported into the ComfyUI canvas. At this time, you can click the Debug button to start debugging.
+  - There is a Debug button in the upper right corner of the input box. Click it to directly debug the workflow on the current canvas.
+  <img src="assets/debug.gif"/>
+- 3. 💎 **Unsatisfied with Previous Workflow Results?**: Tell us what you're not satisfied with, and let us help you modify the workflow, add nodes, modify parameters, and optimize workflow structure.
+  - Type in the input box: Help me add xxx to the current canvas
+  <img src="assets/改写.gif"/>
+- 4. 💎 **Parameter Tuning Too Painful?**: We provide parameter tuning tools. You can set parameter ranges, and the system will automatically batch execute different parameter combinations and generate visual comparison results to help you quickly find the optimal parameter configuration.
+  - Switch to the GenLab tab and follow the guidance. Note that the workflow must be able to run normally at this time to batch generate and evaluate parameters.
+  <img src="assets/GenLab.gif"/>
 
----
+Want ComfyUI-Copilot to assist you in workflow development?
+- 5. 💎 **Node Recommendations**: Based on your description, recommend nodes you might need and provide recommendation reasons.
+  - Type in the input box: I want a workflow for xxx
+<img src="assets/节点推荐.gif"/>
 
-## 🚀  Updates
-### 2025.05.16 Release
-#### ✨ New Features
-- GenLab History: Support querying historical results after parameter exploration.
-- Personalized workflow generation: Users can input their own requirements, and a large language model generates a tailored workflow for them.
+- 6. 💎 **Node Query System**: Select a node on the canvas, click the node query button to explore the node in depth, view its description, parameter definitions, usage tips, and downstream workflow recommendations.
+  - Type in the input box: I want a node for xxx
+<img src="assets/节点信息查询.gif"/>
 
-<div align="center">
-<img src="assets/GenLabHistory.png" width=50% />
-</div>
+- 7. 💎 **Model Recommendations**: Based on your text requirements, Copilot helps you find base models and 'lora'.
+  - Type in the input box: I want a Lora that generates xxx images
+<img src="assets/模型推荐.gif"/>
 
-
-### 2025.04.28 Release
-#### ✨ New Features
-- Our frontend UI is embedded within the ComfyUI interface. Simply click on the ComfyUI-Copilot icon in the left sidebar to launch our service.
-- The UI automatically adapts to ComfyUI's black/light theme, switching background colors accordingly.
-
-<img src="assets/comfyui_ui_icon.png"/>
-
-
-### 2025.04.08 Release
-#### ✨ New Features
-
-##### 1. 🎉 GenLab Launch
-We are excited to announce that GenLab is now officially live, bringing two powerful new features:
-
-###### a. 🔍 Parameter Exploration
-- Now you can optimize parameters for executable workflows
-- How to use:
-  - Click on the node you wish to explore
-  - Select the parameters to explore
-  - Set the parameter value ranges
-  - The system will automatically batch execute different parameter combinations
-  - Generated results support visual comparison, helping you quickly find the optimal parameter configuration
-    
-https://github.com/user-attachments/assets/8069744a-411e-4a25-b1a5-4503a303bc6c
-
-###### b. ✏️ Prompt Rewriting Assistant
-- New feature helps users generate rich, high-quality "spells"
-- Optimize your prompts to enhance the quality and diversity of generated content
-  
-https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b
-
-#### 🛠️ Bug Fixes
-- 🐛 Fixed multiple known issues, improving system stability
-
-### 2025.02.27 Release
-
-* **Multiple Model Support**: Added DeepSeek AI and Qwen-plus models
-* **Node Installation Guide**: Smart redirection to GitHub repos or Google search results for uninstalled nodes
-* **Prompt Generation**: Enhanced SD prompt generation and error log analysis
-* **Performance**: Fixed lag issues reported in GitHub Issues when using Copilot
-* **Multilingual Support**: Implemented multilingual responses for node queries
-* **Subgraph Recommendation**: Redesigned downstream subgraph generation with improved filtering
-* **Model Database**: Added coverage for 60,000+ LoRA and Checkpoint models
-
----
-
-## 🔥 Core Features
-
-- 💎 **Interactive Q&A Bot**: Access a robust Q&A platform where users can inquire about model intricacies, node details, and parameter utilization with ease.
-- 💎 **Natural Language Node Suggestions**: Employ our advanced search mechanism to swiftly identify desired nodes and enhance workflow construction efficacy.
-<img src="assets/comfycopilot_nodes_recommend.gif"/>
-
-- 💎 **Node Query System**: Dive deeper into nodes by exploring their explanations, parameter definitions, usage tips, and downstream workflow recommendations.
-<img src="assets/comfycopilot_nodes_search.gif"/>
-
-- 💎 **Smart Workflow Assistance**: Automatically discern developer needs to recommend and build fitting workflow frameworks, minimizing manual setup time.
-- 💎 **Model Querying**: Prompt Copilot to seek foundational models and 'lora' based on requirements.
-- 💎 **Up-and-Coming Features**:
-  
-  - **Automated Parameter Tuning**: Exploit machine learning algorithms for seamless analysis and optimization of critical workflow parameters.
-  - **Error Diagnosis and Fix Suggestions**: Receive comprehensive error insights and corrective advice to swiftly pinpoint and resolve issues.
+- 8. 💎 **Downstream Node Recommendations**: After you select a node on the canvas, based on the existing nodes on your canvas, recommend downstream subgraphs you might need.
+<img src="assets/下游节点推荐.gif"/>
 
 ---
 
@@ -126,8 +97,9 @@ https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b
 
 **Repository Overview**: Visit the [GitHub Repository](https://github.com/AIDC-AI/ComfyUI-Copilot) to access the complete codebase.
 
-1. **Installation**:
-   
+#### Installation
+  1. Use git to install ComfyUI-Copilot in the ComfyUI custom_nodes directory:
+
    ```bash
    cd ComfyUI/custom_nodes
    git clone git@github.com:AIDC-AI/ComfyUI-Copilot.git
@@ -140,19 +112,33 @@ https://github.com/user-attachments/assets/85decdbf-9ae5-4c78-818b-8db444ed4e7b
    git clone https://github.com/AIDC-AI/ComfyUI-Copilot
    ```
 
-   or
+  2. In the ComfyUI custom_nodes directory, find the ComfyUI-Copilot directory and install ComfyUI-Copilot dependencies
+
+   ```bash
+   cd ComfyUI/custom_nodes/ComfyUI-Copilot
+   pip install -r requirements.txt
+   ```
+   If you are a Windows user:
+
+   ```bash
+   python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-Copilot\requirements.txt
+   ```
    
-   **Using ComfyUI Manager**: Open ComfyUI Manager, click on Custom Nodes Manager, search for ComfyUI-Copilot, and click the install button.
+
+  3. (To be supported later) **Using ComfyUI Manager**: Open ComfyUI Manager, click on Custom Nodes Manager, search for ComfyUI-Copilot, and click the install button.
    <img src="assets/comfyui_manager.png"/>
    <img src="assets/comfyui_manager_install.png"/>
 
-2. **Activation**: After running the ComfyUI project, find the Copilot activation button at the top-right corner of the board to launch its service.
-<img src="assets/start.png"/>
+#### **Activation**
+After running the ComfyUI project, find the Copilot activation button on the left side of the panel to launch its service.
+<img src="assets/start.jpg"/>
 
-3.  **KeyGeneration**：Enter your email address on the link, the api-key will automatically be sent to your email address later.    
+#### **API Key Generation**
+Click the * button, enter your email address in the popup window, and the API Key will be automatically sent to your email address later. After receiving the API Key, paste it into the input box, click the save button, and you can activate Copilot.
 <img src="assets/keygen.png"/>
 
-4. **Note:** This project is in its early stages. Please regularly update to the latest code to access new features. You can either use `git pull` to fetch the latest code or click "Update" in the ComfyUI Manager.
+#### **Note**：
+This project is continuously updated. Please update to the latest code to get new features. You can use git pull to get the latest code, or click "Update" in the ComfyUI Manager plugin.
 
 ---
 
