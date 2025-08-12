@@ -117,7 +117,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                     {/* {title} */}
                     
                     {format === 'markdown' ? (
-                        <Markdown response={response || {}} />
+                        <Markdown response={response || {}} isInCard={true} />
                     ) : (
                         <pre className='whitespace-pre-wrap text-[#fff]/70 text-sm leading-relaxed h-full'>
                             {response?.text || ''}

@@ -143,12 +143,12 @@
   background-position: right top;
 }
 
-.debug-btn:is(:focus, :focus-visible, :active) {
+/* .debug-btn:is(:focus, :focus-visible, :active) {
   outline: none;
   box-shadow:
     0 0 0 3px hsla(360 100% 100% / 1),
     0 0 0 6px hsl(189, 97%, 36%);
-}
+} */
 
 .loading-spin {
   animation: rotate 1s linear infinite;
