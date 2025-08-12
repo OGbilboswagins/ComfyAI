@@ -37,11 +37,18 @@ set_tracing_disabled(True)
 def create_agent(**kwargs) -> Agent:
     # 通过用户配置拿/环境变量
     config = kwargs.pop("config") if "config" in kwargs else {}
+    # 避免将 None 写入 headers
+    session_id = (config or {}).get("session_id")
+    default_headers = {}
+    if session_id:
+        default_headers["X-Session-ID"] = session_id
+
     client = AsyncOpenAI(
         api_key=get_comfyui_copilot_api_key() or "",
         base_url=LLM_DEFAULT_BASE_URL,
-        default_headers={"X-Session-ID": config.get("session_id")},
+        default_headers=default_headers,
     )
+    ...
     if config:
         if config.get("openai_api_key") and config.get("openai_api_key") != "":
             client.api_key = config.get("openai_api_key")
