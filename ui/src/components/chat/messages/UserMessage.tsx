@@ -33,6 +33,10 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
     // Check if there's a checkpoint in ext data for workflow_update or param_update
     let checkpointId: number | null = null;
     let images: any[] = [];
+    
+    // 添加调试日志
+    console.log(`[UserMessage] Received ext data:`, ext);
+    
     if (ext) {        
         // Look for workflow_rewrite_checkpoint or debug_checkpoint related to workflow updates
         const checkpointExt = ext.find((item) => 
@@ -40,8 +44,11 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
             (item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'workflow_rewrite_start')
         );
         
+        console.log(`[UserMessage] Found checkpoint ext:`, checkpointExt);
+        
         if (checkpointExt && checkpointExt.data && checkpointExt.data.checkpoint_id) {
             checkpointId = checkpointExt.data.checkpoint_id;
+            console.log(`[UserMessage] Extracted checkpoint ID:`, checkpointId);
         }
         
         // Also check if there's workflow_update or param_update ext (user might want checkpoint for these)

@@ -91,6 +91,9 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 try {
                     const response = JSON.parse(message.content);
                     if (response.ext) {
+                        // 添加调试日志
+                        console.log(`[MessageList] Processing AI message ${i} with ext:`, response.ext);
+                        
                         // 查找修改前的checkpoint信息（给用户消息）
                         const checkpointExt = response.ext.find((item: any) => 
                             item.type === 'workflow_rewrite_checkpoint' || 
@@ -105,12 +108,19 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                         // 如果找到修改前的checkpoint，将其关联到前一条用户消息
                         if (checkpointExt && i > 0) {
                             const prevMessage = processedMessages[i - 1];
+                            console.log(`[MessageList] Found checkpoint ext:`, checkpointExt);
+                            console.log(`[MessageList] Previous message role:`, prevMessage.role);
+                            
                             if (prevMessage.role === 'user') {
-                                // 为用户消息添加修改前的checkpoint信息
+                                // 为用户消息添加修改前的checkpoint信息，合并现有的ext数据
+                                const existingExt = prevMessage.ext || [];
+                                const newExt = [...existingExt, checkpointExt];
+                                
                                 processedMessages[i - 1] = {
                                     ...prevMessage,
-                                    ext: [checkpointExt]
+                                    ext: newExt
                                 };
+                                console.log(`[MessageList] Associated checkpoint to user message:`, processedMessages[i - 1]);
                             }
                         }
                         
@@ -132,6 +142,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     }
                 } catch (error) {
                     // 忽略JSON解析错误
+                    console.warn(`[MessageList] Failed to parse AI message content:`, error);
                 }
             }
         }
@@ -772,6 +783,45 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         // 新增消息
         if (lastMessagesCount.current > 0 && lastMessagesCount.current < processedMessages.length) {
             list = processedMessages?.slice(lastMessagesCount.current)
+            
+            // 对新增的消息立即进行checkpoint关联检查
+            for (let i = list.length - 1; i >= 0; i--) {
+                const message = list[i];
+                if ((message.role === 'ai' || message.role === 'tool') && message.content && message.finished) {
+                    try {
+                        const response = JSON.parse(message.content);
+                        if (response.ext) {
+                            const checkpointExt = response.ext.find((item: any) => 
+                                item.type === 'workflow_rewrite_checkpoint' || 
+                                (item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'workflow_rewrite_start')
+                            );
+                            
+                            if (checkpointExt) {
+                                console.log(`[MessageList] Real-time checkpoint processing for finished message:`, checkpointExt);
+                                // 查找对应的用户消息并关联checkpoint
+                                setCurrentMessages(prev => {
+                                    const updated = [...prev];
+                                    for (let j = updated.length - 1; j >= 0; j--) {
+                                        if (updated[j].role === 'user' && !updated[j].ext?.some(ext => ext.type === 'workflow_rewrite_checkpoint')) {
+                                            const existingExt = updated[j].ext || [];
+                                            updated[j] = {
+                                                ...updated[j],
+                                                ext: [...existingExt, checkpointExt]
+                                            };
+                                            console.log(`[MessageList] Real-time associated checkpoint to user message:`, updated[j]);
+                                            break;
+                                        }
+                                    }
+                                    return updated;
+                                });
+                            }
+                        }
+                    } catch (error) {
+                        // 忽略错误
+                    }
+                }
+            }
+            
             setCurrentMessages(prev => mergeByKeyCombine(prev, list, 'id'));
             // 回答结束，更新lastMessagesCount
             if (list?.[list?.length - 1].finished) {
