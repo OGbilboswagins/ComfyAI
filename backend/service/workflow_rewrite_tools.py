@@ -99,7 +99,7 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
         return None
 
 @function_tool
-def update_workflow(session_id: str, workflow_data: str) -> str:
+def update_workflow(session_id: str, workflow_data: Dict[str, Any]) -> str:
     """更新当前session的工作流数据"""
     try:
         # 在修改前保存checkpoint
