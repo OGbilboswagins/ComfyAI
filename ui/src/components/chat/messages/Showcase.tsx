@@ -132,7 +132,7 @@ const Showcase: React.FC<{onFinishLoad?: () => void}> = ({onFinishLoad}) => {
             <div className='text-[#4fabdb]'>
               {ICONS[index]}
             </div>
-            <div className='flex-1 text-sm text-gray-900 font-normal ml-4'>
+            <div className='flex-1 text-sm text-[#fff]/70 font-normal ml-4'>
               {item.name}
             </div>
           </div>

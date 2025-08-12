@@ -143,17 +143,17 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
         const updateScrollHeight = () => {
             requestAnimationFrame(() => {
-                // console.log('updateScrollHeight1--->', el.scrollHeight, el.scrollTop, el.clientHeight)
-                // console.log('updateScrollHeight2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current, isLoadHistory.current, isAutoScroll.current)
+                console.log('updateScrollHeight1--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+                console.log('updateScrollHeight2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current, isLoadHistory.current, isAutoScroll.current)
                 if (isLoadHistory.current) {
                     el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
-                } else if (isAutoScroll.current) {
-                    // console.log('scrollTop1--->', el.scrollTop, el.scrollHeight, el.clientHeight)
+                } else if (el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
+                    console.log('scrollTop1--->', el.scrollTop, el.scrollHeight, el.clientHeight)
                     el.scrollTop = el.scrollHeight - el.clientHeight
-                    // console.log('scrollTop2--->', el.scrollTop, el.scrollHeight, el.clientHeight)
+                    console.log('scrollTop2--->', el.scrollTop, el.scrollHeight, el.clientHeight)
                 }
                 isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
-                // console.log('updateScrollHeight3--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+                console.log('updateScrollHeight3--->', el.scrollHeight, el.scrollTop, el.clientHeight)
             });
         };
 
@@ -173,15 +173,15 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         updateScrollHeight();
 
         const handleScroll = () => {   
-            // console.log('handleScroll--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
-            // console.log('handleScroll--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
-            // console.log('handleScroll--->', isLoadHistory.current, isAutoScroll.current)
+            console.log('handleScroll--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
+            console.log('handleScroll--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
+            console.log('handleScroll--->', isLoadHistory.current, isAutoScroll.current)
             if (el.scrollHeight < scrollHeightLast.current && scrollHeightLast.current > 0)
                 return
             if (isLoadHistory.current) {
                 if (el.scrollHeight > scrollHeightLast.current) {
                     el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
-                    // console.log('el.scrollTop--->', el.scrollTop)
+                    console.log('el.scrollTop--->', el.scrollTop)
                     scrollHeightLast.current = el.scrollHeight
                 } else {
                     isLoadHistory.current = false
@@ -189,17 +189,17 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     scrollHeightBeforeLoadMore.current = el.scrollHeight
                 }
             } else {
-                if (isAutoScroll.current && el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
+                if (el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
                     el.scrollTop = el.scrollHeight - el.clientHeight
                 }
                 scrollHeightLast.current = el.scrollHeight
                 scrollHeightBeforeLoadMore.current = el.scrollHeight
             }
-            // console.log('scrollHeightBeforeLoadMore--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
+            console.log('scrollHeightBeforeLoadMore--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
         }
 
         const handleScrollEnd = () => {
-            // console.log('handleScrollEnd--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+            console.log('handleScrollEnd--->', el.scrollHeight, el.scrollTop, el.clientHeight)
             isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
         }
 
