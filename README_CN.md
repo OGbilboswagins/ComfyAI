@@ -139,6 +139,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 #### **注意**：
 本项目持续更新中，请更新到最新代码以获取新功能。您可以使用 git pull 获取最新代码，或在 ComfyUI Manager 插件中点击“更新”。
+我们的项目依赖于一些外部接口，服务部署在新加坡，可能需要您使用科学上网工具哦。
 
 ---
 
