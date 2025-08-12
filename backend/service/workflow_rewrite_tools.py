@@ -98,8 +98,8 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
         print(f"Failed to save checkpoint before modification: {str(e)}")
         return None
 
-@function_tool
-def update_workflow(session_id: str, workflow_data: str) -> str:
+@function_tool(strict_mode=False)
+def update_workflow(session_id: str, workflow_data: Dict[str, Any]) -> str:
     """更新当前session的工作流数据"""
     try:
         # 在修改前保存checkpoint
@@ -140,7 +140,7 @@ def update_workflow(session_id: str, workflow_data: str) -> str:
         })
     except Exception as e:
         print(f"Failed to update workflow: {str(e)}")
-        return json.dumps({"error": f"Failed to update workflow"})
+        return json.dumps({"error": f"Failed to update workflow: {str(e)}. Please try regenerating the workflow and then update again."})
 
 @function_tool
 def remove_node(session_id: str, node_id: str) -> str:
