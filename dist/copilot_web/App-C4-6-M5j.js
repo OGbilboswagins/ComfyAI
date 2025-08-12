@@ -1,7 +1,7 @@
 function getImportPath(filename) {
             return `./${filename}`;
         }
-            const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["copilot_web/workflowChat-gkTm5CMv.js","copilot_web/vendor-markdown-BAJQc3l1.js","copilot_web/vendor-react-Dixhfmvb.js","copilot_web/message-components-BpJmIhzt.js","copilot_web/input.js","copilot_web/assets/input-CTambuX-.css","copilot_web/fonts.css"].map(path => {
+            const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["copilot_web/workflowChat-gkTm5CMv.js","copilot_web/vendor-markdown-BAJQc3l1.js","copilot_web/vendor-react-Dixhfmvb.js","copilot_web/message-components-BpJmIhzt.js","copilot_web/input.js","copilot_web/assets/input-DaUkSUsG.css","copilot_web/fonts.css"].map(path => {
                         const apiBase = window.comfyAPI?.api?.api?.api_base;
                         if (apiBase) {
                             // 有 API base 时，使用完整路径
