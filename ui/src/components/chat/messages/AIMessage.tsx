@@ -19,7 +19,6 @@ interface AIMessageProps {
   metadata?: any;
   finished?: boolean;
   debugGuide?: boolean;
-  onFinishLoad?: () => void;
 }
 
 // Card component for node explanation intent
@@ -61,12 +60,8 @@ const NodeParamsCard = ({ content }: { content: React.ReactNode }) => {
   );
 };
 
-export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata, finished, debugGuide, onFinishLoad }: AIMessageProps) {
+export function AIMessage({ content, name = 'Assistant', avatar, format, onOptionClick, extComponent, metadata, finished, debugGuide }: AIMessageProps) {
   const markdownWrapper = useRef<HTMLDivElement | null>(null)
-  
-  useEffect(() => {
-    onFinishLoad?.()
-  }, [])
 
   const renderContent = () => {
     try {

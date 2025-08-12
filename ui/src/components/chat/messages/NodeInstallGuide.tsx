@@ -11,28 +11,21 @@
 // Copyright (C) 2025 ComfyUI-Copilot Authors
 // Licensed under the MIT License.
 
-import React, { useEffect } from 'react';
-
 interface NodeInstallGuideProps {
     content: string;
     onLoadSubgraph?: () => void;
-    onFinishLoad?: () => void;
 }
 
-export function NodeInstallGuide({ content, onLoadSubgraph, onFinishLoad }: NodeInstallGuideProps) {
+export function NodeInstallGuide({ content, onLoadSubgraph }: NodeInstallGuideProps) {
     const response = JSON.parse(content);
     const nodeInfos = response.ext?.find((item: { type: string }) => item.type === 'node_install_guide')?.data || [];
     
-    const uniqueNodeInfos = nodeInfos.reduce((acc: any[], node) => {
+    const uniqueNodeInfos = nodeInfos.reduce((acc: any[], node: { name: any; }) => {
         if (!acc.some(n => n.name === node.name)) {
             acc.push(node);
         }
         return acc;
     }, []);
-
-    useEffect(() => {
-        onFinishLoad?.()
-    }, [])
 
     return (
         <div>

@@ -4,7 +4,7 @@
 
 import { BaseMessage } from './BaseMessage';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 
 interface ExtItem {
@@ -16,16 +16,11 @@ interface UserMessageProps {
     content: string;
     trace_id?: string;
     ext?: ExtItem[];
-    onFinishLoad?: () => void
 }
 
-export function UserMessage({ content, trace_id, ext, onFinishLoad }: UserMessageProps) {
+export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
     const [showTooltip, setShowTooltip] = useState(false);
     const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        onFinishLoad?.()
-    }, [])
 
     const handleCopyTraceId = async () => {
         if (trace_id) {

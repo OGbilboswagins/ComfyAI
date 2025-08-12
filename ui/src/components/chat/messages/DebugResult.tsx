@@ -8,10 +8,9 @@ interface DebugResultProps {
     name?: string;
     avatar: string;
     format?: string;
-    onFinishLoad?: () => void;
 }
 
-export function DebugResult({ content, name = 'Assistant', avatar, format = 'markdown', onFinishLoad }: DebugResultProps) {
+export function DebugResult({ content, name = 'Assistant', avatar, format = 'markdown' }: DebugResultProps) {
     const formatContent = (text: string) => {
         if (format === 'markdown') {
             // Simple markdown rendering for basic formatting
@@ -111,7 +110,6 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                 title={title} 
                 isWorkflowUpdate={isWorkflowUpdate} 
                 className='p-4'
-                onFinishLoad={onFinishLoad}
             >
                 <div className="prose prose-sm max-w-none">
                     {/* {title} */}

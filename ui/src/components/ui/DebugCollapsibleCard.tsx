@@ -7,24 +7,19 @@
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface IProps {
   title?: string | React.ReactNode;
   isWorkflowUpdate?: boolean;
   className?: string;
-  onFinishLoad?: () => void;
   children: React.ReactNode;
 }
 
 const DebugCollapsibleCard: React.FC<IProps> = (props) => {
-  const { title = '', isWorkflowUpdate = false, className = '', onFinishLoad, children } = props;
+  const { title = '', isWorkflowUpdate = false, className = '', children } = props;
   
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    onFinishLoad?.();
-  }, []);
   
   return (
     <div className={`relative rounded-lg flex flex-col beautify-card ${className} ${!isOpen ? 'h-[200px]' : ''}`}>

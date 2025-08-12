@@ -13,20 +13,15 @@ interface DebugGuideProps {
     avatar: string;
     onAddMessage?: (message: any) => void;
     onUpdateMessage?: (message: any) => void;
-    onFinishLoad?: () => void;
     messageId?: string;  // Add messageId prop to track the current message
 }
 
-export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, onUpdateMessage, onFinishLoad, messageId }: DebugGuideProps) {
+export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, onUpdateMessage, messageId }: DebugGuideProps) {
     const { dispatch, abortControllerRef } = useChatContext();
     const [isDebugging, setIsDebugging] = useState(false);
     const [streamingText, setStreamingText] = useState('');
     const [showStreamingMessage, setShowStreamingMessage] = useState(false);
     const [localCheckpointId, setLocalCheckpointId] = useState<number | null>(null);
-    
-    useEffect(() => {
-        onFinishLoad?.()
-    }, [])
 
     const response = useMemo(() => {
         try {

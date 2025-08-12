@@ -39,6 +39,7 @@ export interface Node {
   description: string;
   image: string;
   github_url: string;
+  github_stars: number;
   from_index: number;
   to_index: number;
 }

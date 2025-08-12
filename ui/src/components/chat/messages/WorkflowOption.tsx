@@ -2,7 +2,7 @@ import { app } from "../../../utils/comfyapp";
 import { ChatResponse, Workflow } from "../../../types/types";
 import { WorkflowChatAPI } from "../../../apis/workflowChatApi";
 import { generateUUID } from "../../../utils/uuid";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Tooltip } from 'antd';
 interface WorkflowOptionProps {
     content: string;
@@ -11,7 +11,6 @@ interface WorkflowOptionProps {
     latestInput: string;
     installedNodes: any[];
     onAddMessage?: (message: any) => void;
-    onFinishLoad?: () => void
 }
 
 interface NodeInfo {
@@ -20,16 +19,12 @@ interface NodeInfo {
     [key: string]: any;
 }
 
-export function WorkflowOption({ content, name = 'Assistant', avatar, latestInput, installedNodes, onAddMessage, onFinishLoad }: WorkflowOptionProps) {
+export function WorkflowOption({ content, name = 'Assistant', avatar, latestInput, installedNodes, onAddMessage }: WorkflowOptionProps) {
     // const response = JSON.parse(content) as ChatResponse;
     // const workflows = response.ext?.find(item => item.type === 'workflow')?.data || [];
     const [loadingWorkflows, setLoadingWorkflows] = useState<Record<string, boolean>>({});
     const [response, setResponse] = useState<ChatResponse | null>(null);
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
-
-    useEffect(() => {
-        onFinishLoad?.()
-    }, [])
 
     useEffect(() => {
         const _response = JSON.parse(content) as ChatResponse;

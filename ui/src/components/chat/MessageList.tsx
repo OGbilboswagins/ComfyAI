@@ -64,6 +64,8 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     const scrollRef = useRef<HTMLDivElement>(null)
     const lastMessagesCount = useRef<number>(0)
     const scrollHeightLast = useRef<number>(0) // 上一次的scrollHeight
+    const scrollTopLast = useRef<number>(0) // 上一次的scrollTop
+    const clientHeightLast = useRef<number>(0) // 上一次的clientHeight
     const scrollHeightBeforeLoadMore = useRef<number>(0) // loadmore之前的scrollHeight
     const isLoadHistory = useRef<boolean>(false)
     // 用于跟踪已经处理过的工作流和参数更新，防止重复执行
@@ -143,17 +145,19 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
 
         const updateScrollHeight = () => {
             requestAnimationFrame(() => {
-                console.log('updateScrollHeight1--->', el.scrollHeight, el.scrollTop, el.clientHeight)
-                console.log('updateScrollHeight2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current, isLoadHistory.current, isAutoScroll.current)
+                // console.log('updateScrollHeight1--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+                // console.log('updateScrollHeight2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current, isLoadHistory.current, isAutoScroll.current)
                 if (isLoadHistory.current) {
                     el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
-                } else if (isAutoScroll.current) {
-                    console.log('scrollTop1--->', el.scrollTop, el.scrollHeight, el.clientHeight)
-                    el.scrollTop = el.scrollHeight - el.clientHeight
-                    console.log('scrollTop2--->', el.scrollTop, el.scrollHeight, el.clientHeight)
+                } else {
+                    if (scrollHeightLast.current < el.scrollHeight && scrollHeightLast.current - scrollTopLast.current - clientHeightLast.current < 1) {
+                        el.scrollTop = el.scrollHeight - el.clientHeight
+                    }
+                    scrollHeightLast.current = el.scrollHeight
+                    scrollTopLast.current = el.scrollTop
+                    clientHeightLast.current = el.clientHeight
                 }
-                isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
-                console.log('updateScrollHeight3--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+                // console.log('updateScrollHeight3--->', el.scrollHeight, el.scrollTop, el.clientHeight)
             });
         };
 
@@ -173,34 +177,38 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         updateScrollHeight();
 
         const handleScroll = () => {   
-            console.log('handleScroll--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
-            console.log('handleScroll--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
-            console.log('handleScroll--->', isLoadHistory.current, isAutoScroll.current)
+            // console.log('handleScroll1--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
+            // console.log('handleScroll2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
+            // console.log('handleScroll3--->', isLoadHistory.current, isAutoScroll.current)
             if (el.scrollHeight < scrollHeightLast.current && scrollHeightLast.current > 0)
                 return
             if (isLoadHistory.current) {
                 if (el.scrollHeight > scrollHeightLast.current) {
                     el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
-                    console.log('el.scrollTop--->', el.scrollTop)
+                    // console.log('el.scrollTop--->', el.scrollTop)
                     scrollHeightLast.current = el.scrollHeight
                 } else {
                     isLoadHistory.current = false
                     scrollHeightLast.current = el.scrollHeight
                     scrollHeightBeforeLoadMore.current = el.scrollHeight
                 }
+                // console.log('handleScroll4--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
             } else {
-                if (isAutoScroll.current && el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
+                // console.log('isAutoScroll.current1--->', el.scrollHeight, el.scrollTop, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight)
+                // 滚动高度有变化，说明是在新增消息，上一次是滚动到底部，则需要保持滚动在底部
+                if (scrollHeightLast.current < el.scrollHeight && scrollHeightLast.current - scrollTopLast.current - clientHeightLast.current < 1) {
                     el.scrollTop = el.scrollHeight - el.clientHeight
                 }
                 scrollHeightLast.current = el.scrollHeight
+                scrollTopLast.current = el.scrollTop
+                clientHeightLast.current = el.clientHeight
                 scrollHeightBeforeLoadMore.current = el.scrollHeight
             }
-            console.log('scrollHeightBeforeLoadMore--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current)
         }
 
         const handleScrollEnd = () => {
-            console.log('handleScrollEnd--->', el.scrollHeight, el.scrollTop, el.clientHeight)
-            isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
+            // console.log('handleScrollEnd--->', el.scrollHeight, el.scrollTop, el.clientHeight)
+            // isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
         }
 
         el.addEventListener('scroll', handleScroll);
@@ -213,10 +221,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         }
     }, [])
 
-    const onFinishLoad = () => {
-
-    }
-
     // 渲染对应的消息组件
     const renderMessage = (message: Message, index: number) => {
         // 移除频繁的日志输出
@@ -227,13 +231,12 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     content={message.content} 
                     trace_id={message.trace_id}
                     ext={message.ext}
-                    onFinishLoad={onFinishLoad}
                 />
             </Suspense>
         }
 
         if (message.role === 'showcase') {
-            return <Showcase key={'showcase'} onFinishLoad={onFinishLoad} />
+            return <Showcase key={'showcase'} />
         }
 
         if (message.role === 'ai' || message.role === 'tool') {
@@ -439,7 +442,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 latestInput={latestInput}
                                 installedNodes={installedNodes}
                                 onAddMessage={onAddMessage}
-                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -451,7 +453,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 name={message.name}
                                 avatar={avatar}
                                 installedNodes={installedNodes}
-                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -463,7 +464,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 name={message.name}
                                 avatar={avatar}
                                 onAddMessage={onAddMessage}
-                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -483,7 +483,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     metadata={message.metadata}
                                     finished={message.finished}
                                     debugGuide={message.debugGuide}
-                                    onFinishLoad={dsExtComponent ? undefined : onFinishLoad}
                                 />
                             </Suspense>
                         );
@@ -631,7 +630,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                         onAddMessage?.(successMessage);
                                     }
                                 }}
-                                onFinishLoad={onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -645,7 +643,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 avatar={avatar}
                                 onAddMessage={onAddMessage}
                                 onUpdateMessage={onUpdateMessage}
-                                onFinishLoad={onFinishLoad}
                                 messageId={message.id}
                             />
                         </Suspense>
@@ -661,7 +658,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     name={message.name}
                                     avatar={avatar}
                                     format={message.format}
-                                    onFinishLoad={onFinishLoad}
                                 />
                             </Suspense>
                         );
@@ -677,7 +673,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                     name={message.name}
                                     avatar={avatar}
                                     format={message.format}
-                                    onFinishLoad={onFinishLoad}
                                 />
                             </Suspense>
                         );
@@ -713,7 +708,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                 metadata={message.metadata}
                                 finished={message.finished}
                                 debugGuide={message.debugGuide}
-                                onFinishLoad={ExtComponent ? undefined : onFinishLoad}
                             />
                         </Suspense>
                     );
@@ -736,7 +730,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             metadata={message.metadata}
                             finished={message.finished}
                             debugGuide={message.debugGuide}
-                            onFinishLoad={onFinishLoad}
                         />
                     </Suspense>
                 );
@@ -755,7 +748,6 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                             metadata={message.metadata}
                             finished={message.finished}
                             debugGuide={message.debugGuide}
-                            onFinishLoad={onFinishLoad}
                         />
                     </Suspense>
                 );
