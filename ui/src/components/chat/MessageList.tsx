@@ -63,11 +63,9 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     const [currentMessages, setCurrentMessages] = useState<Message[]>([])
     const scrollRef = useRef<HTMLDivElement>(null)
     const lastMessagesCount = useRef<number>(0)
-    const hasNewMessage = useRef<boolean>(false)
     const scrollHeightLast = useRef<number>(0) // 上一次的scrollHeight
     const scrollHeightBeforeLoadMore = useRef<number>(0) // loadmore之前的scrollHeight
     const isLoadHistory = useRef<boolean>(false)
-    const finishLoadedCount = useRef<number>(0)
     // 用于跟踪已经处理过的工作流和参数更新，防止重复执行
     const processedUpdates = useRef<Set<string>>(new Set())
     const showLoadMoreButton = useRef<boolean>(false)
@@ -154,6 +152,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     el.scrollTop = el.scrollHeight - el.clientHeight
                     // console.log('scrollTop2--->', el.scrollTop, el.scrollHeight, el.clientHeight)
                 }
+                isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
                 // console.log('updateScrollHeight3--->', el.scrollHeight, el.scrollTop, el.clientHeight)
             });
         };
@@ -772,20 +771,15 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }
 
     const processedMessages = useMemo(() => {
-        console.log('processedMessages--->', messages)  
         // 先处理消息，关联checkpoint信息到用户消息
         return processMessagesWithCheckpoints(messages);
     }, [messages])
 
     useEffect(() => {
-        console.log('useEffect--->', lastMessagesCount.current, messages)
-        if (lastMessagesCount.current > messages.length)
-            return;
-
         let list: Message[] = []
         // 新增消息
         if (lastMessagesCount.current > 0 && lastMessagesCount.current < processedMessages.length) {
-            list = processedMessages.slice(lastMessagesCount.current)
+            list = processedMessages?.slice(lastMessagesCount.current)
             setCurrentMessages(prev => mergeByKeyCombine(prev, list, 'id'));
             // 回答结束，更新lastMessagesCount
             if (list?.[list?.length - 1].finished) {
@@ -794,28 +788,26 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         } else {
             // 加载历史消息
             let count = 0;
-            let endIndex = 0;
+            let endIndex = processedMessages?.length - 1;
             showLoadMoreButton.current = false;
-            for (let i = processedMessages?.length - currentMessages?.length - 1; i >= 0; i--) {
-                // 用户提问或者是debug算一个回合，3个回合才显示loadmore按钮
-                if (processedMessages[i].role === 'user' || processedMessages[i].format === 'debug_guide') {
+            for (let i = processedMessages?.length - 1; i >= 0; i--) {
+                endIndex = i;
+                // 用户提问或者是debug或者是showcase算一个回合，3个回合就显示loadmore按钮
+                if (processedMessages[i].role === 'user' || processedMessages[i].role === 'showcase' || processedMessages[i].format === 'debug_guide') {
                     count++;
                     if (count >= DEFAULT_COUNT + currentIndex) {
-                        endIndex = i;
                         showLoadMoreButton.current = true
                         break;
                     }
                 }
             }
-            console.log('loadhistory--->', processedMessages, endIndex, currentMessages)
-            setCurrentMessages(prev => [...processedMessages.slice(endIndex, processedMessages?.length - currentMessages?.length), ...prev])
+            setCurrentMessages([...processedMessages.slice(endIndex, processedMessages?.length)])
             lastMessagesCount.current = processedMessages.length
         }
     }, [processedMessages, currentIndex])
 
     useLayoutEffect(() => {
-        console.log('currentMessages--->', currentMessages)
-        finishLoadedCount.current = 0
+        
     }, [currentMessages])
 
     return (
