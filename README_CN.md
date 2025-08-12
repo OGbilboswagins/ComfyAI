@@ -34,7 +34,9 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 ❌ 节点连线比蜘蛛网还复杂
 ❌ 参数调整比女朋友的心思还难猜
 ❌ 好不容易求到了大佬的工作流文件，打开后发现：
-<img src="assets/broken_workflow_funny.png">
+<div align="center">
+<img src="assets/broken_workflow_funny.png" width="30%">
+</div>
 
 让**ComfyUI-Copilot** 来拯救你！让你用自然语言对话就能在ComfyUI中完成AI生图开发，新手5分钟上手，老手效率翻倍！
 
