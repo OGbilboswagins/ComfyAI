@@ -166,7 +166,7 @@ We welcome any form of contribution! Feel free to make issues, pull requests, or
 
 For any queries or suggestions, please feel free to contact: ComfyUI-Copilot@service.alibaba.com.
 <div align="center">
-  <img src="assets/qrcode1.png" width="20%"/> 
+  <img src="assets/qrcode.png" width="20%"/> 
    
   WeChat
   
@@ -184,3 +184,4 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AIDC-AI/ComfyUI-Copilot&type=Date)](https://star-history.com/#AIDC-AI/ComfyUI-Copilot&Date)
+
