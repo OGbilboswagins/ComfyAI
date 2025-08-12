@@ -718,6 +718,9 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
     };
 
     const handleAddMessage = (message: Message) => {
+        if (messages?.[0]?.role === 'showcase') {
+            dispatch({ type: 'CLEAR_MESSAGES' });
+        }
         console.log('[WorkflowChat] Adding new message:', message);
         const updatedMessages = [...state.messages, message];
         dispatch({ type: 'ADD_MESSAGE', payload: message });
