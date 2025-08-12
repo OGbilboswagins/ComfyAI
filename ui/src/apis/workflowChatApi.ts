@@ -2,7 +2,7 @@
  * @Author: ai-business-hql qingli.hql@alibaba-inc.com
  * @Date: 2025-06-24 16:29:05
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-08-11 15:45:42
+ * @LastEditTime: 2025-08-12 14:18:20
  * @FilePath: /comfyui_copilot/ui/src/apis/workflowChatApi.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -643,11 +643,13 @@ export namespace WorkflowChatAPI {
       const { openaiApiKey, openaiBaseUrl } = getOpenAiConfig();
       const browserLanguage = app.extensionManager.setting.get('Comfy.Locale');
       const session_id = localStorage.getItem("sessionId") || null;
-      
+      const apiKey = getApiKey();
       // Prepare headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'accept': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Authorization': `Bearer ${apiKey}`,
         'trace-id': generateUUID(),
         'Accept-Language': browserLanguage,
       };
