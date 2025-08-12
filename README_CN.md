@@ -91,19 +91,24 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 **仓库概览**：访问 [GitHub 仓库](https://github.com/AIDC-AI/ComfyUI-Copilot) 以获取完整代码库。
 
-#### 安装
-  1. 用git把ComfyUI-Copilot安装到ComfyUI的custom_nodes目录下：
+#### 内测版本的安装
+目前只支持通过git来安装。
+
+  1. 用git把ComfyUI-Copilot的mcp分支安装到ComfyUI的custom_nodes目录下：
 
    ```bash
    cd ComfyUI/custom_nodes
    git clone git@github.com:AIDC-AI/ComfyUI-Copilot.git
-   ```
-   
    或
-   
-   ```bash
    cd ComfyUI/custom_nodes
    git clone https://github.com/AIDC-AI/ComfyUI-Copilot
+   * 至此main分支就已经安装好了
+
+   git fetch origin mcp
+   git checkout -b mcp origin/mcp
+   git pull
+   * 至此mcp分支就下载好了
+
    ```
 
   2. 在ComfyUI的custom_nodes目录下，找到ComfyUI-Copilot目录，安装ComfyUI-Copilot的依赖
@@ -122,6 +127,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
   3. （待后续支持） **使用 ComfyUI 管理器**：打开 ComfyUI 管理器，点击自定义节点管理器，搜索 ComfyUI-Copilot，并点击安装按钮。
    <img src="assets/comfyui_manager.png"/>
    <img src="assets/comfyui_manager_install.png"/>
+
 
 #### **激活**
 在运行 ComfyUI 项目后，在面板左侧找到 Copilot 激活按钮以启动其服务。
