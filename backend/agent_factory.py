@@ -48,7 +48,7 @@ def create_agent(**kwargs) -> Agent:
         base_url=LLM_DEFAULT_BASE_URL,
         default_headers=default_headers,
     )
-    ...
+
     if config:
         if config.get("openai_api_key") and config.get("openai_api_key") != "":
             client.api_key = config.get("openai_api_key")
