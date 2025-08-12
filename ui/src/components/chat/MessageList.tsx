@@ -147,7 +147,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                 console.log('updateScrollHeight2--->', scrollHeightLast.current, scrollHeightBeforeLoadMore.current, isLoadHistory.current, isAutoScroll.current)
                 if (isLoadHistory.current) {
                     el.scrollTop = el.scrollHeight - scrollHeightBeforeLoadMore.current
-                } else if (el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
+                } else if (isAutoScroll.current) {
                     console.log('scrollTop1--->', el.scrollTop, el.scrollHeight, el.clientHeight)
                     el.scrollTop = el.scrollHeight - el.clientHeight
                     console.log('scrollTop2--->', el.scrollTop, el.scrollHeight, el.clientHeight)
@@ -189,7 +189,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     scrollHeightBeforeLoadMore.current = el.scrollHeight
                 }
             } else {
-                if (el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
+                if (isAutoScroll.current && el.scrollHeight - el.scrollTop - el.clientHeight < 1) {
                     el.scrollTop = el.scrollHeight - el.clientHeight
                 }
                 scrollHeightLast.current = el.scrollHeight
@@ -807,7 +807,10 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     }, [processedMessages, currentIndex])
 
     useLayoutEffect(() => {
-        
+        // 不是加载历史记录并且滚动到底部了，则保持滚动到最底部
+        // if (!!scrollRef.current && !isLoadHistory.current && scrollHeightLast.current - scrollRef.current.scrollTop - scrollRef.current.clientHeight < 1) {
+        //     scrollRef.current.scrollTop = scrollRef.current.scrollHeight - scrollRef.current.clientHeight
+        // }
     }, [currentMessages])
 
     return (
