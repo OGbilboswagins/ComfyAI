@@ -190,7 +190,8 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                 finished: true,
                 debugGuide: true
             });
-
+            dispatch({ type: 'SET_LOADING', payload: false });
+            abortControllerRef.current = null;
         } catch (error: unknown) {
             console.error('Error calling debug agent:', error);
             setShowStreamingMessage(false);
@@ -207,6 +208,8 @@ export function DebugGuide({ content, name = 'Assistant', avatar, onAddMessage, 
                 finished: true
             };
             onUpdateMessage?.(errorMessage);
+            dispatch({ type: 'SET_LOADING', payload: false });
+            abortControllerRef.current = null;
         }
     };
 

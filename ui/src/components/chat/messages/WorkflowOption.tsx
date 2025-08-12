@@ -2,7 +2,7 @@ import { app } from "../../../utils/comfyapp";
 import { ChatResponse, Workflow } from "../../../types/types";
 import { WorkflowChatAPI } from "../../../apis/workflowChatApi";
 import { generateUUID } from "../../../utils/uuid";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tooltip } from 'antd';
 interface WorkflowOptionProps {
     content: string;
@@ -21,13 +21,21 @@ interface NodeInfo {
 }
 
 export function WorkflowOption({ content, name = 'Assistant', avatar, latestInput, installedNodes, onAddMessage, onFinishLoad }: WorkflowOptionProps) {
-    const response = JSON.parse(content) as ChatResponse;
-    const workflows = response.ext?.find(item => item.type === 'workflow')?.data || [];
+    // const response = JSON.parse(content) as ChatResponse;
+    // const workflows = response.ext?.find(item => item.type === 'workflow')?.data || [];
     const [loadingWorkflows, setLoadingWorkflows] = useState<Record<string, boolean>>({});
-    
+    const [response, setResponse] = useState<ChatResponse | null>(null);
+    const [workflows, setWorkflows] = useState<Workflow[]>([]);
+
     useEffect(() => {
         onFinishLoad?.()
     }, [])
+
+    useEffect(() => {
+        const _response = JSON.parse(content) as ChatResponse;
+        setResponse(_response);
+        setWorkflows(_response.ext?.find(item => item.type === 'workflow')?.data || []);
+    }, [content])
 
     const handleAcceptWorkflow = async (workflow: Workflow) => {
         if (!workflow.id) {
@@ -53,7 +61,7 @@ export function WorkflowOption({ content, name = 'Assistant', avatar, latestInpu
         WorkflowChatAPI.trackEvent({
             event_type: 'workflow_accept',
             message_type: 'workflow',
-            message_id: response.message_id,
+            message_id: response?.message_id,
             data: {
                 workflow_id: workflow.id,
                 workflow_name: workflow.name
