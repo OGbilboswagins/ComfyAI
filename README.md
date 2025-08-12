@@ -37,7 +37,9 @@ When you enthusiastically open the ComfyUI interface, you're often hit with a so
 ❌ Node connections more complex than spider webs  
 ❌ Parameter adjustments harder to figure out than your girlfriend's mood
 ❌ Finally getting a workflow file from an expert, only to open it and find:
-<img src="assets/broken_workflow_funny.png">
+<div align="center">
+<img src="assets/broken_workflow_funny.png" width="50%">
+</div>
 
 Let **ComfyUI-Copilot** save you! Use natural language conversations to complete AI image generation development in ComfyUI - beginners can get started in 5 minutes, experts can double their efficiency!
 
