@@ -9,18 +9,29 @@
 <h4 align="center">
 
 <div align="center">
-<img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"> 
-<img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
-<img src="https://img.shields.io/github/stars/AIDC-AI/ComfyUI-Copilot?color=yellow" alt="Stars">
-<img src="https://img.shields.io/github/issues/AIDC-AI/ComfyUI-Copilot?color=red" alt="Issues">
+<img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="版本"> 
+<img src="https://img.shields.io/github/stars/AIDC-AI/ComfyUI-Copilot?color=yellow" alt="星标">
+  <a href="https://discord.gg/7H9dMCvuMp">
+    <img src="https://img.shields.io/badge/Discord-%20%235462eb?logo=discord&logoColor=%20%23f5f5f5" alt="Discord">
+  </a>    
+<a href="https://github.com/AIDC-AI/ComfyUI-Copilot/blob/main/assets/qrcode.png">
+    <img src="https://img.shields.io/badge/WeChat-brightgreen?logo=wechat&logoColor=white" alt="WeChat">
+  </a>        
+<a href="https://x.com/Pixelle_AI" target="_blank" rel="noopener">
+  <img src="https://img.shields.io/twitter/follow/Pixelle_AI?style=social" alt="Follow on X">
+</a>
+<a href="https://aclanthology.org/2025.acl-demo.61.pdf">
+  <img src="https://img.shields.io/badge/Paper-ACL2025-B31B1B?logo=arXiv&logoColor=white" alt="Paper">
+</a>
+<img src="https://img.shields.io/github/issues/AIDC-AI/ComfyUI-Copilot?color=red" alt="问题">
 <img src="https://img.shields.io/badge/python-3.10%2B-purple.svg" alt="Python">
+<img src="https://img.shields.io/badge/License-MIT-green.svg" alt="许可证">
 
 </h4>
 
 
 👾 _**Alibaba International Digital Commerce**_ 👾
 
-:octocat: [**Github**](https://github.com/AIDC-AI/ComfyUI-Copilot)
 
 </div>
 
@@ -172,4 +183,5 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AIDC-AI/ComfyUI-Copilot&type=Date)](https://star-history.com/#AIDC-AI/ComfyUI-Copilot&Date)
+
 
