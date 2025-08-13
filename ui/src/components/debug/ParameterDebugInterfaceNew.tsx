@@ -93,12 +93,13 @@ import {
   handleApplySelected as utilsHandleApplySelected,
   handleClose as utilsHandleClose
 } from './utils/stateManagementUtils';
+import { isObj } from '../../utils/tools';
 
 // Note: Removed duplicate interface definitions to use imported types instead
 export const enum StateKey {
-  CurrentSceen = 'currentSceen',
+  CurrentScreen = 'currentScreen',
   SelectedParams = 'selectedParams',
-  TaskId = 'taskId',
+  TaskId = 'task_id',
   IsProcessing = 'isProcessing',
   IsCompleted = 'isCompleted',
   CompletedCount = 'completedCount',
@@ -308,7 +309,6 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   };
 
   const doSaveState = (key: StateKey, value: any) => {
-    console.log('key--->', key, value)
     const stateToSave = {
       currentScreen,
       selectedParams,
@@ -325,20 +325,21 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
       currentPage,
       textInputs
     };
-    console.log('doSaveState-->', stateToSave)
+    const prev = (stateToSave as any)[key as any];
+    const nextForKey = isObj(prev) && isObj(value) ? { ...prev, ...value } : value;
     saveStateToLocalStorage({
       ...stateToSave,
-      [key]: value
+      [key]: nextForKey
     });
   }
 
   const updateState = (key: StateKey, value: any) => {
     switch(key) {
-      case StateKey.CurrentSceen:
+      case StateKey.CurrentScreen:
         setCurrentScreen(value)
         break;
       case StateKey.SelectedParams:
-        setSelectedParams(value)
+        setSelectedParams(prev => isObj(prev) && isObj(value) ? { ...prev, ...value } : value)
         break;
       case StateKey.TaskId:   
         setTask_id(value);
@@ -362,10 +363,10 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
         setGeneratedImages(value);  
         break;
       case StateKey.ParamTestValues:
-        setParamTestValues(value);
+        setParamTestValues(prev => isObj(prev) && isObj(value) ? { ...prev, ...value } : value);
         break;
       case StateKey.SearchTerms:
-        setSearchTerms(value);
+        setSearchTerms(prev => isObj(prev) && isObj(value) ? { ...prev, ...value } : value);
         break;
       case StateKey.InputValues:
         setInputValues(value);
@@ -477,31 +478,34 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
   }, [visible]);
 
   useEffect(() => {
-    if (!!isProcessing && !!isInitial.current) {
+    if (!!isInitial.current) {
       isInitial.current = false;
-      let selectedImageNodeId: number | undefined = 0;
-      const nodes = Object.values(app.graph._nodes_by_id) as ComfyNode[];
-      const saveNodeIds: number[] = [];
-      const previewNodeIds: number[] = [];
-      
-      for(const node of nodes) {
-        if(node.type === "SaveImage") {
-          saveNodeIds.push(node.id);
-        } else if(node.type === "PreviewImage") {
-          previewNodeIds.push(node.id);
+      if (!!isProcessing) {
+        let selectedImageNodeId: number | undefined = 0;
+        const nodes = Object.values(app.graph._nodes_by_id) as ComfyNode[];
+        const saveNodeIds: number[] = [];
+        const previewNodeIds: number[] = [];
+        
+        for(const node of nodes) {
+          if(node.type === "SaveImage") {
+            saveNodeIds.push(node.id);
+          } else if(node.type === "PreviewImage") {
+            previewNodeIds.push(node.id);
+          }
         }
+        
+        // Combine and set state
+        const allImageNodeIds = [...saveNodeIds, ...previewNodeIds];      
+        // If there's exactly one node, set it as selected
+        if(allImageNodeIds.length === 1) {
+          selectedImageNodeId = allImageNodeIds[0];
+        } else if(allImageNodeIds.length > 1) {
+          // If multiple nodes, enable selection warning
+          selectedImageNodeId = undefined
+        }
+        console.log('isProcessing-->', selectedImageNodeId)
+        handleStartGeneration(undefined, selectedImageNodeId)
       }
-      
-      // Combine and set state
-      const allImageNodeIds = [...saveNodeIds, ...previewNodeIds];      
-      // If there's exactly one node, set it as selected
-      if(allImageNodeIds.length === 1) {
-        selectedImageNodeId = allImageNodeIds[0];
-      } else if(allImageNodeIds.length > 1) {
-        // If multiple nodes, enable selection warning
-        selectedImageNodeId = undefined
-      }
-      handleStartGeneration(undefined, selectedImageNodeId)
     }
   }, [isProcessing])
   // Modify the useEffect that loads state to handle loading state
@@ -514,7 +518,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
         const savedState = localStorage.getItem(PARAM_DEBUG_STORAGE_KEY);
         if (savedState) {
           const parsedState = JSON.parse(savedState);
-
+          console.log('parsedState-->', parsedState)
           // Only restore state if we have selected nodes
           if (!selectedNodes || selectedNodes.length === 0) {
             console.log("Not restoring parameter debug state: no nodes selected");
@@ -763,6 +767,7 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
 
   // Handle start generation - Modified to clean up before starting
   const handleStartGeneration = async (event?: React.MouseEvent, selectedNodeId?: number) => {
+    console.log('handleStartGeneration-->', selectedNodeId)
     utilsHandleStartGeneration(
       paramTestValues,
       task_id,

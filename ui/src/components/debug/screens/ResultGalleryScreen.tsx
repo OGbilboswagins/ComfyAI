@@ -45,7 +45,10 @@ export const ResultGalleryScreen: React.FC<ResultGalleryScreenProps> = ({
   const renderItem = (image: GeneratedImage, index: number) => (
     <div 
       key={index.toString()} 
-      className={`relative flex flex-col rounded-lg overflow-hidden border ${selectedImageIndex === image.index ? 'border-pink-500 ring-2 ring-pink-300' : 'border-gray-200'}`}
+      className={`relative flex flex-col rounded-lg overflow-hidden border ${selectedImageIndex === index ? 'border-2 border-green-400' : 'border-gray-200'}`}
+      style={{
+        boxShadow: selectedImageIndex === index ? 'inset 0 -16px 24px 0 rgba(255, 255, 255, 0.25)' : ''
+      }}
       onClick={(e) => handleSelectImage(index, e)}
     >
       {/* Zoom icon */}

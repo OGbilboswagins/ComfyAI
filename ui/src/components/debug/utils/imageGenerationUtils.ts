@@ -75,7 +75,6 @@ export const handleStartGeneration = async (
   
   // Get node ID to use for showing images - Use provided selectedNodeId if available
   let showNodeId: number | null = selectedNodeId || null;
-  
   // If no selectedNodeId provided, try to get one automatically
   if (showNodeId === null) {
     const nodeId = getOnlyOneImageNode();
@@ -84,6 +83,7 @@ export const handleStartGeneration = async (
     }
   }
   
+  console.log('showNodeId-->', showNodeId, selectedNodeId)
   // If showNodeId is null, we need user selection (handled in ConfirmConfigurationScreen)
   if (showNodeId === null) {
     setErrorMessage("Please select a SaveImage or PreviewImage node first.");
