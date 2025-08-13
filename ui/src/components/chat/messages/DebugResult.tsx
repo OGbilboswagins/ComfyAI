@@ -85,7 +85,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                 </svg>
                 <h4 className="font-bold text-xl">Workflow Updated Successfully</h4>
             </div>
-        ) : <div className="flex items-center text-[#fff]">
+        ) : <div className="flex items-center text-gray-900">
             <svg 
                 className="w-5 h-5 mr-2" 
                 viewBox="0 0 1024 1024" 
@@ -100,7 +100,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
         </div>
 
         const helpText = isWorkflowUpdate ? (
-            <div className="mt-3 text-xs text-[#fff]/70">
+            <div className="mt-3 text-xs text-gray-700">
                 💡 If you're not satisfied with the changes, click the restore button to revert to the previous version.
             </div>
         ) : null
@@ -115,9 +115,9 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                     {/* {title} */}
                     
                     {format === 'markdown' ? (
-                        <Markdown response={response || {}} isInCard={true} />
+                        <Markdown response={response || {}} />
                     ) : (
-                        <pre className='whitespace-pre-wrap text-[#fff]/70 text-sm leading-relaxed h-full'>
+                        <pre className='whitespace-pre-wrap text-gray-700 text-sm leading-relaxed h-full'>
                             {response?.text || ''}
                         </pre>
                     )}

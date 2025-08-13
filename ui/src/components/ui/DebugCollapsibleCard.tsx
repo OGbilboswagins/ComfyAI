@@ -8,6 +8,7 @@
  */
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import BeautifyCard from "./BeautifyCard";
 
 interface IProps {
   title?: string | React.ReactNode;
@@ -22,33 +23,34 @@ const DebugCollapsibleCard: React.FC<IProps> = (props) => {
   const [isOpen, setIsOpen] = useState(false);
   
   return (
-    <div className={`relative rounded-lg flex flex-col beautify-card ${className} ${!isOpen ? 'h-[200px]' : ''}`}>
-      <div className="card-border rounded-lg" />
-      <div className="flex flex-1 justify-between items-center pb-2 border-b border-[#29292f]">
-        <div>
+    <BeautifyCard className={`rounded-lg `} borderClassName='rounded-lg'>
+      <div className={`flex flex-col ${className} ${!isOpen ? 'max-h-[200px]' : ''}`}>
+        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+          <div>
+          {
+            typeof title === 'string' ? <h3 className="text-sm text-[#fff] font-medium">{title}</h3> : title
+          }
+          </div>
+          <button
+            onClick={() => {
+              setIsOpen(!isOpen)
+            }}
+          >
+            {
+              isOpen ? <ChevronUp className='text-gray-700' /> : <ChevronDown className='text-gray-700' />
+            }
+          </button>
+        </div>
+        <div className="overflow-hidden flex-1">
         {
-          typeof title === 'string' ? <h3 className="text-sm text-[#fff] font-medium">{title}</h3> : title
+          children
         }
         </div>
-        <button
-          onClick={() => {
-            setIsOpen(!isOpen)
-          }}
-        >
-          {
-            isOpen ? <ChevronUp color={'#E5E7EB'} /> : <ChevronDown color={'#E5E7EB'} />
-          }
-        </button>
-      </div>
-      <div className="overflow-hidden">
-      {
-        children
-      }
       </div>
       {/* {
         !isOpen && <div className="absolute bottom-0 left-0 right-0 h-12 w-full z-5 bg-debug-collapsible-card-bg pointer-events-none" />
       } */}
-    </div>
+    </BeautifyCard>
   )
 }
 
