@@ -62,7 +62,6 @@ def get_current_workflow() -> str:
         return json.dumps({"error": "No workflow data found for this session"})
     return json.dumps(workflow_data)
 
-@function_tool
 async def get_node_info(node_class: str) -> str:
     """获取节点的详细信息，包括输入输出参数"""
     try:
