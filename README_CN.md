@@ -34,7 +34,9 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 ❌ 节点连线比蜘蛛网还复杂
 ❌ 参数调整比女朋友的心思还难猜
 ❌ 好不容易求到了大佬的工作流文件，打开后发现：
-<img src="assets/broken_workflow_funny.png">
+<div align="center">
+<img src="assets/broken_workflow_funny.png" width="30%">
+</div>
 
 让**ComfyUI-Copilot** 来拯救你！让你用自然语言对话就能在ComfyUI中完成AI生图开发，新手5分钟上手，老手效率翻倍！
 
@@ -55,27 +57,33 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 - 1. 💎 **生成第一版工作流**：根据您的文字描述，给到符合您需求的工作流，返回3个我们库里的优质工作流和1个AI生成的工作流，您可以一键导入到ComfyUI中，开始生图
   - 直接在输入框输入：我想要一个xxx的工作流
+  <img src="assets/工作流生成.gif"/>
 - 2. 💎 **工作流Debug**：自动分析工作流中的错误，帮您修复参数错误和工作流连接错误，并给出优化建议
   - 上方返回的4个工作流里，当您选中了一个点击Accept后，会导入ComfyUI的画布中。此时您可以点击Debug按钮，开始调错。
   - 输入框右上角有一个Debug按钮，点击后直接对当前的画布上的工作流进行Debug。
+  <img src="assets/debug.gif"/>
 - 3. 💎 **之前的工作流生图效果不满意？**：提出您不满意的地方，让我们帮您修改工作流，增加节点，修改参数，优化工作流结构
   - 在输入框输入：帮我在当前的画布上添加一个xxxx
+  <img src="assets/改写.gif"/>
 - 4. 💎 **调参过程太痛苦？**：我们为您提供了调参工具，您可以设置参数范围，系统会自动批量执行不同参数组合，并生成结果可视化对比，帮助您快速找到最优参数配置
   - 切换Tab到GenLab，然后根据引导使用，请注意此时的工作流要能正常运行，才能批量跑图评估参数。
+  <img src="assets/Genlab.gif"/>
 
 想让ComfyUI-Copilot辅助您完成工作流开发？
 - 5. 💎 **节点推荐**：根据您的描述，推荐您可能需要的节点，并给出推荐理由
   - 在输入框输入：我想要一个xxx的工作流
-<img src="assets/comfycopilot_nodes_recommend.gif"/>
+<img src="assets/节点推荐.gif"/>
 
 - 6. 💎 **节点查询系统**：选中画布上的节点，点击节点查询按钮，深入探索节点，查看其说明、参数定义、使用技巧和下游工作流推荐。
   - 在输入框输入：我想要一个用来干xxx的节点
-<img src="assets/comfycopilot_nodes_search.gif"/>
+<img src="assets/节点信息查询.gif"/>
 
 - 7. 💎 **模型推荐**：根据您文字需求， Copilot 为您查找基础模型和 'lora'。
   - 在输入框输入：我想要一个生成xxx图片的Lora
+<img src="assets/模型推荐.gif"/>
 
-- 8. 💎 **下游子图推荐**：在您选中了画布上的某个节点后，根据您画布上已有的节点，推荐您可能需要的下游子图
+- 8. 💎 **下游节点推荐**：在您选中了画布上的某个节点后，根据您画布上已有的节点，推荐您可能需要的下游子图
+<img src="assets/下游节点推荐.gif"/>
 
 ---
 
@@ -83,19 +91,24 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 **仓库概览**：访问 [GitHub 仓库](https://github.com/AIDC-AI/ComfyUI-Copilot) 以获取完整代码库。
 
-#### 安装
-  1. 用git把ComfyUI-Copilot安装到ComfyUI的custom_nodes目录下：
+#### 内测版本的安装
+目前只支持通过git来安装。
+
+  1. 用git把ComfyUI-Copilot的mcp分支安装到ComfyUI的custom_nodes目录下：
 
    ```bash
    cd ComfyUI/custom_nodes
    git clone git@github.com:AIDC-AI/ComfyUI-Copilot.git
-   ```
-   
    或
-   
-   ```bash
    cd ComfyUI/custom_nodes
    git clone https://github.com/AIDC-AI/ComfyUI-Copilot
+   * 至此main分支就已经安装好了
+
+   git fetch origin mcp
+   git checkout -b mcp origin/mcp
+   git pull
+   * 至此mcp分支就下载好了
+
    ```
 
   2. 在ComfyUI的custom_nodes目录下，找到ComfyUI-Copilot目录，安装ComfyUI-Copilot的依赖
@@ -115,6 +128,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
    <img src="assets/comfyui_manager.png"/>
    <img src="assets/comfyui_manager_install.png"/>
 
+
 #### **激活**
 在运行 ComfyUI 项目后，在面板左侧找到 Copilot 激活按钮以启动其服务。
 <img src="assets/start.jpg"/>
@@ -125,6 +139,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 #### **注意**：
 本项目持续更新中，请更新到最新代码以获取新功能。您可以使用 git pull 获取最新代码，或在 ComfyUI Manager 插件中点击“更新”。
+我们的项目依赖于一些外部接口，服务部署在新加坡，可能需要您使用科学上网工具哦。
 
 ---
 

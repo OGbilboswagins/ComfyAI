@@ -22,7 +22,7 @@ from agents.tracing import set_tracing_disabled
 from ..agent_factory import create_agent
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from openai.types.responses import ResponseTextDeltaEvent
-from openai import APIError
+from openai import APIError, RateLimitError
 
 
 class ImageData:
@@ -308,8 +308,16 @@ You must adhere to the following constraints to complete the task:
                     else:
                         print(f"Non-retryable streaming error or max retries reached: {error_msg}")
                         print(f"Traceback: {traceback.format_exc()}")
-                        # Continue to normal processing, error will be handled by outer try-catch
-                        break
+                        if isinstance(stream_error, RateLimitError):
+                            default_error_msg = 'Rate limit exceeded, please try again later.'
+                            error_body = stream_error.body
+                            error_msg = error_body['message'] if error_body and 'message' in error_body else None
+                            final_error_msg = error_msg or default_error_msg
+                            yield (final_error_msg, None)
+                            return
+                        else:
+                            # Continue to normal processing, error will be handled by outer try-catch
+                            break
                         
                 except Exception as unexpected_error:
                     retry_count += 1
