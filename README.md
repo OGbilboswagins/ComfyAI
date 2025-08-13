@@ -75,7 +75,7 @@ Compared to the previous version, ComfyUI-Copilot has evolved from assisting you
   <img src="assets/改写.gif"/>
 - 4. 💎 **Parameter Tuning Too Painful?**: We provide parameter tuning tools. You can set parameter ranges, and the system will automatically batch execute different parameter combinations and generate visual comparison results to help you quickly find the optimal parameter configuration.
   - Switch to the GenLab tab and follow the guidance. Note that the workflow must be able to run normally at this time to batch generate and evaluate parameters.
-  <img src="assets/GenLab.gif"/>
+  <img src="assets/Genlab.gif"/>
 
 Want ComfyUI-Copilot to assist you in workflow development?
 - 5. 💎 **Node Recommendations**: Based on your description, recommend nodes you might need and provide recommendation reasons.

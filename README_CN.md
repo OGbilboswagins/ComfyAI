@@ -67,7 +67,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
   <img src="assets/改写.gif"/>
 - 4. 💎 **调参过程太痛苦？**：我们为您提供了调参工具，您可以设置参数范围，系统会自动批量执行不同参数组合，并生成结果可视化对比，帮助您快速找到最优参数配置
   - 切换Tab到GenLab，然后根据引导使用，请注意此时的工作流要能正常运行，才能批量跑图评估参数。
-  <img src="assets/GenLab.gif"/>
+  <img src="assets/Genlab.gif"/>
 
 想让ComfyUI-Copilot辅助您完成工作流开发？
 - 5. 💎 **节点推荐**：根据您的描述，推荐您可能需要的节点，并给出推荐理由
