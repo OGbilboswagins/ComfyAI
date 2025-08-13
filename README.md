@@ -41,7 +41,7 @@ https://github.com/user-attachments/assets/0372faf4-eb64-4aad-82e6-5fd69f349c2c
 
 
 
-**ComfyUI-Copilot** is an AIGC intelligent assistant built on the ComfyUI framework that provides comprehensive support for your tedious ComfyUI workflow building, ComfyUI-related questions, parameter optimization and iteration processes! It streamlines the debugging and deployment of AI algorithms, making creative workflows more efficient and effortless.
+**ComfyUI-Copilot** is an AIGC intelligent assistant built on ComfyUI that provides comprehensive support for tedious workflow building, ComfyUI-related questions, parameter optimization and iteration processes! It streamlines the debugging and deployment of AI algorithms, making creative workflows more efficient and effortless.
 
 ### 🎉 **Major Update on 2025.08.14：Evolving into a Workflow Development Coworker**
 
@@ -178,6 +178,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AIDC-AI/ComfyUI-Copilot&type=Date)](https://star-history.com/#AIDC-AI/ComfyUI-Copilot&Date)
+
 
 
 
