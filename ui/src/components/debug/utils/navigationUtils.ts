@@ -79,7 +79,7 @@ export const handleNext = (
   
   // Clear error message
   setErrorMessage(null);
-  updateState(StateKey.CurrentSceen, Math.min(currentScreen + 1, 2))
+  updateState(StateKey.CurrentScreen, Math.min(currentScreen + 1, 2))
 };
 
 /**
@@ -148,7 +148,7 @@ export const handlePrevious = (
     updateState(StateKey.ParamTestValues, updatedParamTestValues);
   }
   
-  updateState(StateKey.CurrentSceen, Math.max(currentScreen - 1, 0));
+  updateState(StateKey.CurrentScreen, Math.max(currentScreen - 1, 0));
 };
 
 /**

@@ -38,7 +38,7 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
       cleanupPolling();
     }
     updateState(StateKey.IsProcessing, false);
-    updateState(StateKey.CurrentSceen, 2);
+    updateState(StateKey.CurrentScreen, 2);
   };
 
   return (

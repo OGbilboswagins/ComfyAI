@@ -7,3 +7,6 @@ export const mergeByKeyCombine = <T extends Record<string, any>>(a: T[], b: T[],
   }
   return Array.from(map.values());
 }
+
+export const isObj = (value: unknown): value is Record<string, unknown> => 
+  value !== null && typeof value === 'object' && !Array.isArray(value);

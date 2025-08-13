@@ -1,7 +1,7 @@
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { app } from '../../../utils/comfyapp';
 import { useChatContext } from '../../../context/ChatContext';
 
@@ -75,34 +75,44 @@ export const ConfirmConfigurationScreen: React.FC<ConfirmConfigurationScreenProp
     findImageNodes();
   }, []);
   
-  // Effect to detect node selection from canvas - using click listener like in Screen 1
   useEffect(() => {
-    // Add a listener for node selection via clicks
-    const handleNodeSelected = () => {
-      if (!app.canvas.selected_nodes) return;
-      
-      const selectedNodesOnCanvas = Object.values(app.canvas.selected_nodes) as ComfyNode[];
-      if (selectedNodesOnCanvas.length === 0) return;
-      
-      // Get the first selected node
-      const selectedNode = selectedNodesOnCanvas[0];
-      
-      if (!selectedNode) return;
-      
-      // Check if selected node is a SaveImage or PreviewImage node
-      if (selectedNode.type === "SaveImage" || selectedNode.type === "PreviewImage") {
-        console.log("Selected image node:", selectedNode.id);
-        setSelectedImageNodeId(selectedNode.id);
+    if (selectedNodes?.length > 0) {
+      const node = selectedNodes?.find(node => node.type === "SaveImage" || node.type === "PreviewImage")
+      if (!!node) {
+        setSelectedImageNodeId(node.id)
       }
-    };
+    }
+  }, [selectedNodes])
+  // Effect to detect node selection from canvas - using click listener like in Screen 1
+  // useEffect(() => {
+  //   // Add a listener for node selection via clicks
+  //   const handleNodeSelected = () => {
+  //     console.log('handleNodeSelected---->', app.canvas.selected_nodes)
+  //     if (!app.canvas.selected_nodes) return;
+      
+  //     const selectedNodesOnCanvas = Object.values(app.canvas.selected_nodes) as ComfyNode[];
+  //     if (selectedNodesOnCanvas.length === 0) return;
+  //     console.log('selectedNodesOnCanvas-->', selectedNodesOnCanvas)
+  //     // Get the first selected node
+  //     const selectedNode = selectedNodesOnCanvas[0];
+      
+  //     if (!selectedNode) return;
+      
+  //     // Check if selected node is a SaveImage or PreviewImage node
+  //     if (selectedNode.type === "SaveImage" || selectedNode.type === "PreviewImage") {
+  //       console.log("Selected image node:", selectedNode.id);
+  //       // setSelectedImageNodeId(selectedNode.id);
+  //       selectedImageNodeId.current = selectedNode.id
+  //     }
+  //   };
     
-    // Listen for click events (same as Screen 1)
-    document.addEventListener('click', handleNodeSelected);
+  //   // Listen for click events (same as Screen 1)
+  //   document.addEventListener('click', handleNodeSelected);
     
-    return () => {
-      document.removeEventListener('click', handleNodeSelected);
-    };
-  }, []);
+  //   return () => {
+  //     document.removeEventListener('click', handleNodeSelected);
+  //   };
+  // }, []);
   
   // Modified start generation function
   const startGenerationWithSelectedNode = (event?: React.MouseEvent) => {
@@ -116,7 +126,7 @@ export const ConfirmConfigurationScreen: React.FC<ConfirmConfigurationScreenProp
       setShowNodeSelectionWarning(true);
       return;
     }
-    
+    console.log('selectedImageNodeId-->', selectedImageNodeId)
     // Otherwise, proceed with selected node ID
     handleStartGeneration(event, selectedImageNodeId || undefined);
   };
