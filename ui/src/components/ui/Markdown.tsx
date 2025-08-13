@@ -10,10 +10,9 @@ import { WorkflowChatAPI } from "../../apis/workflowChatApi";
 interface IProps {
   response: ChatResponse;
   specialClass?: string;
-  isInCard?: boolean; // 是否是在debug的card中，特殊处理，字体颜色固定不随主题变化
 }
 
-const Markdown = ({ response, specialClass, isInCard = false }: IProps) => {
+const Markdown = ({ response, specialClass }: IProps) => {
   const text = useMemo(() => response?.text || '', [response]);
   const [copied, setCopied] = useState(false);
 
@@ -24,7 +23,7 @@ const Markdown = ({ response, specialClass, isInCard = false }: IProps) => {
         rehypeKatex
       ]}
       remarkPlugins={[remarkGfm, remarkMath]}
-      className={`prose prose-xs prose-neutral prose-a:text-accent-foreground/50 break-words [&>*]:!my-1 leading-relaxed text-xs ${isInCard ? 'text-[#fff]/70' : 'text-gray-700'}
+      className={`prose prose-xs prose-neutral prose-a:text-accent-foreground/50 break-words [&>*]:!my-1 leading-relaxed text-xs text-gray-700
         prose-headings:font-semibold
         prose-h1:text-base
         prose-h2:text-sm
@@ -43,7 +42,7 @@ const Markdown = ({ response, specialClass, isInCard = false }: IProps) => {
           return <p className="!my-0.5 leading-relaxed text-xs">{children}</p>
         },
         strong: ({ children }) => {
-          return <strong className={`${isInCard ? 'text-[#fff]/70' : 'text-gray-900'}`}>{children}</strong>
+          return <strong className='text-gray-900'>{children}</strong>
         },
         h1: ({ children }) => {
           return <h1 className="text-base font-semibold !my-1">{children}</h1>
@@ -94,7 +93,7 @@ const Markdown = ({ response, specialClass, isInCard = false }: IProps) => {
           
           return (
             <span className="relative group inline-flex items-center">
-              <code className={`text-xs bg-gray-100 ${isInCard ? 'text-[#fff]/70' : 'text-gray-900'} rounded px-1`}>{children}</code>
+              <code className='text-xs bg-gray-100 text-gray-900 rounded px-1'>{children}</code>
               <button 
                 onClick={handleCopy}
                 className="absolute top-0 right-0 bg-gray-200 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-300 z-10"
@@ -115,7 +114,7 @@ const Markdown = ({ response, specialClass, isInCard = false }: IProps) => {
           );
         },
         pre: ({ children }) => {
-          return <pre className={`text-xs bg-gray-100 ${isInCard ? 'text-[#fff]/70' : 'text-gray-800'} rounded p-2 overflow-x-auto`}>{children}</pre>
+          return <pre className='text-xs bg-gray-100 text-gray-800 rounded p-2 overflow-x-auto'>{children}</pre>
         },
         img: ({ node, ...props }) => {
           let isGif = false;
@@ -159,9 +158,6 @@ const Markdown = ({ response, specialClass, isInCard = false }: IProps) => {
                     link_text: children
                   }
                 });
-              }}
-              style={{
-                color: isInCard ? 'rgb(158, 158, 255)' : 'inherit'
               }}
             >
               {children}

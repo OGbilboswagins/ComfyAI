@@ -3,6 +3,7 @@ import showcases_en from '../../../../../public/showcase/showcase_en.json';
 import { useChatContext } from '../../../context/ChatContext';
 import { app } from '../../../utils/comfyapp';
 import { generateUUID } from '../../../utils/uuid';
+import BeautifyCard from '../../ui/BeautifyCard';
 import { BaseMessage } from './BaseMessage';
 
 const OFFSET = 2;
@@ -103,7 +104,6 @@ const Showcase = () => {
       </div>
       {
         getShowcaes()?.list?.map((item, index) => <div 
-          className='sticky w-full overflow-hidden'
           key={index.toString()}
           onClick={() => {
             isAutoScroll.current = true
@@ -124,7 +124,18 @@ const Showcase = () => {
             func()
           }}
         >
-          <div className='relative min-h-[50px] flex flex-row items-center mt-4 beautify-card px-4 py-2 mx-[1px] my-[1px] rounded-full'>
+          <BeautifyCard 
+            className='min-h-[50px] flex flex-row items-center mt-4 px-4 py-2 rounded-full mx-[1px] my-[1px]'
+            borderClassName='rounded-full'
+          >
+            <div className='text-[#4fabdb]'>
+              {ICONS[index]}
+            </div>
+            <div className='flex-1 text-sm text-gray-700 font-normal ml-4'>
+              {item.name}
+            </div>
+          </BeautifyCard>
+          {/* <div className='relative min-h-[50px] flex flex-row items-center mt-4 beautify-card px-4 py-2 mx-[1px] my-[1px] rounded-full'>
             <div className='card-border rounded-full'/>
             <div className='text-[#4fabdb]'>
               {ICONS[index]}
@@ -132,7 +143,7 @@ const Showcase = () => {
             <div className='flex-1 text-sm text-[#fff]/70 font-normal ml-4'>
               {item.name}
             </div>
-          </div>
+          </div> */}
         </div>)
       }
     </div>
