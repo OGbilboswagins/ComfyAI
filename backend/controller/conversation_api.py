@@ -22,6 +22,7 @@ import os
 from ..service.debug_agent import debug_workflow_errors
 from ..service.database import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
 from ..service.mcp_client import comfyui_agent_invoke, ImageData
+from ..utils.request_context import set_request_context, get_session_id
 
 
 # 不再使用内存存储会话消息，改为从前端传递历史消息
@@ -132,6 +133,18 @@ async def invoke_chat(request):
     # 获取当前语言
     language = request.headers.get('Accept-Language', 'en')
     set_language(language)
+    
+    # 构建配置信息
+    config = {
+        "session_id": session_id,
+        "workflow_checkpoint_id": workflow_checkpoint_id,
+        "openai_api_key": request.headers.get('Openai-Api-Key'),
+        "openai_base_url": request.headers.get('Openai-Base-Url'),
+        "model_select": next((x['data'][0] for x in ext if x['type'] == 'model_select' and x.get('data')), None)
+    }
+    
+    # 设置请求上下文 - 这里建立context隔离
+    set_request_context(session_id, workflow_checkpoint_id, config)
 
     # 图片处理已移至前端，图片信息现在包含在历史消息的OpenAI格式中
     # 保留空的处理逻辑以向后兼容，但实际不再使用
@@ -163,23 +176,17 @@ async def invoke_chat(request):
         has_sent_response = False
         previous_text_length = 0
         
-        config = {
-            "session_id": session_id,  # 添加session_id到配置中
-            "workflow_checkpoint_id": workflow_checkpoint_id,  # 添加工作流检查点ID
-            "openai_api_key": request.headers.get('Openai-Api-Key'),
-            "openai_base_url": request.headers.get('Openai-Base-Url'),
-            "model_select": next((x['data'][0] for x in ext if x['type'] == 'model_select' and x.get('data')), None)
-        }
         print(f"config: {config}")
         
         # Pass messages in OpenAI format (images are now included in messages)
-        async for result in comfyui_agent_invoke(openai_messages, None, config):
+        # Config is now available through request context
+        async for result in comfyui_agent_invoke(openai_messages, None):
             # The MCP client now returns tuples (text, ext_with_finished) where ext_with_finished includes finished status
             if isinstance(result, tuple) and len(result) == 2:
                 text, ext_with_finished = result
                 if text:
                     accumulated_text = text  # text from MCP is already accumulated
-                    print(f"-- Received text update, length: {len(accumulated_text)}")
+                    # print(f"-- Received text update, length: {len(accumulated_text)}")
                 if ext_with_finished:
                     # Extract ext data and finished status from the structured response
                     ext_data = ext_with_finished.get("data")
@@ -195,7 +202,7 @@ async def invoke_chat(request):
             # Send streaming response if we have new text content
             # Only send intermediate responses during streaming (not the final one)
             if accumulated_text and len(accumulated_text) > previous_text_length:
-                print(f"-- Sending stream response: {len(accumulated_text)} chars (previous: {previous_text_length})")
+                # print(f"-- Sending stream response: {len(accumulated_text)} chars (previous: {previous_text_length})")
                 chat_response = ChatResponse(
                     session_id=session_id,
                     text=accumulated_text,
@@ -406,6 +413,9 @@ async def invoke_debug(request):
     language = request.headers.get('Accept-Language', 'en')
     set_language(language)
     
+    # 设置请求上下文 - 为debug请求建立context隔离
+    set_request_context(session_id, None, config)
+    
     print(f"Debug agent config: {config}")
     print(f"Session ID: {session_id}")
     print(f"Workflow nodes: {list(workflow_data.keys()) if workflow_data else 'None'}")
@@ -416,7 +426,7 @@ async def invoke_debug(request):
         final_ext_data = None
         finished = False
         
-        async for result in debug_workflow_errors(workflow_data, config):
+        async for result in debug_workflow_errors(workflow_data):
             # Stream the response
             if isinstance(result, tuple) and len(result) == 2:
                 text, ext = result
@@ -502,8 +512,9 @@ async def invoke_debug(request):
         # Save workflow checkpoint after debug completion if we have workflow_data
         if workflow_data and accumulated_text:
             try:
+                current_session_id = get_session_id()
                 checkpoint_id = save_workflow_data(
-                    session_id=session_id,
+                    session_id=current_session_id,
                     workflow_data=workflow_data,
                     workflow_data_ui=None,  # UI format not available in debug agent
                     attributes={

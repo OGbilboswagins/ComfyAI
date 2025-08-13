@@ -13,6 +13,7 @@ from openai.types.responses import ResponseTextDeltaEvent
 from ..service.parameter_tools import *
 from ..service.link_agent_tools import *
 from ..service.database import get_workflow_data, save_workflow_data
+from ..utils.request_context import get_session_id, get_config
 
 # Import ComfyUI internal modules
 import uuid
@@ -22,9 +23,13 @@ import execution
 
 
 @function_tool
-async def run_workflow(session_id: str) -> str:
+async def run_workflow() -> str:
     """验证当前session的工作流并返回结果"""
     try:
+        session_id = get_session_id()
+        if not session_id:
+            return json.dumps({"error": "No session_id found in context"})
+            
         workflow_data = get_workflow_data(session_id)
         if not workflow_data:
             return json.dumps({"error": "No workflow data found for this session"})
@@ -162,9 +167,13 @@ def analyze_error_type(error_data: str) -> str:
         })
 
 @function_tool
-def save_current_workflow(session_id: str, workflow_data: str) -> str:
+def save_current_workflow(workflow_data: str) -> str:
     """保存当前工作流数据到数据库，workflow_data应为JSON字符串"""
     try:
+        session_id = get_session_id()
+        if not session_id:
+            return json.dumps({"error": "No session_id found in context"})
+            
         # 解析JSON字符串
         workflow_dict = json.loads(workflow_data) if isinstance(workflow_data, str) else workflow_data
         
@@ -182,7 +191,7 @@ def save_current_workflow(session_id: str, workflow_data: str) -> str:
         return json.dumps({"error": f"Failed to save workflow: {str(e)}"})
 
 
-async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str, Any] = None):
+async def debug_workflow_errors(workflow_data: Dict[str, Any]):
     """
     Analyze and debug workflow errors using multi-agent architecture.
     
@@ -191,14 +200,17 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
     
     Args:
         workflow_data: Current workflow data from app.graphToPrompt()
-        config: Configuration dict with model settings
         
     Yields:
         tuple: (text, ext) where text is accumulated text and ext is structured data
     """
     try:
-        # 生成session_id (可以从config中获取，或者生成新的)
-        session_id = config.get('session_id') if config else str(uuid.uuid4())
+        # Get session_id and config from request context
+        session_id = get_session_id()
+        config = get_config()
+        
+        if not session_id:
+            session_id = str(uuid.uuid4())  # Fallback if no context
         
         # 1. 保存工作流数据到数据库
         print(f"Saving workflow data for session {session_id}")
@@ -216,7 +228,7 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any], config: Dict[str,
 **Session ID:** {session_id}
 
 **Your Process:**
-1. **Validate the workflow**: Use run_workflow("{session_id}") to validate the workflow and capture any errors
+1. **Validate the workflow**: Use run_workflow() to validate the workflow and capture any errors
 2. **Analyze errors**: If errors occur, use analyze_error_type() to determine the error type and hand off to the appropriate specialist. Note that analyze_error_type can help you determine the error type and which agent to hand off to, but it's only for reference. You still need to judge based on the current error information to determine which type of error it is:
    - Hand off to Link Agent for connection-related errors (missing connections, disconnected inputs, node linking issues)
    - Hand off to Parameter Agent for parameter-related errors (value_not_in_list, missing models, invalid values)

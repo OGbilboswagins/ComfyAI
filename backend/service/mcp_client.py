@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-11 15:11:17
+LastEditTime: 2025-08-13 23:13:59
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -21,6 +21,7 @@ from agents.tracing import set_tracing_disabled
 
 from ..agent_factory import create_agent
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
+from ..utils.request_context import get_session_id, get_config
 from openai.types.responses import ResponseTextDeltaEvent
 from openai import APIError, RateLimitError
 
@@ -32,7 +33,7 @@ class ImageData:
         self.data = data  # base64 data
         self.url = url    # uploaded URL
 
-async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[ImageData] = None, config: Dict[str, Any] = None):
+async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[ImageData] = None):
     """
     Invoke the ComfyUI agent with MCP tools and image support.
     
@@ -47,6 +48,14 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
         tuple: (text, ext) where text is accumulated text and ext is structured data
     """
     try:
+        # Get session_id and config from request context
+        session_id = get_session_id()
+        config = get_config()
+        
+        if not session_id:
+            raise ValueError("No session_id found in request context")
+        if not config:
+            raise ValueError("No config found in request context")
         async with MCPServerSse(
             params= {
                 "url": "https://comfyui-copilot-server.onrender.com/mcp-server/mcp",
@@ -59,12 +68,11 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             
             # Get model from environment or use default
             model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
-            session_id = config.get("session_id", "default_session") if config else "default_session"
             if config and config.get("model_select") and config.get("model_select") != "":
                 model_name = config.get("model_select")
             
-            # 创建带有session_id的workflow_rewrite_agent实例
-            workflow_rewrite_agent_instance = create_workflow_rewrite_agent(session_id, config)
+            # 创建workflow_rewrite_agent实例 (session_id通过context获取)
+            workflow_rewrite_agent_instance = create_workflow_rewrite_agent()
             
             agent = create_agent(
                 name="ComfyUI-Copilot",
@@ -217,7 +225,7 @@ You must adhere to the following constraints to complete the task:
                                                 print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
                                                 break
                                         
-                                    if tool_output_data.get('text'):
+                                    if "text" in tool_output_data and tool_output_data.get('text'):
                                         parsed_output = json.loads(tool_output_data['text'])
                                         answer = parsed_output.get("answer")
                                         data = parsed_output.get("data")

@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-13 17:25:06
+LastEditTime: 2025-08-13 22:43:37
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -17,20 +17,37 @@ from typing import Dict, Any
 
 from ..agent_factory import create_agent
 from ..utils.globals import CLAUDE_4_MODEL_NAME, get_language
+from ..utils.request_context import get_session_id
 
 from ..service.workflow_rewrite_tools import *
+
+# @function_tool
+# def get_rewrite_expert_by_name(name_list: list[str]) -> str:
+#     """根据经验名称来获取工作流改写专家经验"""
+#     result = ""
+#     with open(os.path.join(os.path.dirname(__file__), "..", "data", "workflow_rewrite_expert.json"), "r", encoding="utf-8") as f:
+#         data = json.load(f)
+#         for name in name_list:
+#             for item in data:
+#                 if item["name"] == name:
+#                     result += f'### {name}({item["description"]})：\n{item["content"]}\n'
+#     return result
 
 @function_tool
 def get_rewrite_expert_by_name(name_list: list[str]) -> str:
     """根据经验名称来获取工作流改写专家经验"""
-    result = ""
+    result = []
     with open(os.path.join(os.path.dirname(__file__), "..", "data", "workflow_rewrite_expert.json"), "r", encoding="utf-8") as f:
         data = json.load(f)
-        for name in name_list:    
+        for name in name_list:
             for item in data:
                 if item["name"] == name:
-                    result += f'### {name}({item["description"]})：\n{item["content"]}\n'
-    return result
+                    result.append({
+                        "name": name,
+                        "description": item["description"],
+                        "content": item["content"]}
+                    )
+    return json.dumps(result, ensure_ascii=False)
 
 def get_rewrite_export_schema() -> dict:
     """获取工作流改写专家经验schema"""
@@ -45,22 +62,11 @@ def get_rewrite_export_schema() -> dict:
     return expert_schema
 
 
-def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None):
-    """创建带有session_id和config的workflow_rewrite_agent实例"""
+def create_workflow_rewrite_agent():
+    """创建workflow_rewrite_agent实例"""
     
     language = get_language()
-    # 导入workflow_rewrite_tools并设置配置
-    from .workflow_rewrite_tools import get_workflow_data_from_config, update_workflow, remove_node, get_node_info
-    from ..service.database import get_workflow_data
-    
-    # 创建带有配置的工具函数
-    @function_tool
-    def get_current_workflow_with_config(session_id: str) -> str:
-        """获取当前session的工作流数据"""
-        workflow_data = get_workflow_data_from_config(config) if config else get_workflow_data(session_id)
-        if not workflow_data:
-            return json.dumps({"error": "No workflow data found for this session"})
-        return json.dumps(workflow_data)
+    session_id = get_session_id() or "unknown_session"
     
     return create_agent(
         name="Workflow Rewrite Agent",
@@ -105,7 +111,7 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
         **Tool Usage Guidelines:**
             - get_current_workflow(): Get current workflow from checkpoint or session
             - remove_node(): Use for incompatible or problematic nodes
-            - update_workflow(): Use to save your changes (ALWAYS call this after fixes)
+            - update_workflow(): Use to save your changes (ALWAYS call this after you have made changes)
             - get_node_info(): Get detailed node information and verify input/output types before connecting
 
       
@@ -122,9 +128,9 @@ def create_workflow_rewrite_agent(session_id: str, config: Dict[str, Any] = None
 
         始终以用户的实际需求为导向，提供专业、准确、高效的工作流改写服务。
         """,
-        tools=[get_rewrite_expert_by_name, get_current_workflow_with_config, get_node_info, update_workflow, remove_node],
+        tools=[get_rewrite_expert_by_name, get_current_workflow, get_node_info, update_workflow, remove_node],
     )
 
-# 保持向后兼容性的默认实例
-workflow_rewrite_agent = create_workflow_rewrite_agent("default_session")
+# 注意：工作流改写代理现在需要在有session context的环境中创建
+# workflow_rewrite_agent = create_workflow_rewrite_agent()  # 不再创建默认实例
 

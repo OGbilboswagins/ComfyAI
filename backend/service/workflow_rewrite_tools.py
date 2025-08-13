@@ -4,12 +4,14 @@ import json
 import time
 from typing import Dict, Any, Optional, List, Union
 
+from agents import RunContextWrapper
 from agents.agent import Agent
 from agents.tool import function_tool
 from ..utils.string_utils import error_format
 
 from ..service.database import get_workflow_data, save_workflow_data, get_workflow_data_ui, get_workflow_data_by_id
 from ..utils.comfy_gateway import get_object_info
+from ..utils.request_context import get_session_id, get_config
 
 def get_workflow_data_from_config(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """获取工作流数据，优先使用checkpoint_id，如果没有则使用session_id"""
@@ -48,8 +50,12 @@ def get_workflow_data_ui_from_config(config: Dict[str, Any]) -> Optional[Dict[st
     return None
 
 @function_tool
-def get_current_workflow(session_id: str) -> str:
+def get_current_workflow() -> str:
     """获取当前session的工作流数据"""
+    session_id = get_session_id()
+    if not session_id:
+        return json.dumps({"error": "No session_id found in context"})
+    
     workflow_data = get_workflow_data(session_id)
     if not workflow_data:
         return json.dumps({"error": "No workflow data found for this session"})
@@ -98,10 +104,29 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
         print(f"Failed to save checkpoint before modification: {str(e)}")
         return None
 
-@function_tool(strict_mode=False)
-def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) -> str:
-    """更新当前session的工作流数据"""
+def tool_error_function(ctx: RunContextWrapper[Any], error: Exception) -> str:
+    """The default tool error function, which just returns a generic error message."""
+    # return f"An error occurred while running the tool. Please try again. Error: {str(error)}"
+    return json.dumps({"error": str(error)}, ensure_ascii= False)
+
+# def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) -> str:
+@function_tool
+def update_workflow(workflow_data: str) -> str:
+    """
+    更新当前session的工作流数据
+
+    Args:
+        workflow_data: 工作流数据，必须是严格的json格式字符串
+
+    Returns:
+        str: 更新后的工作流数据
+    """
     try:
+        session_id = get_session_id()
+        if not session_id:
+            return json.dumps({"error": "No session_id found in context"})
+        
+        print(f"[update_workflow] workflow_data: {workflow_data}")
         # 在修改前保存checkpoint
         checkpoint_id = save_checkpoint_before_modification(session_id, "workflow update")
         
@@ -143,9 +168,13 @@ def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) 
         return json.dumps({"error": f"Failed to update workflow: {str(e)}. Please try regenerating the workflow and then update again."})
 
 @function_tool
-def remove_node(session_id: str, node_id: str) -> str:
+def remove_node(node_id: str) -> str:
     """从工作流中移除节点"""
     try:
+        session_id = get_session_id()
+        if not session_id:
+            return json.dumps({"error": "No session_id found in context"})
+        
         # 在修改前保存checkpoint
         checkpoint_id = save_checkpoint_before_modification(session_id, f"remove node {node_id}")
         
@@ -223,5 +252,3 @@ def remove_node(session_id: str, node_id: str) -> str:
         
     except Exception as e:
         return json.dumps({"error": f"Failed to remove node: {str(e)}"})
-
-
