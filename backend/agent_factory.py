@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-31 19:38:08
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-12 11:50:59
+LastEditTime: 2025-08-14 06:14:22
 FilePath: /comfyui_copilot/backend/agent_factory.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -15,22 +15,22 @@ import os
 
 from agents._config import set_default_openai_api
 from agents.tracing import set_tracing_disabled
+# from .utils.logger import log
+
+# def load_env_config():
+#     """Load environment variables from .env.llm file"""
+#     from dotenv import load_dotenv
+
+#     env_file_path = os.path.join(os.path.dirname(__file__), '.env.llm')
+#     if os.path.exists(env_file_path):
+#         load_dotenv(env_file_path)
+#         log.info(f"Loaded environment variables from {env_file_path}")
+#     else:
+#         log.warning(f"Warning: .env.llm not found at {env_file_path}")
 
 
-def load_env_config():
-    """Load environment variables from .env.llm file"""
-    from dotenv import load_dotenv
-
-    env_file_path = os.path.join(os.path.dirname(__file__), '.env.llm')
-    if os.path.exists(env_file_path):
-        load_dotenv(env_file_path)
-        print(f"Loaded environment variables from {env_file_path}")
-    else:
-        print(f"Warning: .env.llm not found at {env_file_path}")
-
-
-# Load environment configuration
-load_env_config()
+# # Load environment configuration
+# load_env_config()
 
 set_default_openai_api("chat_completions")
 set_tracing_disabled(True)

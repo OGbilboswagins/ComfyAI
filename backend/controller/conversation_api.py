@@ -23,6 +23,7 @@ from ..service.debug_agent import debug_workflow_errors
 from ..service.database import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
 from ..service.mcp_client import comfyui_agent_invoke, ImageData
 from ..utils.request_context import set_request_context, get_session_id
+from ..utils.logger import log
 
 
 # 不再使用内存存储会话消息，改为从前端传递历史消息
@@ -94,7 +95,7 @@ async def upload_to_oss(file_data: bytes, filename: str) -> str:
         return f"data:{mime_type};base64,{base64_data}"
         
     except Exception as e:
-        print(f"Error uploading file {filename}: {str(e)}")
+        log.error(f"Error uploading file {filename}: {str(e)}")
         # Return original base64 data if upload fails
         base64_data = base64.b64encode(file_data).decode('utf-8')
         return f"data:image/jpeg;base64,{base64_data}"
@@ -104,13 +105,13 @@ async def upload_to_oss(file_data: bytes, filename: str) -> str:
 
 @server.PromptServer.instance.routes.post("/api/chat/invoke")
 async def invoke_chat(request):
-    print("Received invoke_chat request")
+    log.info("Received invoke_chat request")
     
     # Extract and store API key from Authorization header
     extract_and_store_api_key(request)
     
     req_json = await request.json()
-    print("Request JSON:", req_json)
+    log.info("Request JSON:", req_json)
 
     response = web.StreamResponse(
         status=200,
@@ -150,16 +151,16 @@ async def invoke_chat(request):
     # 保留空的处理逻辑以向后兼容，但实际不再使用
     processed_images = []
     if images and len(images) > 0:
-        print(f"Note: Received {len(images)} images in legacy format, but using OpenAI message format instead")
+        log.info(f"Note: Received {len(images)} images in legacy format, but using OpenAI message format instead")
 
     # 历史消息已经从前端传递过来，格式为OpenAI格式，直接使用
-    print(f"-- Received {len(historical_messages)} historical messages")
+    log.info(f"-- Received {len(historical_messages)} historical messages")
     
     # Log workflow checkpoint ID if provided (workflow is now pre-saved before invoke)
     if workflow_checkpoint_id:
-        print(f"Using workflow checkpoint ID: {workflow_checkpoint_id} for session {session_id}")
+        log.info(f"Using workflow checkpoint ID: {workflow_checkpoint_id} for session {session_id}")
     else:
-        print(f"No workflow checkpoint ID provided for session {session_id}")
+        log.info(f"No workflow checkpoint ID provided for session {session_id}")
 
     # 历史消息已经从前端传递过来，包含了正确格式的OpenAI消息（包括图片）
     # 直接使用前端传递的历史消息，无需重新构建当前消息
@@ -176,7 +177,7 @@ async def invoke_chat(request):
         has_sent_response = False
         previous_text_length = 0
         
-        print(f"config: {config}")
+        log.info(f"config: {config}")
         
         # Pass messages in OpenAI format (images are now included in messages)
         # Config is now available through request context
@@ -186,23 +187,22 @@ async def invoke_chat(request):
                 text, ext_with_finished = result
                 if text:
                     accumulated_text = text  # text from MCP is already accumulated
-                    # print(f"-- Received text update, length: {len(accumulated_text)}")
+                    
                 if ext_with_finished:
                     # Extract ext data and finished status from the structured response
                     ext_data = ext_with_finished.get("data")
                     finished = ext_with_finished.get("finished", True)
-                    print(f"-- Received ext data: {ext_data}, finished: {finished}")
+                    log.info(f"-- Received ext data: {ext_data}, finished: {finished}")
             else:
                 # Handle single text chunk (backward compatibility)
                 text_chunk = result
                 if text_chunk:
                     accumulated_text += text_chunk
-                    print(f"-- Received text chunk: '{text_chunk}', total length: {len(accumulated_text)}")
+                    log.info(f"-- Received text chunk: '{text_chunk}', total length: {len(accumulated_text)}")
             
             # Send streaming response if we have new text content
             # Only send intermediate responses during streaming (not the final one)
             if accumulated_text and len(accumulated_text) > previous_text_length:
-                # print(f"-- Sending stream response: {len(accumulated_text)} chars (previous: {previous_text_length})")
                 chat_response = ChatResponse(
                     session_id=session_id,
                     text=accumulated_text,
@@ -217,7 +217,7 @@ async def invoke_chat(request):
                 await asyncio.sleep(0.01)  # Small delay for streaming effect
 
         # Send final response with proper finished logic from MCP client
-        print(f"-- Sending final response: {len(accumulated_text)} chars, ext: {bool(ext_data)}, finished: {finished}")
+        log.info(f"-- Sending final response: {len(accumulated_text)} chars, ext: {bool(ext_data)}, finished: {finished}")
         
         final_response = ChatResponse(
             session_id=session_id,
@@ -233,7 +233,7 @@ async def invoke_chat(request):
         # AI响应不再存储到后端，前端负责消息存储
 
     except Exception as e:
-        print(f"Error in invoke_chat: {str(e)}")
+        log.error(f"Error in invoke_chat: {str(e)}")
         error_response = ChatResponse(
             session_id=session_id,
             text=f"I apologize, but an error occurred: {str(e)}",
@@ -253,7 +253,7 @@ async def save_workflow_checkpoint(request):
     """
     Save workflow checkpoint for restore functionality
     """
-    print("Received save-workflow-checkpoint request")
+    log.info("Received save-workflow-checkpoint request")
     req_json = await request.json()
     
     try:
@@ -292,7 +292,7 @@ async def save_workflow_checkpoint(request):
             attributes=attributes
         )
         
-        print(f"Workflow checkpoint saved with version ID: {version_id}")
+        log.info(f"Workflow checkpoint saved with version ID: {version_id}")
         
         # Return response format based on checkpoint type
         response_data = {
@@ -313,7 +313,7 @@ async def save_workflow_checkpoint(request):
         })
         
     except Exception as e:
-        print(f"Error saving workflow checkpoint: {str(e)}")
+        log.error(f"Error saving workflow checkpoint: {str(e)}")
         return web.json_response({
             "success": False,
             "message": f"Failed to save workflow checkpoint: {str(e)}"
@@ -326,7 +326,7 @@ async def restore_workflow_checkpoint(request):
     """
     Restore workflow checkpoint by version ID
     """
-    print("Received restore-workflow-checkpoint request")
+    log.info("Received restore-workflow-checkpoint request")
     
     try:
         version_id = request.query.get('version_id')
@@ -354,7 +354,7 @@ async def restore_workflow_checkpoint(request):
                 "message": f"Workflow version {version_id} not found"
             })
         
-        print(f"Restored workflow checkpoint version ID: {version_id}")
+        log.info(f"Restored workflow checkpoint version ID: {version_id}")
         
         return web.json_response({
             "success": True,
@@ -369,7 +369,7 @@ async def restore_workflow_checkpoint(request):
         })
         
     except Exception as e:
-        print(f"Error restoring workflow checkpoint: {str(e)}")
+        log.error(f"Error restoring workflow checkpoint: {str(e)}")
         return web.json_response({
             "success": False,
             "message": f"Failed to restore workflow checkpoint: {str(e)}"
@@ -381,7 +381,7 @@ async def invoke_debug(request):
     """
     Debug agent endpoint for analyzing ComfyUI workflow errors
     """
-    print("Received debug-agent request")
+    log.info("Received debug-agent request")
     
     # Extract and store API key from Authorization header
     extract_and_store_api_key(request)
@@ -416,9 +416,9 @@ async def invoke_debug(request):
     # 设置请求上下文 - 为debug请求建立context隔离
     set_request_context(session_id, None, config)
     
-    print(f"Debug agent config: {config}")
-    print(f"Session ID: {session_id}")
-    print(f"Workflow nodes: {list(workflow_data.keys()) if workflow_data else 'None'}")
+    log.info(f"Debug agent config: {config}")
+    log.info(f"Session ID: {session_id}")
+    log.info(f"Workflow nodes: {list(workflow_data.keys()) if workflow_data else 'None'}")
 
     try:
         # Call the debug agent with streaming response
@@ -542,15 +542,15 @@ async def invoke_debug(request):
                         }
                     }]
                 
-                print(f"Debug completion checkpoint saved with ID: {checkpoint_id}")
+                log.info(f"Debug completion checkpoint saved with ID: {checkpoint_id}")
             except Exception as checkpoint_error:
-                print(f"Failed to save debug completion checkpoint: {checkpoint_error}")
+                log.error(f"Failed to save debug completion checkpoint: {checkpoint_error}")
         
         await response.write(json.dumps(final_response).encode() + b"\n")
-        print("Debug agent processing complete")
+        log.info("Debug agent processing complete")
 
     except Exception as e:
-        print(f"Error in debug agent: {str(e)}")
+        log.error(f"Error in debug agent: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -573,7 +573,7 @@ async def update_workflow_ui(request):
     """
     Update workflow_data_ui field for a specific checkpoint without affecting other fields
     """
-    print("Received update-workflow-ui request")
+    log.info("Received update-workflow-ui request")
     req_json = await request.json()
     
     try:
@@ -598,7 +598,7 @@ async def update_workflow_ui(request):
         success = update_workflow_ui_by_id(checkpoint_id, workflow_data_ui)
         
         if success:
-            print(f"Successfully updated workflow_data_ui for checkpoint ID: {checkpoint_id}")
+            log.info(f"Successfully updated workflow_data_ui for checkpoint ID: {checkpoint_id}")
             return web.json_response({
                 "success": True,
                 "message": f"Workflow UI data updated successfully for checkpoint {checkpoint_id}"
@@ -610,7 +610,7 @@ async def update_workflow_ui(request):
             })
         
     except Exception as e:
-        print(f"Error updating workflow UI data: {str(e)}")
+        log.error(f"Error updating workflow UI data: {str(e)}")
         return web.json_response({
             "success": False,
             "message": f"Failed to update workflow UI data: {str(e)}"

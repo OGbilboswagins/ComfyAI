@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-13 23:13:59
+LastEditTime: 2025-08-14 06:06:19
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -22,6 +22,7 @@ from agents.tracing import set_tracing_disabled
 from ..agent_factory import create_agent
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
 from ..utils.request_context import get_session_id, get_config
+from ..utils.logger import log
 from openai.types.responses import ResponseTextDeltaEvent
 from openai import APIError, RateLimitError
 
@@ -126,13 +127,13 @@ You must adhere to the following constraints to complete the task:
             # Use messages directly as agent input since they're already in OpenAI format
             # The caller has already handled image formatting within messages
             agent_input = messages
-            print(f"-- Processing {len(messages)} messages")
+            log.info(f"-- Processing {len(messages)} messages")
 
             result = Runner.run_streamed(
                 agent,
                 input=agent_input,
             )
-            print("=== MCP Agent Run starting ===")
+            log.info("=== MCP Agent Run starting ===")
             
             # Variables to track response state similar to reference facade.py
             current_text = ''
@@ -172,7 +173,7 @@ You must adhere to the following constraints to complete the task:
                             
                         elif event.type == "agent_updated_stream_event":
                             new_agent_name = event.new_agent.name
-                            print(f"Handoff to: {new_agent_name}")
+                            log.info(f"Handoff to: {new_agent_name}")
                             
                             # Only show handoff message if we've already seen handoffs
                             # This prevents showing the initial handoff to ComfyUI-Copilot
@@ -195,23 +196,23 @@ You must adhere to the following constraints to complete the task:
                                 tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
                                 # Add to queue instead of overwriting current_tool_call
                                 tool_call_queue.append(tool_name)
-                                print(f"-- Tool '{tool_name}' was called")
+                                log.info(f"-- Tool '{tool_name}' was called")
                                 
                                 # Track workflow tools being called
                                 if tool_name in ["recall_workflow", "gen_workflow"]:
                                     workflow_tools_called.add(tool_name)
                             elif event.item.type == "tool_call_output_item":
-                                print(f"-- Tool output: {event.item.output}")
+                                log.info(f"-- Tool output: {event.item.output}")
                                 # Store tool output for potential ext data processing
                                 tool_output_data_str = str(event.item.output)
                                 
                                 # Get the next tool from the queue (FIFO)
                                 if tool_call_queue:
                                     tool_name = tool_call_queue.pop(0)
-                                    print(f"-- Associating output with tool '{tool_name}'")
+                                    log.info(f"-- Associating output with tool '{tool_name}'")
                                 else:
                                     tool_name = 'unknown_tool'
-                                    print(f"-- Warning: No tool call in queue for output")
+                                    log.info(f"-- Warning: No tool call in queue for output")
                                 
                                 try:
                                     import json
@@ -222,7 +223,7 @@ You must adhere to the following constraints to complete the task:
                                         for ext_item in tool_ext_items:
                                             if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
                                                 workflow_update_ext = tool_ext_items  # Store all ext items, not just one
-                                                print(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
+                                                log.info(f"-- Captured workflow tool ext from tool output: {len(tool_ext_items)} items")
                                                 break
                                         
                                     if "text" in tool_output_data and tool_output_data.get('text'):
@@ -238,19 +239,19 @@ You must adhere to the following constraints to complete the task:
                                             "ext": tool_ext,
                                             "content_dict": parsed_output
                                         }
-                                        print(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
+                                        log.info(f"-- Stored result for tool '{tool_name}': data={len(data) if data else 0}, ext={tool_ext}")
                                         
                                         # Track workflow tools that produced results
                                         if tool_name in ["recall_workflow", "gen_workflow"]:
-                                            print(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
+                                            log.info(f"-- Workflow tool '{tool_name}' produced result with data: {len(data) if data else 0}")
                                             
                                         
                                         
                                         
                                 except (json.JSONDecodeError, TypeError) as e:
                                     # If not JSON or parsing fails, treat as regular text
-                                    print(f"-- Failed to parse tool output as JSON: {e}")
-                                    print(f"-- Traceback: {traceback.format_exc()}")
+                                    log.error(f"-- Failed to parse tool output as JSON: {e}")
+                                    log.error(f"-- Traceback: {traceback.format_exc()}")
                                     tool_results[tool_name] = {
                                         "answer": tool_output_data_str,
                                         "data": None,
@@ -264,8 +265,8 @@ You must adhere to the following constraints to complete the task:
                                 pass  # Ignore other event types
                                 
                 except Exception as e:
-                    print(f"Unexpected streaming error: {e}")
-                    print(f"Traceback: {traceback.format_exc()}")
+                    log.error(f"Unexpected streaming error: {e}")
+                    log.error(f"Traceback: {traceback.format_exc()}")
                     raise e
             
             # Implement retry mechanism with exponential backoff
@@ -292,8 +293,8 @@ You must adhere to the following constraints to complete the task:
                     
                     if should_retry and retry_count <= max_retries:
                         wait_time = min(2 ** (retry_count - 1), 10)  # Exponential backoff, max 10 seconds
-                        print(f"Stream error (attempt {retry_count}/{max_retries}): {error_msg}")
-                        print(f"Retrying in {wait_time} seconds...")
+                        log.error(f"Stream error (attempt {retry_count}/{max_retries}): {error_msg}")
+                        log.info(f"Retrying in {wait_time} seconds...")
                         
                         # Yield current progress before retry
                         if current_text:
@@ -307,15 +308,15 @@ You must adhere to the following constraints to complete the task:
                                 agent,
                                 input=agent_input,
                             )
-                            print(f"=== Retry attempt {retry_count} starting ===")
+                            log.info(f"=== Retry attempt {retry_count} starting ===")
                         except Exception as retry_setup_error:
-                            print(f"Failed to setup retry: {retry_setup_error}")
+                            log.error(f"Failed to setup retry: {retry_setup_error}")
                             if retry_count >= max_retries:
                                 raise stream_error  # Re-raise original error if max retries reached
                             continue
                     else:
-                        print(f"Non-retryable streaming error or max retries reached: {error_msg}")
-                        print(f"Traceback: {traceback.format_exc()}")
+                        log.error(f"Non-retryable streaming error or max retries reached: {error_msg}")
+                        log.error(f"Traceback: {traceback.format_exc()}")
                         if isinstance(stream_error, RateLimitError):
                             default_error_msg = 'Rate limit exceeded, please try again later.'
                             error_body = stream_error.body
@@ -329,62 +330,59 @@ You must adhere to the following constraints to complete the task:
                         
                 except Exception as unexpected_error:
                     retry_count += 1
-                    print(f"Unexpected error during streaming (attempt {retry_count}/{max_retries}): {unexpected_error}")
-                    print(f"Traceback: {traceback.format_exc()}")
+                    log.error(f"Unexpected error during streaming (attempt {retry_count}/{max_retries}): {unexpected_error}")
+                    log.error(f"Traceback: {traceback.format_exc()}")
                     
                     if retry_count > max_retries:
-                        print("Max retries exceeded for unexpected error")
+                        log.error("Max retries exceeded for unexpected error")
                         break
                     else:
                         # Brief wait before retry for unexpected errors
                         await asyncio.sleep(1)
                         continue
 
-            print("\n=== MCP Agent Run complete ===")
-
             # Add detailed debugging info about tool results
-            print(f"=== Tool Results Summary ===")
-            print(f"Total tool results: {len(tool_results)}")
+            log.info(f"Total tool results: {len(tool_results)}")
             for tool_name, result in tool_results.items():
                 result_type = "Message Output" if tool_name == '_message_output_ext' else "Tool"
-                print(f"{result_type}: {tool_name}")
-                print(f"  - Has data: {result['data'] is not None}")
-                print(f"  - Data length: {len(result['data']) if result['data'] else 0}")
-                print(f"  - Has ext: {result['ext'] is not None}")
+                log.info(f"{result_type}: {tool_name}")
+                log.info(f"  - Has data: {result['data'] is not None}")
+                log.info(f"  - Data length: {len(result['data']) if result['data'] else 0}")
+                log.info(f"  - Has ext: {result['ext'] is not None}")
                 if result['ext']:
-                    print(f"  - Ext types: {[item.get('type') for item in (result['ext'] if isinstance(result['ext'], list) else [result['ext']])]}")
-                print(f"  - Answer preview: {result['answer'][:100] if result['answer'] else 'None'}...")
-            print(f"=== End Tool Results Summary ===\n")
+                    log.info(f"  - Ext types: {[item.get('type') for item in (result['ext'] if isinstance(result['ext'], list) else [result['ext']])]}")
+                log.info(f"  - Answer preview: {result['answer'][:100] if result['answer'] else 'None'}...")
+            log.info(f"=== End Tool Results Summary ===\n")
 
             # Process workflow tools results integration similar to reference facade.py
             workflow_tools_found = [tool for tool in ["recall_workflow", "gen_workflow"] if tool in tool_results]
             finished = False  # Default finished state
 
             if workflow_tools_found:
-                print(f"Workflow tools called: {workflow_tools_found}")
+                log.info(f"Workflow tools called: {workflow_tools_found}")
                 
                 # Check if both workflow tools were called
                 if "recall_workflow" in tool_results and "gen_workflow" in tool_results:
-                    print("Both recall_workflow and gen_workflow were called, merging results")
+                    log.info("Both recall_workflow and gen_workflow were called, merging results")
                     
                     # Check each tool's success and merge results
                     successful_workflows = []
 
                     recall_result = tool_results["recall_workflow"]
                     if recall_result["data"] and len(recall_result["data"]) > 0:
-                        print(f"recall_workflow succeeded with {len(recall_result['data'])} workflows")
-                        print(f"  - Workflow IDs: {[w.get('id') for w in recall_result['data']]}")
+                        log.info(f"recall_workflow succeeded with {len(recall_result['data'])} workflows")
+                        log.info(f"  - Workflow IDs: {[w.get('id') for w in recall_result['data']]}")
                         successful_workflows.extend(recall_result["data"])
                     else:
-                        print("recall_workflow failed or returned no data")
+                        log.error("recall_workflow failed or returned no data")
 
                     gen_result = tool_results["gen_workflow"]
                     if gen_result["data"] and len(gen_result["data"]) > 0:
-                        print(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
-                        print(f"  - Workflow IDs: {[w.get('id') for w in gen_result['data']]}")
+                        log.info(f"gen_workflow succeeded with {len(gen_result['data'])} workflows")
+                        log.info(f"  - Workflow IDs: {[w.get('id') for w in gen_result['data']]}")
                         successful_workflows.insert(0, *gen_result["data"])
                     else:
-                        print("gen_workflow failed or returned no data")
+                        log.error("gen_workflow failed or returned no data")
 
                     # Remove duplicates based on workflow ID
                     seen_ids = set()
@@ -394,16 +392,16 @@ You must adhere to the following constraints to complete the task:
                         if workflow_id and workflow_id not in seen_ids:
                             seen_ids.add(workflow_id)
                             unique_workflows.append(workflow)
-                            print(f"  - Added unique workflow: {workflow_id} - {workflow.get('name', 'Unknown')}")
+                            log.info(f"  - Added unique workflow: {workflow_id} - {workflow.get('name', 'Unknown')}")
                         elif workflow_id:
-                            print(f"  - Skipped duplicate workflow: {workflow_id} - {workflow.get('name', 'Unknown')}")
+                            log.info(f"  - Skipped duplicate workflow: {workflow_id} - {workflow.get('name', 'Unknown')}")
                         else:
                             # If no ID, add anyway (shouldn't happen but just in case)
                             unique_workflows.append(workflow)
-                            print(f"  - Added workflow without ID: {workflow.get('name', 'Unknown')}")
+                            log.info(f"  - Added workflow without ID: {workflow.get('name', 'Unknown')}")
 
-                    print(f"Total workflows before deduplication: {len(successful_workflows)}")
-                    print(f"Total workflows after deduplication: {len(unique_workflows)}")
+                    log.info(f"Total workflows before deduplication: {len(successful_workflows)}")
+                    log.info(f"Total workflows after deduplication: {len(unique_workflows)}")
 
                     # Create final ext structure
                     if unique_workflows:
@@ -411,33 +409,33 @@ You must adhere to the following constraints to complete the task:
                             "type": "workflow",
                             "data": unique_workflows
                         }]
-                        print(f"Returning {len(unique_workflows)} workflows from successful tools")
+                        log.info(f"Returning {len(unique_workflows)} workflows from successful tools")
                     else:
                         ext = None
-                        print("No successful workflow data to return")
+                        log.error("No successful workflow data to return")
                     
                     # Both tools called, finished = True
                     finished = True
                         
                 elif "recall_workflow" in tool_results and "gen_workflow" not in tool_results:
                     # Only recall_workflow was called, don't return ext, keep finished=false
-                    print("Only recall_workflow was called, waiting for gen_workflow, not returning ext")
+                    log.info("Only recall_workflow was called, waiting for gen_workflow, not returning ext")
                     ext = None
                     finished = False  # This is the key: keep finished=false to wait for gen_workflow
                     
                 elif "gen_workflow" in tool_results and "recall_workflow" not in tool_results:
                     # Only gen_workflow was called, return its result normally
-                    print("Only gen_workflow was called, returning its result")
+                    log.info("Only gen_workflow was called, returning its result")
                     gen_result = tool_results["gen_workflow"]
                     if gen_result["data"] and len(gen_result["data"]) > 0:
                         ext = [{
                             "type": "workflow",
                             "data": gen_result["data"]
                         }]
-                        print(f"Returning {len(gen_result['data'])} workflows from gen_workflow")
+                        log.info(f"Returning {len(gen_result['data'])} workflows from gen_workflow")
                     else:
                         ext = None
-                        print("gen_workflow failed or returned no data")
+                        log.error("gen_workflow failed or returned no data")
                     
                     # Only gen_workflow called, finished = True
                     finished = True
@@ -446,7 +444,7 @@ You must adhere to the following constraints to complete the task:
                 for tool_name, result in tool_results.items():
                     if result["ext"]:
                         ext = result["ext"]
-                        print(f"Using ext from {tool_name}")
+                        log.info(f"Using ext from {tool_name}")
                         break
                 
                 # When no workflow tools are called (e.g., handoff to workflow_rewrite_agent)
@@ -464,7 +462,7 @@ You must adhere to the following constraints to complete the task:
                 else:
                     # Backward compatibility: if it's a single item, wrap it
                     final_ext = [workflow_update_ext] + (ext if ext else [])
-                print(f"-- Including workflow_update ext in final response: {len(workflow_update_ext) if isinstance(workflow_update_ext, list) else 1} items")
+                log.info(f"-- Including workflow_update ext in final response: {len(workflow_update_ext) if isinstance(workflow_update_ext, list) else 1} items")
             
             # Final yield with complete text, ext data, and finished status
             # Return as tuple (text, ext_with_finished) where ext_with_finished includes finished info
@@ -483,8 +481,8 @@ You must adhere to the following constraints to complete the task:
             yield (current_text, ext_with_finished)
             
     except Exception as e:
-        print(f"Error in comfyui_agent_invoke: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        log.error(f"Error in comfyui_agent_invoke: {str(e)}")
+        log.error(f"Traceback: {traceback.format_exc()}")
         error_message = f"I apologize, but an error occurred while processing your request: {str(e)}"
         
         # Check if this is a retryable streaming error that should not finish the conversation
@@ -500,7 +498,7 @@ You must adhere to the following constraints to complete the task:
         
         if is_retryable_streaming_error:
             # For retryable streaming errors, don't finish - allow user to retry
-            print(f"Detected retryable streaming error, setting finished=False to allow retry")
+            log.info(f"Detected retryable streaming error, setting finished=False to allow retry")
             error_ext = {
                 "data": None,
                 "finished": False

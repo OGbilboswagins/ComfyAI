@@ -18,7 +18,7 @@ from ..utils.request_context import get_session_id, get_config
 # Import ComfyUI internal modules
 import uuid
 import execution
-
+from ..utils.logger import log
 # Load environment variables from server.env
 
 
@@ -34,7 +34,7 @@ async def run_workflow() -> str:
         if not workflow_data:
             return json.dumps({"error": "No workflow data found for this session"})
         
-        print(f"Run workflow for session {session_id}")
+        log.info(f"Run workflow for session {session_id}")
         
         # 使用 ComfyGateway 调用 server.py 的 post_prompt 逻辑
         from ..utils.comfy_gateway import ComfyGateway
@@ -49,7 +49,7 @@ async def run_workflow() -> str:
         }
         
         result = await gateway.run_prompt(request_data)
-        print(result)
+        log.info(result)
         
         return json.dumps(result)
         
@@ -213,13 +213,13 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any]):
             session_id = str(uuid.uuid4())  # Fallback if no context
         
         # 1. 保存工作流数据到数据库
-        print(f"Saving workflow data for session {session_id}")
+        log.info(f"Saving workflow data for session {session_id}")
         save_result = save_workflow_data(
             session_id, 
             workflow_data, 
             attributes={"action": "debug_start", "description": "Initial workflow save for debugging"}
         )
-        print(f"Workflow saved with version ID: {save_result}")
+        log.info(f"Workflow saved with version ID: {save_result}")
         
         agent = create_agent(
             name="ComfyUI-Debug-Coordinator",
@@ -489,14 +489,14 @@ Start by validating the workflow to see its current state.""",
         # Initial message to start the debugging process
         messages = [{"role": "user", "content": f"Validate and debug this ComfyUI workflow. Session ID: {session_id}"}]
             
-        print(f"-- Starting workflow validation process for session {session_id}")
+        log.info(f"-- Starting workflow validation process for session {session_id}")
 
         result = Runner.run_streamed(
             agent,
             input=messages,
             max_turns=30,
         )
-        print("=== Debug Coordinator starting ===")
+        log.info("=== Debug Coordinator starting ===")
         
         # Variables to track response state similar to mcp-client
         current_text = ''
@@ -523,7 +523,7 @@ Start by validating the workflow to see its current state.""",
                 
             elif event.type == "agent_updated_stream_event":
                 new_agent_name = event.new_agent.name
-                print(f"Handoff to: {new_agent_name}")
+                log.info(f"Handoff to: {new_agent_name}")
                 current_agent = new_agent_name
                 # Add handoff information to the stream
                 if not current_text or current_text == '': 
@@ -551,7 +551,7 @@ Start by validating the workflow to see its current state.""",
                     # Tool call started
                     tool_name = getattr(event.item.raw_item, 'name', 'unknown_tool')
                     
-                    print(f"-- Tool called: {tool_name}")
+                    log.info(f"-- Tool called: {tool_name}")
                     # Add tool call information
                     tool_text = f"\n\n⚙ *{current_agent} is using {tool_name}...*\n\n"
                     current_text += tool_text
@@ -581,7 +581,7 @@ Start by validating the workflow to see its current state.""",
                             for ext_item in tool_output_json["ext"]:
                                 if ext_item.get("type") == "workflow_update" or ext_item.get("type") == "param_update":
                                     workflow_update_ext = ext_item
-                                    print(f"-- Captured {ext_item.get('type')} ext from tool output, yielding immediately")
+                                    log.info(f"-- Captured {ext_item.get('type')} ext from tool output, yielding immediately")
                                     
                                     # 立即yield workflow_update或param_update，让前端实时更新工作流
                                     ext_with_finished = {
@@ -620,14 +620,14 @@ Start by validating the workflow to see its current state.""",
                                     "timestamp": len(current_text)
                                 })
                     except Exception as e:
-                        print(f"Error processing message output: {str(e)}")
+                        log.error(f"Error processing message output: {str(e)}")
                 
                 # Update yielded length and yield text updates only
                 if item_updated:
                     last_yielded_length = len(current_text)
                     yield (current_text, None)
 
-        print("\n=== Debug process complete ===")
+        log.info("\n=== Debug process complete ===")
         
         # Save final workflow checkpoint after debugging completion
         debug_completion_checkpoint_id = None
@@ -645,9 +645,9 @@ Start by validating the workflow to see its current state.""",
                         "final_agent": current_agent
                     }
                 )
-                print(f"Debug completion checkpoint saved with ID: {debug_completion_checkpoint_id}")
+                log.info(f"Debug completion checkpoint saved with ID: {debug_completion_checkpoint_id}")
         except Exception as checkpoint_error:
-            print(f"Failed to save debug completion checkpoint: {checkpoint_error}")
+            log.error(f"Failed to save debug completion checkpoint: {checkpoint_error}")
         
         # Final yield with complete text and debug ext data, matching mcp-client format
         debug_ext = [{
@@ -674,7 +674,7 @@ Start by validating the workflow to see its current state.""",
         final_ext = debug_ext
         if workflow_update_ext:
             final_ext = [workflow_update_ext] + debug_ext
-            print(f"-- Including workflow_update ext in final response")
+            log.info(f"-- Including workflow_update ext in final response")
         
         # Return format matching mcp-client: {"data": ext, "finished": finished}
         ext_with_finished = {
@@ -684,14 +684,14 @@ Start by validating the workflow to see its current state.""",
         yield (current_text, ext_with_finished)
             
     except Exception as e:
-        print(f"Error in debug_workflow_errors: {str(e)}")
+        log.error(f"Error in debug_workflow_errors: {str(e)}")
         error_message = current_text + f"\n\n× Error occurred during debugging: {str(e)}\n\n"
 
         # Include workflow_update ext if captured from tools before the error
         final_error_ext = None
         if 'workflow_update_ext' in locals() and workflow_update_ext:
             final_error_ext = [workflow_update_ext]
-            print(f"-- Including latest workflow_update ext in error response")
+            log.info(f"-- Including latest workflow_update ext in error response")
         
         ext_with_finished = {
             "data": final_error_ext,
@@ -726,9 +726,9 @@ async def test_debug():
     }
     
     async for text, ext in debug_workflow_errors(test_workflow_data, config):
-        print(f"Stream output: {text[-100:] if len(text) > 100 else text}")  # Print last 100 chars
+        log.info(f"Stream output: {text[-100:] if len(text) > 100 else text}")  # Print last 100 chars
         if ext:
-            print(f"Ext data: {ext}")
+            log.info(f"Ext data: {ext}")
 
 
 if __name__ == "__main__":

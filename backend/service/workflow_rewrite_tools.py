@@ -12,6 +12,7 @@ from ..utils.string_utils import error_format
 from ..service.database import get_workflow_data, save_workflow_data, get_workflow_data_ui, get_workflow_data_by_id
 from ..utils.comfy_gateway import get_object_info
 from ..utils.request_context import get_session_id, get_config
+from ..utils.logger import log
 
 def get_workflow_data_from_config(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """获取工作流数据，优先使用checkpoint_id，如果没有则使用session_id"""
@@ -24,7 +25,7 @@ def get_workflow_data_from_config(config: Dict[str, Any]) -> Optional[Dict[str, 
             if checkpoint_data and checkpoint_data.get('workflow_data'):
                 return checkpoint_data['workflow_data']
         except Exception as e:
-            print(f"Failed to get workflow data from checkpoint {workflow_checkpoint_id}: {str(e)}")
+            log.error(f"Failed to get workflow data from checkpoint {workflow_checkpoint_id}: {str(e)}")
     
     if session_id:
         return get_workflow_data(session_id)
@@ -42,7 +43,7 @@ def get_workflow_data_ui_from_config(config: Dict[str, Any]) -> Optional[Dict[st
             if checkpoint_data and checkpoint_data.get('workflow_data_ui'):
                 return checkpoint_data['workflow_data_ui']
         except Exception as e:
-            print(f"Failed to get workflow UI data from checkpoint {workflow_checkpoint_id}: {str(e)}")
+            log.error(f"Failed to get workflow UI data from checkpoint {workflow_checkpoint_id}: {str(e)}")
     
     if session_id:
         return get_workflow_data_ui(session_id)
@@ -98,10 +99,10 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
                 "timestamp": time.time()
             }
         )
-        print(f"Saved workflow rewrite checkpoint with ID: {checkpoint_id}")
+        log.info(f"Saved workflow rewrite checkpoint with ID: {checkpoint_id}")
         return checkpoint_id
     except Exception as e:
-        print(f"Failed to save checkpoint before modification: {str(e)}")
+        log.error(f"Failed to save checkpoint before modification: {str(e)}")
         return None
 
 def tool_error_function(ctx: RunContextWrapper[Any], error: Exception) -> str:
@@ -126,7 +127,7 @@ def update_workflow(workflow_data: str) -> str:
         if not session_id:
             return json.dumps({"error": "No session_id found in context"})
         
-        print(f"[update_workflow] workflow_data: {workflow_data}")
+        log.info(f"[update_workflow] workflow_data: {workflow_data}")
         # 在修改前保存checkpoint
         checkpoint_id = save_checkpoint_before_modification(session_id, "workflow update")
         
@@ -164,7 +165,7 @@ def update_workflow(workflow_data: str) -> str:
             "ext": ext_data
         })
     except Exception as e:
-        print(f"Failed to update workflow: {str(e)}")
+        log.error(f"Failed to update workflow: {str(e)}")
         return json.dumps({"error": f"Failed to update workflow: {str(e)}. Please try regenerating the workflow and then update again."})
 
 @function_tool
