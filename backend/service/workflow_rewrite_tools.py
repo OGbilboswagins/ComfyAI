@@ -2,7 +2,7 @@
 
 import json
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
 from agents.agent import Agent
 from agents.tool import function_tool
@@ -99,7 +99,7 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
         return None
 
 @function_tool(strict_mode=False)
-def update_workflow(session_id: str, workflow_data: Dict[str, Any]) -> str:
+def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) -> str:
     """更新当前session的工作流数据"""
     try:
         # 在修改前保存checkpoint
