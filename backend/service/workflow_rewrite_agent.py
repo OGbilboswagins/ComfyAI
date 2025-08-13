@@ -117,7 +117,7 @@ def create_workflow_rewrite_agent():
 
         始终以用户的实际需求为导向，提供专业、准确、高效的工作流改写服务。
         """,
-        tools=[get_rewrite_expert_by_name, get_current_workflow, get_node_infos, update_workflow, remove_node],
+        tools=[get_rewrite_expert_by_name, get_current_workflow, get_node_info, update_workflow, remove_node],
     )
 
 # 注意：工作流改写代理现在需要在有session context的环境中创建

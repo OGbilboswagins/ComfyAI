@@ -301,7 +301,7 @@ Start by validating the workflow to see its current state.""",
             
             **Remember**: Focus on making necessary structural changes, then ALWAYS transfer back to let the coordinator verify the workflow.
             """,
-            tools=[get_current_workflow, get_node_infos, update_workflow],
+            tools=[get_current_workflow, get_node_info, update_workflow],
             handoffs=[agent],
         )
         
@@ -389,7 +389,7 @@ Start by validating the workflow to see its current state.""",
             **Remember**: You are the specialist for ALL connection-related issues. Make the necessary structural changes efficiently, then ALWAYS transfer back for workflow verification.
             """,
             tools=[analyze_missing_connections, apply_connection_fixes,
-                   get_current_workflow, get_node_infos],
+                   get_current_workflow, get_node_info],
             handoffs=[agent],
         )
 
