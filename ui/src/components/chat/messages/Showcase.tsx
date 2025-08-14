@@ -6,6 +6,10 @@ import { generateUUID } from '../../../utils/uuid';
 import BeautifyCard from '../../ui/BeautifyCard';
 import { BaseMessage } from './BaseMessage';
 
+interface IProps { 
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
+}
+
 const OFFSET = 2;
 
 const ICONS = [
@@ -20,7 +24,7 @@ const ICONS = [
   <svg t="1754619682466" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="22382" width="16" height="16" fill="currentColor"><path d="M812.885333 302.08v227.370667a42.666667 42.666667 0 1 0 85.333334 0V302.08q0-74.197333-52.48-126.634667-52.48-52.48-126.634667-52.48H264.405333q-74.154667 0-126.634666 52.48Q85.333333 227.925333 85.333333 302.08v454.698667q0 74.197333 52.48 126.634666 52.394667 52.394667 126.506667 52.48h341.12a42.666667 42.666667 0 1 0 0-85.333333H372.053333l278.058667-261.76 38.954667 38.784a42.666667 42.666667 0 0 0 60.16-60.501333L681.045333 499.2a42.666667 42.666667 0 0 0-59.306666-0.853333L248.32 849.792Q170.666667 842.112 170.666667 756.778667V302.08q0-38.826667 27.477333-66.304 27.434667-27.434667 66.261333-27.434667h454.698667q93.781333 0 93.781333 93.738667z m-369.408 68.224q0-110.890667-110.848-110.890667-45.952 0-78.421333 32.469334-32.426667 32.469333-32.426667 78.421333 0 45.909333 32.426667 78.378667 32.469333 32.469333 78.421333 32.469333 45.909333 0 78.378667-32.469333 32.469333-32.469333 32.469333-78.378667z m-136.405333 0q0-25.557333 25.557333-25.557333 25.514667 0 25.514667 25.557333 0 25.514667-25.514667 25.514667-25.557333 0-25.557333-25.514667z m464.213333 427.221333q-14.890667 0-28.416-6.101333a42.666667 42.666667 0 0 0-56.405333 56.448q18.688 41.429333 56.917333 66.133333 38.186667 24.661333 83.669334 24.661334 63.914667 0 109.098666-45.226667Q981.333333 848.341333 981.333333 784.426667q0-45.482667-24.661333-83.669334-24.704-38.229333-66.133333-56.917333a42.666667 42.666667 0 0 0-56.448 56.405333q6.101333 13.525333 6.101333 28.373334 0 28.586667-20.181333 48.768t-48.768 20.181333z" p-id="22383" fill="currentColor"></path></svg>,
 ]
 
-const Showcase = () => {
+const Showcase: React.FC<IProps> = ({ scrollRef }) => {
   const { dispatch, isAutoScroll, showcasIng } = useChatContext();
 
   const doStreamString = (data: any, isUser: boolean = false, cb: () => void = () => {}) => {
@@ -106,6 +110,9 @@ const Showcase = () => {
         getShowcaes()?.list?.map((item, index) => <div 
           key={index.toString()}
           onClick={() => {
+            if (scrollRef?.current) {
+              scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
             isAutoScroll.current = true
             showcasIng.current = true
             const messages = item.messages || []
@@ -121,7 +128,9 @@ const Showcase = () => {
                 index++;
               }
             }
-            func()
+
+            setTimeout(func, 100)
+            // func()
           }}
         >
           <BeautifyCard 

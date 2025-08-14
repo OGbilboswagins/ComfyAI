@@ -247,7 +247,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
         }
 
         if (message.role === 'showcase') {
-            return <Showcase key={'showcase'} />
+            return <Showcase key={'showcase'} scrollRef={scrollRef}/>
         }
 
         if (message.role === 'ai' || message.role === 'tool') {

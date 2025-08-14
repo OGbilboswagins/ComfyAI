@@ -8,6 +8,7 @@ import { WorkflowChatAPI } from '../../apis/workflowChatApi';
 import { generateUUID } from '../../utils/uuid';
 import { Portal } from './Portal';
 import ImageLoading from '../ui/Image-Loading';
+import { useChatContext } from '../../context/ChatContext';
 
 // Debug icon component
 const DebugIcon = ({ className }: { className: string }) => (
@@ -59,6 +60,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
     onStop,
     onAddDebugMessage,
 }, ref) => {
+    const { state, dispatch } = useChatContext();
+    const { messages } = state;
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [models, setModels] = useState<{
         label: ReactNode; name: string; image_enable: boolean 
@@ -192,6 +195,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
 
     const handleDebugClick = () => {
         if (onAddDebugMessage) {
+            if (messages?.[0]?.role === 'showcase') {
+                dispatch({ type: 'CLEAR_MESSAGES' });
+            }
             const debugMessage = {
                 id: generateUUID(),
                 role: 'ai' as const,
