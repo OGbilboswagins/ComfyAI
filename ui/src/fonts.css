@@ -30,5 +30,5 @@
 .cc-icon-logo:before {
   content: "\e900";
   color: #9b9d9f;
-  font-size: 14px !important;
+  font-size: var(--sidebar-icon-size) !important;
 }
