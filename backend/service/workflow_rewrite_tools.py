@@ -4,12 +4,15 @@ import json
 import time
 from typing import Dict, Any, Optional, List, Union
 
+from agents import RunContextWrapper
 from agents.agent import Agent
 from agents.tool import function_tool
 from ..utils.string_utils import error_format
 
 from ..service.database import get_workflow_data, save_workflow_data, get_workflow_data_ui, get_workflow_data_by_id
 from ..utils.comfy_gateway import get_object_info
+from ..utils.request_context import get_session_id, get_config
+from ..utils.logger import log
 
 def get_workflow_data_from_config(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """获取工作流数据，优先使用checkpoint_id，如果没有则使用session_id"""
@@ -22,7 +25,7 @@ def get_workflow_data_from_config(config: Dict[str, Any]) -> Optional[Dict[str, 
             if checkpoint_data and checkpoint_data.get('workflow_data'):
                 return checkpoint_data['workflow_data']
         except Exception as e:
-            print(f"Failed to get workflow data from checkpoint {workflow_checkpoint_id}: {str(e)}")
+            log.error(f"Failed to get workflow data from checkpoint {workflow_checkpoint_id}: {str(e)}")
     
     if session_id:
         return get_workflow_data(session_id)
@@ -40,7 +43,7 @@ def get_workflow_data_ui_from_config(config: Dict[str, Any]) -> Optional[Dict[st
             if checkpoint_data and checkpoint_data.get('workflow_data_ui'):
                 return checkpoint_data['workflow_data_ui']
         except Exception as e:
-            print(f"Failed to get workflow UI data from checkpoint {workflow_checkpoint_id}: {str(e)}")
+            log.error(f"Failed to get workflow UI data from checkpoint {workflow_checkpoint_id}: {str(e)}")
     
     if session_id:
         return get_workflow_data_ui(session_id)
@@ -48,8 +51,12 @@ def get_workflow_data_ui_from_config(config: Dict[str, Any]) -> Optional[Dict[st
     return None
 
 @function_tool
-def get_current_workflow(session_id: str) -> str:
+def get_current_workflow() -> str:
     """获取当前session的工作流数据"""
+    session_id = get_session_id()
+    if not session_id:
+        return json.dumps({"error": "No session_id found in context"})
+    
     workflow_data = get_workflow_data(session_id)
     if not workflow_data:
         return json.dumps({"error": "No workflow data found for this session"})
@@ -74,6 +81,19 @@ async def get_node_info(node_class: str) -> str:
     except Exception as e:
         return json.dumps({"error": f"Failed to get node info: {str(e)}"})
 
+# @function_tool
+# async def get_node_infos(node_class_list: List[str]) -> str:
+#     """获取多个节点的详细信息，包括输入输出参数"""
+#     try:
+#         node_infos = []
+#         for node_class in node_class_list:
+#             node_info = await get_node_info(node_class)
+#             if node_info:
+#                 node_infos.append(node_info)
+#         return json.dumps(node_infos)
+#     except Exception as e:
+#         return json.dumps({"error": f"Failed to get node infos of {','.join(node_class_list)}: {str(e)}"})
+
 def save_checkpoint_before_modification(session_id: str, action_description: str) -> Optional[int]:
     """在修改工作流前保存checkpoint，返回checkpoint_id"""
     try:
@@ -92,16 +112,35 @@ def save_checkpoint_before_modification(session_id: str, action_description: str
                 "timestamp": time.time()
             }
         )
-        print(f"Saved workflow rewrite checkpoint with ID: {checkpoint_id}")
+        log.info(f"Saved workflow rewrite checkpoint with ID: {checkpoint_id}")
         return checkpoint_id
     except Exception as e:
-        print(f"Failed to save checkpoint before modification: {str(e)}")
+        log.error(f"Failed to save checkpoint before modification: {str(e)}")
         return None
 
-@function_tool(strict_mode=False)
-def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) -> str:
-    """更新当前session的工作流数据"""
+def tool_error_function(ctx: RunContextWrapper[Any], error: Exception) -> str:
+    """The default tool error function, which just returns a generic error message."""
+    # return f"An error occurred while running the tool. Please try again. Error: {str(error)}"
+    return json.dumps({"error": str(error)}, ensure_ascii= False)
+
+# def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) -> str:
+@function_tool
+def update_workflow(workflow_data: str) -> str:
+    """
+    更新当前session的工作流数据
+
+    Args:
+        workflow_data: 工作流数据，必须是严格的json格式字符串
+
+    Returns:
+        str: 更新后的工作流数据
+    """
     try:
+        session_id = get_session_id()
+        if not session_id:
+            return json.dumps({"error": "No session_id found in context"})
+        
+        log.info(f"[update_workflow] workflow_data: {workflow_data}")
         # 在修改前保存checkpoint
         checkpoint_id = save_checkpoint_before_modification(session_id, "workflow update")
         
@@ -139,13 +178,17 @@ def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) 
             "ext": ext_data
         })
     except Exception as e:
-        print(f"Failed to update workflow: {str(e)}")
+        log.error(f"Failed to update workflow: {str(e)}")
         return json.dumps({"error": f"Failed to update workflow: {str(e)}. Please try regenerating the workflow and then update again."})
 
 @function_tool
-def remove_node(session_id: str, node_id: str) -> str:
+def remove_node(node_id: str) -> str:
     """从工作流中移除节点"""
     try:
+        session_id = get_session_id()
+        if not session_id:
+            return json.dumps({"error": "No session_id found in context"})
+        
         # 在修改前保存checkpoint
         checkpoint_id = save_checkpoint_before_modification(session_id, f"remove node {node_id}")
         
@@ -223,5 +266,3 @@ def remove_node(session_id: str, node_id: str) -> str:
         
     except Exception as e:
         return json.dumps({"error": f"Failed to remove node: {str(e)}"})
-
-

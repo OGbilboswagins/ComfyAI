@@ -6,10 +6,11 @@ from pathlib import Path
 
 from agents.agent import Agent
 from agents.tool import function_tool
+from ..utils.request_context import get_session_id
 
 from ..utils.comfy_gateway import get_object_info, get_object_info_by_class
 from ..service.database import get_workflow_data, save_workflow_data
-
+from ..utils.logger import log
 
 async def get_node_parameters(node_name: str, param_name: str = "") -> str:
     """获取节点的参数信息，如果param_name为空则返回所有参数"""
@@ -292,7 +293,7 @@ async def get_model_files(model_type: str = "checkpoints") -> str:
                             
             except Exception as e:
                 # 单个节点查询失败，继续处理其他节点
-                print(f"Failed to get info for node {node_name}: {e}")
+                log.error(f"Failed to get info for node {node_name}: {e}")
                 continue
         
         if model_files:
@@ -464,9 +465,14 @@ def suggest_model_download(model_type: str, missing_model: str) -> str:
         return json.dumps({"error": f"Failed to suggest model download: {str(e)}"})
 
 @function_tool
-def update_workflow_parameter(session_id: str, node_id: str, param_name: str, new_value: str) -> str:
+def update_workflow_parameter(node_id: str, param_name: str, new_value: str) -> str:
     """更新工作流中的特定参数"""
     try:
+        session_id = get_session_id()
+        if not session_id:
+            log.error("update_workflow_parameter: No session_id found in context")
+            return json.dumps({"error": "No session_id found in context"})
+        
         # 获取当前工作流
         workflow_data = get_workflow_data(session_id)
         if not workflow_data:

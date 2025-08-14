@@ -15,6 +15,7 @@ from aiohttp import web
 from ..utils.globals import LLM_DEFAULT_BASE_URL
 import server
 import requests
+from ..utils.logger import log
 
 
 @server.PromptServer.instance.routes.get("/api/model_config")
@@ -32,7 +33,7 @@ async def list_models(request):
         }
     """
     try:
-        print("Received list_models request")
+        log.info("Received list_models request")
         openai_api_key = request.headers.get('Openai-Api-Key') or ""
         openai_base_url = request.headers.get('Openai-Base-Url') or LLM_DEFAULT_BASE_URL
 
@@ -59,7 +60,7 @@ async def list_models(request):
         )
         
     except Exception as e:
-        print(f"Error in list_models: {str(e)}")
+        log.error(f"Error in list_models: {str(e)}")
         return web.json_response({
             "error": f"Failed to list models: {str(e)}"
         }, status=500)
@@ -100,7 +101,7 @@ async def verify_openai_key(req):
                 "message": "API key is valid"
             })
         else:
-            print(f"API key validation failed with status code: {response.status_code}")
+            log.error(f"API key validation failed with status code: {response.status_code}")
             return web.json_response({
                 "success": False, 
                 "data": False,
@@ -108,7 +109,7 @@ async def verify_openai_key(req):
             })
             
     except Exception as e:
-        print(f"Error verifying OpenAI API key: {str(e)}")
+        log.error(f"Error verifying OpenAI API key: {str(e)}")
         return web.json_response({
             "success": False, 
             "data": False, 

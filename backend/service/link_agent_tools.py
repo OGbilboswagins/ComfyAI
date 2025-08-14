@@ -5,11 +5,13 @@ import time
 from typing import Dict, Any, Optional, List, Tuple
 
 from agents.tool import function_tool
+from ..utils.request_context import get_session_id
 from ..service.database import get_workflow_data, save_workflow_data
 from ..utils.comfy_gateway import get_object_info
+from ..utils.logger import log
 
 @function_tool
-async def analyze_missing_connections(session_id: str) -> str:
+async def analyze_missing_connections() -> str:
     """
     分析工作流中缺失的连接，枚举所有可能的连接选项和所需的新节点。
     
@@ -22,6 +24,11 @@ async def analyze_missing_connections(session_id: str) -> str:
     - connection_summary: 连接分析的统计摘要（包含optional输入的统计）
     """
     try:
+        session_id = get_session_id()
+        if not session_id:
+            log.error("analyze_missing_connections: No session_id found in context")
+            return json.dumps({"error": "No session_id found in context"})
+        
         workflow_data = get_workflow_data(session_id)
         if not workflow_data:
             return json.dumps({"error": "No workflow data found for this session"})
@@ -263,16 +270,21 @@ def save_checkpoint_before_link_modification(session_id: str, action_description
                 "timestamp": time.time()
             }
         )
-        print(f"Saved link agent checkpoint with ID: {checkpoint_id}")
+        log.info(f"Saved link agent checkpoint with ID: {checkpoint_id}")
         return checkpoint_id
     except Exception as e:
-        print(f"Failed to save checkpoint before link modification: {str(e)}")
+        log.error(f"Failed to save checkpoint before link modification: {str(e)}")
         return None 
 
 @function_tool
-def apply_connection_fixes(session_id: str, fixes_json: str) -> str:
+def apply_connection_fixes(fixes_json: str) -> str:
     """批量应用连接修复，fixes_json应为包含修复指令的JSON字符串"""
     try:
+        session_id = get_session_id()
+        if not session_id:
+            log.error("apply_connection_fixes: No session_id found in context")
+            return json.dumps({"error": "No session_id found in context"})
+        
         # 在修改前保存checkpoint
         checkpoint_id = save_checkpoint_before_link_modification(session_id, "batch connection fixes")
         
