@@ -59,7 +59,7 @@ We now cover the entire workflow lifecycle, including generation, debugging, rew
 ✨ **Try the brand-new ComfyUI-Copilot v2.0 now and embark on an efficient creative journey!**
 
 <div align="center">
-<img src="assets/Framework.png"/>
+<img src="assets/Framework-v3.png"/>
 </div>
 
 ---
@@ -178,6 +178,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AIDC-AI/ComfyUI-Copilot&type=Date)](https://star-history.com/#AIDC-AI/ComfyUI-Copilot&Date)
+
 
 
 
