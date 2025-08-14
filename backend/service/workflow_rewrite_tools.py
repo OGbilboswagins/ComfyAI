@@ -81,18 +81,19 @@ async def get_node_info(node_class: str) -> str:
     except Exception as e:
         return json.dumps({"error": f"Failed to get node info: {str(e)}"})
 
-# @function_tool
-# async def get_node_infos(node_class_list: List[str]) -> str:
-#     """获取多个节点的详细信息，包括输入输出参数"""
-#     try:
-#         node_infos = []
-#         for node_class in node_class_list:
-#             node_info = await get_node_info(node_class)
-#             if node_info:
-#                 node_infos.append(node_info)
-#         return json.dumps(node_infos)
-#     except Exception as e:
-#         return json.dumps({"error": f"Failed to get node infos of {','.join(node_class_list)}: {str(e)}"})
+@function_tool
+async def get_node_infos(node_class_list: list[str]) -> str:
+    """获取多个节点的详细信息，包括输入输出参数。只做最小化有必要的查询，不要查询所有节点。尽量不要超过5个"""
+    try:
+        object_info = await get_object_info()
+        node_infos = {}
+        for node_class in node_class_list:
+            if node_class in object_info:
+                node_infos[node_class] = object_info[node_class]
+        return json.dumps(node_infos)
+    except Exception as e:
+        return json.dumps({"error": f"Failed to get node infos of {','.join(node_class_list)}: {str(e)}"})
+    
 
 def save_checkpoint_before_modification(session_id: str, action_description: str) -> Optional[int]:
     """在修改工作流前保存checkpoint，返回checkpoint_id"""

@@ -346,7 +346,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                                         // 标记该更新已处理（只有成功时才标记）
                                         processedUpdates.current.add(paramUpdateKey);
                                     } else {
-                                        console.warn(`[MessageList] Failed to apply parameter changes (attempt ${retryCount + 1})`);
+                                        console.warn(`[MessageList] Failed to apply parameter changes, changes is ${JSON.stringify(changesList)}, (attempt ${retryCount + 1})`);
                                         // 重试最多3次
                                         if (retryCount < 2) {
                                             setTimeout(() => {
