@@ -197,6 +197,7 @@ async def analyze_missing_connections() -> str:
         analysis_result["connection_summary"]["total_missing"] = len(analysis_result["missing_connections"])
         analysis_result["connection_summary"]["optional_unconnected_count"] = len(analysis_result["optional_unconnected_inputs"])
         
+        log.info(f"analysis_result: {json.dumps(analysis_result, ensure_ascii=False)}")
         return json.dumps(analysis_result)
         
     except Exception as e:
