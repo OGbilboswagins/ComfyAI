@@ -126,7 +126,7 @@ def tool_error_function(ctx: RunContextWrapper[Any], error: Exception) -> str:
 
 # def update_workflow(session_id: str, workflow_data: Union[Dict[str, Any], str]) -> str:
 @function_tool
-def update_workflow(workflow_data: str) -> str:
+def update_workflow(workflow_data: str = "") -> str:
     """
     更新当前session的工作流数据
 
@@ -140,6 +140,12 @@ def update_workflow(workflow_data: str) -> str:
         session_id = get_session_id()
         if not session_id:
             return json.dumps({"error": "No session_id found in context"})
+        
+        if not workflow_data or not isinstance(workflow_data, str) or not workflow_data.strip():
+            return json.dumps({
+                "error": "Missing required argument: workflow_data",
+                "hint": "Pass the full workflow JSON as a string."
+            })
         
         log.info(f"[update_workflow] workflow_data: {workflow_data}")
         # 在修改前保存checkpoint

@@ -102,7 +102,7 @@ def create_workflow_rewrite_agent():
         **Tool Usage Guidelines:**
             - get_current_workflow(): Get current workflow from checkpoint or session
             - remove_node(): Use for incompatible or problematic nodes
-            - update_workflow(): Use to save your changes (ALWAYS call this after you have made changes)
+            - update_workflow(): Use to save your changes (ALWAYS call this after you have made changes), you MUST pass argument `workflow_data` containing the FULL workflow JSON (as a JSON object or a JSON string). Never call `update_workflow` without `workflow_data`.
             - get_node_info(): Get detailed node information and verify input/output types before connecting
 
       
