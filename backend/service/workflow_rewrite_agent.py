@@ -36,7 +36,9 @@ def get_rewrite_expert_by_name(name_list: list[str]) -> str:
                         "description": item["description"],
                         "content": item["content"]}
                     )
-    return json.dumps(result, ensure_ascii=False)
+    temp = json.dumps(result, ensure_ascii=False)
+    log.info(f"get_rewrite_expert_by_name, name_list: {name_list}, result: {temp}")
+    return temp
 
 def get_rewrite_export_schema() -> dict:
     """获取工作流改写专家经验schema"""

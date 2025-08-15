@@ -132,6 +132,7 @@ You must adhere to the following constraints to complete the task:
             result = Runner.run_streamed(
                 agent,
                 input=agent_input,
+                max_turns=30,
             )
             log.info("=== MCP Agent Run starting ===")
             
