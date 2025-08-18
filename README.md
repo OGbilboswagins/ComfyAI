@@ -134,7 +134,7 @@ Want ComfyUI-Copilot to assist you in workflow development?
    ```
    
 
-  3. (To be supported later) **Using ComfyUI Manager**: Open ComfyUI Manager, click on Custom Nodes Manager, search for ComfyUI-Copilot, and click the install button.
+  3. **Using ComfyUI Manager**: Open ComfyUI Manager, click on Custom Nodes Manager, search for ComfyUI-Copilot, and click the install button, remember to update the ComfyUI-Copilot to the latest version.
    <img src="assets/comfyui_manager.png"/>
    <img src="assets/comfyui_manager_install.png"/>
 
