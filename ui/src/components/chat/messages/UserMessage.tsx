@@ -51,11 +51,6 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
             console.log(`[UserMessage] Extracted checkpoint ID:`, checkpointId);
         }
         
-        // Also check if there's workflow_update or param_update ext (user might want checkpoint for these)
-        const hasWorkflowUpdate = ext.some((item) => 
-            item.type === 'workflow_update' || item.type === 'param_update'
-        );
-        
         const hasImages = ext.some((item) => item.type === 'img');
         if (hasImages) {
             ext.filter((item) => item.type === 'img').forEach((item) => images = images.concat(item.data));

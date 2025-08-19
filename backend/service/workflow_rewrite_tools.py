@@ -176,6 +176,15 @@ def update_workflow(workflow_data: str = "") -> str:
                 }
             })
         
+        if version_id:
+            ext_data.append({
+                "type": "workflow_rewrite_complete",
+                "data": {
+                    "version_id": version_id,
+                    "checkpoint_type": "workflow_rewrite_complete"
+                }
+            })
+        
         return json.dumps({
             "success": True,
             "version_id": version_id,

@@ -520,6 +520,37 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
 
                 if (isFirstResponse) {
                     dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
+                    
+                    // Check if response contains checkpoint info and update user message
+                    const parsedResponse = JSON.parse(aiMessage.content);
+                    if (parsedResponse.ext) {
+                        const checkpointExt = parsedResponse.ext.find((item: any) => 
+                            item.type === 'user_message_checkpoint' && 
+                            item.data?.message_id === userMessageId
+                        );
+                        
+                        if (checkpointExt && checkpointExt.data?.checkpoint_id) {
+                            console.log(`[WorkflowChat] Found checkpoint ID ${checkpointExt.data.checkpoint_id} for user message ${userMessageId}`);
+                            
+                            // Update user message with checkpoint info
+                            const updatedUserMessage: Message = {
+                                ...userMessage,
+                                ext: [
+                                    ...(userMessage.ext || []),
+                                    {
+                                        type: 'workflow_rewrite_checkpoint',
+                                        data: {
+                                            checkpoint_id: checkpointExt.data.checkpoint_id,
+                                            checkpoint_type: 'workflow_rewrite_start'
+                                        }
+                                    }
+                                ]
+                            };
+                            
+                            dispatch({ type: 'UPDATE_MESSAGE', payload: updatedUserMessage });
+                        }
+                    }
+                    
                     isFirstResponse = false;
                 } else {
                     dispatch({ type: 'UPDATE_MESSAGE', payload: aiMessage });
