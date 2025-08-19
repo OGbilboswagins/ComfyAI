@@ -4,7 +4,7 @@ from agents.tool import function_tool
 from ..utils.request_context import get_session_id
 
 from ..utils.comfy_gateway import get_object_info_by_class
-from custom_nodes.comfyui_copilot.backend.dao.workflow_table import get_workflow_data, save_workflow_data
+from ..dao.workflow_table import get_workflow_data, save_workflow_data
 from ..utils.logger import log
 
 async def get_node_parameters(node_name: str, param_name: str = "") -> str:

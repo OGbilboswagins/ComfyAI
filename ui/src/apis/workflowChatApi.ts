@@ -300,29 +300,8 @@ export namespace WorkflowChatAPI {
 
         for (const line of lines) {
           if (line.trim()) {
-            const response = JSON.parse(line) as ChatResponse;
-            
-            // Add checkpoint info to first response if available
-            if (workflowCheckpointId && response.session_id === sessionId) {
-              const extWithCheckpoint = [
-                ...(response.ext || []),
-                {
-                  type: "user_message_checkpoint",
-                  data: {
-                    checkpoint_id: workflowCheckpointId,
-                    message_id: userMessageId,
-                    checkpoint_type: "user_message_checkpoint"
-                  }
-                }
-              ];
-              
-              response.ext = extWithCheckpoint;
-              // Clear the checkpoint ID after adding it to prevent duplication
-              workflowCheckpointId = null;
-            }
-            
             yield {
-              ...response,
+              ...JSON.parse(line) as ChatResponse,
               message_id: messageId
             };
           }
@@ -330,28 +309,8 @@ export namespace WorkflowChatAPI {
       }
 
       if (buffer.trim()) {
-        const response = JSON.parse(buffer) as ChatResponse;
-        
-        // Add checkpoint info to final response if available (fallback)
-        if (workflowCheckpointId && response.session_id === sessionId) {
-          const extWithCheckpoint = [
-            ...(response.ext || []),
-            {
-              type: "user_message_checkpoint",
-              data: {
-                checkpoint_id: workflowCheckpointId,
-                message_id: userMessageId,
-                checkpoint_type: "user_message_checkpoint"
-              }
-            }
-          ];
-          
-          response.ext = extWithCheckpoint;
-          workflowCheckpointId = null;
-        }
-        
         yield {
-          ...response,
+          ...JSON.parse(buffer) as ChatResponse,
           message_id: messageId
         };
       }

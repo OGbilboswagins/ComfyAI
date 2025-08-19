@@ -10,7 +10,7 @@ from openai.types.responses import ResponseTextDeltaEvent
 
 from ..service.parameter_tools import *
 from ..service.link_agent_tools import *
-from custom_nodes.comfyui_copilot.backend.dao.workflow_table import get_workflow_data, save_workflow_data
+from ..dao.workflow_table import get_workflow_data, save_workflow_data
 from ..utils.request_context import get_session_id, get_config
 
 # Import ComfyUI internal modules

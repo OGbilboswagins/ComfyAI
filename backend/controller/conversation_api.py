@@ -16,7 +16,7 @@ import base64
 import os
 
 from ..service.debug_agent import debug_workflow_errors
-from custom_nodes.comfyui_copilot.backend.dao.workflow_table import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
+from ..dao.workflow_table import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
 from ..service.mcp_client import comfyui_agent_invoke
 from ..utils.request_context import set_request_context, get_session_id
 from ..utils.logger import log
