@@ -2,22 +2,19 @@
 Debug Agent for ComfyUI Workflow Error Analysis
 '''
 from ..agent_factory import create_agent
-from .. import core
 from agents.items import ItemHelpers
 from agents.run import Runner
-from agents.tool import function_tool
 from ..utils.globals import CLAUDE_4_MODEL_NAME, get_language
 from ..service.workflow_rewrite_tools import *
 from openai.types.responses import ResponseTextDeltaEvent
 
 from ..service.parameter_tools import *
 from ..service.link_agent_tools import *
-from ..service.database import get_workflow_data, save_workflow_data
+from custom_nodes.comfyui_copilot.backend.dao.workflow_table import get_workflow_data, save_workflow_data
 from ..utils.request_context import get_session_id, get_config
 
 # Import ComfyUI internal modules
 import uuid
-import execution
 from ..utils.logger import log
 # Load environment variables from server.env
 

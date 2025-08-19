@@ -2,26 +2,22 @@
 # Licensed under the MIT License.
 
 import json
-import os
 import asyncio
 import time
-from typing import Optional, Dict, Any, TypedDict, List, Union
+from typing import Optional, TypedDict, List, Union
 
 from ..utils.globals import set_language
 from ..utils.auth_utils import extract_and_store_api_key
 import server
 from aiohttp import web
-import aiohttp
 import base64
-import requests
 
 # Import the MCP client function
-import sys
 import os
 
 from ..service.debug_agent import debug_workflow_errors
-from ..service.database import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
-from ..service.mcp_client import comfyui_agent_invoke, ImageData
+from custom_nodes.comfyui_copilot.backend.dao.workflow_table import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
+from ..service.mcp_client import comfyui_agent_invoke
 from ..utils.request_context import set_request_context, get_session_id
 from ..utils.logger import log
 

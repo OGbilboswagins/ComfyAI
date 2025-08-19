@@ -2,11 +2,11 @@
 
 import json
 import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Optional, List
 
 from agents.tool import function_tool
 from ..utils.request_context import get_session_id
-from ..service.database import get_workflow_data, save_workflow_data
+from custom_nodes.comfyui_copilot.backend.dao.workflow_table import get_workflow_data, save_workflow_data
 from ..utils.comfy_gateway import get_object_info
 from ..utils.logger import log
 
