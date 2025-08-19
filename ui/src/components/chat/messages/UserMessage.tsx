@@ -4,7 +4,7 @@
 
 import { BaseMessage } from './BaseMessage';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 
 interface ExtItem {
@@ -30,34 +30,41 @@ export function UserMessage({ content, trace_id, ext }: UserMessageProps) {
         }
     };
 
+    const [checkpointId, setChekpointId] = useState<number | null>(null);
+    const [images, setImages] = useState<any[]>([])
+
     // Check if there's a checkpoint in ext data for workflow_update or param_update
-    let checkpointId: number | null = null;
-    let images: any[] = [];
+    // let checkpointId: number | null = null;
+    // let images: any[] = [];
     
-    // 添加调试日志
-    console.log(`[UserMessage] Received ext data:`, ext);
-    
-    if (ext) {        
-        // Look for workflow_rewrite_checkpoint or debug_checkpoint related to workflow updates
-        const checkpointExt = ext.find((item) => 
-            item.type === 'workflow_rewrite_checkpoint' || 
-            (item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'workflow_rewrite_start')
-        );
-        
-        console.log(`[UserMessage] Found checkpoint ext:`, checkpointExt);
-        
-        if (checkpointExt && checkpointExt.data && checkpointExt.data.checkpoint_id) {
-            checkpointId = checkpointExt.data.checkpoint_id;
-            console.log(`[UserMessage] Extracted checkpoint ID:`, checkpointId);
+    useEffect(() => {
+        // 添加调试日志
+        console.log(`[UserMessage] Received ext data:`, ext);
+        if (ext) {        
+            // Look for workflow_rewrite_checkpoint or debug_checkpoint related to workflow updates
+            const checkpointExt = ext.find((item) => 
+                item.type === 'workflow_rewrite_checkpoint' || 
+                (item.type === 'debug_checkpoint' && item.data?.checkpoint_type === 'workflow_rewrite_start')
+            );
+            
+            console.log(`[UserMessage] Found checkpoint ext:`, checkpointExt);
+            
+            if (checkpointExt && checkpointExt.data && checkpointExt.data.checkpoint_id) {
+                // checkpointId = checkpointExt.data.checkpoint_id;
+                setChekpointId(checkpointExt.data.checkpoint_id)
+                console.log(`[UserMessage] Extracted checkpoint ID:`, checkpointExt.data.checkpoint_id);
+            }
+            
+            const hasImages = ext.some((item) => item.type === 'img');
+            if (hasImages) {
+                let _images: any[] = []
+                ext.filter((item) => item.type === 'img').forEach((item) => _images = _images.concat(item.data));
+                setImages(_images)
+            }
+            // If we have workflow/param updates but no checkpoint, we could show a message about it
+            // But for now, we only show restore button if we have a checkpoint
         }
-        
-        const hasImages = ext.some((item) => item.type === 'img');
-        if (hasImages) {
-            ext.filter((item) => item.type === 'img').forEach((item) => images = images.concat(item.data));
-        }
-        // If we have workflow/param updates but no checkpoint, we could show a message about it
-        // But for now, we only show restore button if we have a checkpoint
-    }
+    }, [ext])
 
     return (
         <BaseMessage name="User" isUser={true}>
