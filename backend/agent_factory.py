@@ -8,7 +8,7 @@ Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查�
 '''
 from agents import Agent, OpenAIChatCompletionsModel
 from dotenv import dotenv_values
-from .utils.globals import LLM_DEFAULT_BASE_URL, get_comfyui_copilot_api_key
+from .utils.globals import LLM_DEFAULT_BASE_URL, LMSTUDIO_DEFAULT_BASE_URL, get_comfyui_copilot_api_key, is_lmstudio_url
 from openai import AsyncOpenAI
 
 import os
@@ -43,19 +43,27 @@ def create_agent(**kwargs) -> Agent:
     if session_id:
         default_headers["X-Session-ID"] = session_id
 
+    # Determine base URL and API key
+    base_url = LLM_DEFAULT_BASE_URL
+    api_key = get_comfyui_copilot_api_key() or ""
+    
+    if config:
+        if config.get("openai_base_url") and config.get("openai_base_url") != "":
+            base_url = config.get("openai_base_url")
+        if config.get("openai_api_key") and config.get("openai_api_key") != "":
+            api_key = config.get("openai_api_key")
+    
+    # Check if this is LMStudio and adjust API key handling
+    is_lmstudio = is_lmstudio_url(base_url)
+    if is_lmstudio and not api_key:
+        # LMStudio typically doesn't require an API key, use a placeholder
+        api_key = "lmstudio-local"
+
     client = AsyncOpenAI(
-        api_key=get_comfyui_copilot_api_key() or "",
-        base_url=LLM_DEFAULT_BASE_URL,
+        api_key=api_key,
+        base_url=base_url,
         default_headers=default_headers,
     )
-
-    if config:
-        if config.get("openai_api_key") and config.get("openai_api_key") != "":
-            client.api_key = config.get("openai_api_key")
-        if config.get("openai_base_url") and config.get("openai_base_url") != "":
-            client.base_url = config.get("openai_base_url")
-        # if config.get("session_id") and config.get("session_id") != "":
-        #     client.default_headers["X-Session-ID"] = config.get("session_id")
 
     default_model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
     model_name = kwargs.pop("model") or default_model_name

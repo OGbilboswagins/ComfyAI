@@ -93,4 +93,27 @@ def set_comfyui_copilot_api_key(api_key: str) -> None:
 
 LLM_DEFAULT_BASE_URL = "https://comfyui-copilot-server.onrender.com/v1"
 # LLM_DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
+LMSTUDIO_DEFAULT_BASE_URL = "http://localhost:1234/v1"
 CLAUDE_4_MODEL_NAME = "us.anthropic.claude-sonnet-4-20250514-v1:0"
+
+def is_lmstudio_url(base_url: str) -> bool:
+    """Check if the base URL is likely LMStudio based on common patterns."""
+    if not base_url:
+        return False
+    
+    base_url_lower = base_url.lower()
+    # Common LMStudio patterns (supporting various ports and configurations)
+    lmstudio_patterns = [
+        "localhost:1234",        # Standard LMStudio port
+        "127.0.0.1:1234", 
+        "0.0.0.0:1234",
+        ":1234/v1",
+        "localhost:1235",        # Alternative port some users might use
+        "127.0.0.1:1235", 
+        "0.0.0.0:1235",
+        ":1235/v1",
+        "localhost/v1",          # Generic localhost patterns
+        "127.0.0.1/v1"
+    ]
+    
+    return any(pattern in base_url_lower for pattern in lmstudio_patterns)
