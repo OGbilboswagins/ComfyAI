@@ -111,7 +111,7 @@ Want ComfyUI-Copilot to assist you in workflow development?
 **Repository Overview**: Visit the [GitHub Repository](https://github.com/AIDC-AI/ComfyUI-Copilot) to access the complete codebase.
 
 #### Installation
-  1. Use git to install ComfyUI-Copilot in the ComfyUI custom_nodes directory:
+  1. Firstly, use git to install ComfyUI-Copilot in the ComfyUI custom_nodes directory:
 
    ```bash
    cd ComfyUI/custom_nodes
@@ -125,7 +125,7 @@ Want ComfyUI-Copilot to assist you in workflow development?
    git clone https://github.com/AIDC-AI/ComfyUI-Copilot
    ```
 
-  2. In the ComfyUI custom_nodes directory, find the ComfyUI-Copilot directory and install ComfyUI-Copilot dependencies
+   Secondely, in the ComfyUI custom_nodes directory, find the ComfyUI-Copilot directory and install ComfyUI-Copilot dependencies
 
    ```bash
    cd ComfyUI/custom_nodes/ComfyUI-Copilot
@@ -138,7 +138,11 @@ Want ComfyUI-Copilot to assist you in workflow development?
    ```
    
 
-  3. **Using ComfyUI Manager**: Open ComfyUI Manager, click on Custom Nodes Manager, search for ComfyUI-Copilot, and click the install button, remember to update the ComfyUI-Copilot to the latest version.
+  2. **Using ComfyUI Manager**: Open ComfyUI Manager, click on Custom Nodes Manager, search for ComfyUI-Copilot, and click the install button, remember to update the ComfyUI-Copilot to the latest version.
+     - The Manager requires permissions. To prevent errors during execution, it's recommended to run ComfyUI with "sudo python main.py".
+     - If you encounter an error during the update, try to delete the folder or click uninstall and then reinstall.
+     - If an error occurs during execution, it's recommended to use the bottom panel button in the upper right corner to trigger the Manager to install ComfyUI-Copilot. An error log will appear below. Take a screenshot and post it to your git issue.
+     - Using the Manager installation method is prone to bugs, so it's recommended to use the git installation method above.
    <img src="assets/comfyui_manager.png"/>
    <img src="assets/comfyui_manager_install.png"/>
 
@@ -183,6 +187,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AIDC-AI/ComfyUI-Copilot&type=Date)](https://star-history.com/#AIDC-AI/ComfyUI-Copilot&Date)
+
 
 
 
