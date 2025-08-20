@@ -2,10 +2,11 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
 LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-19 17:35:50
+LastEditTime: 2025-08-20 11:57:58
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
+from ..utils.globals import BACKEND_BASE_URL
 from .. import core
 import asyncio
 import os
@@ -59,7 +60,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             raise ValueError("No config found in request context")
         async with MCPServerSse(
             params= {
-                "url": "https://comfyui-copilot-server.onrender.com/mcp-server/mcp",
+                "url": BACKEND_BASE_URL + "/mcp-server/mcp",
                 "timeout": 300.0,
             },
             cache_tools_list=True,
