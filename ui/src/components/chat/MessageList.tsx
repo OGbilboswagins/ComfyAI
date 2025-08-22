@@ -242,6 +242,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
                     content={message.content} 
                     trace_id={message.trace_id}
                     ext={message.ext}
+                    finished={message.finished}
                 />
             </Suspense>
         }
