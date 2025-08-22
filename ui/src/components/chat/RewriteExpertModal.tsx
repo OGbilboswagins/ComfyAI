@@ -175,7 +175,7 @@ const RewriteExpertModal: React.FC<IProps> = ({onClose}) => {
       >
         <div className="relative bg-white rounded-xl p-6 w-1/2 h-1/2 flex flex-col">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl text-gray-900 dark:text-white font-semibold">Set API Key</h2>
+            <h2 className="text-xl text-gray-900 dark:text-white font-semibold">Add expert experience to help you rewrite workflow</h2>
             <button 
               onClick={onClose}
               disabled={loading}
