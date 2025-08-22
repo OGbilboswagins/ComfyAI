@@ -1,8 +1,8 @@
 '''
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-08-08 17:14:52
-LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-20 11:56:53
+LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
+LastEditTime: 2025-08-22 11:31:24
 FilePath: /comfyui_copilot/backend/utils/globals.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -94,6 +94,29 @@ def set_comfyui_copilot_api_key(api_key: str) -> None:
 BACKEND_BASE_URL = "https://comfyui-copilot-server-pre.onrender.com"
 # LLM_DEFAULT_BASE_URL = "https://comfyui-copilot-server.onrender.com/v1"
 # LLM_DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
+LMSTUDIO_DEFAULT_BASE_URL = "http://localhost:1234/v1"
 CLAUDE_4_MODEL_NAME = "us.anthropic.claude-sonnet-4-20250514-v1:0"
 LLM_DEFAULT_BASE_URL = BACKEND_BASE_URL + "/v1"
 
+
+def is_lmstudio_url(base_url: str) -> bool:
+    """Check if the base URL is likely LMStudio based on common patterns."""
+    if not base_url:
+        return False
+    
+    base_url_lower = base_url.lower()
+    # Common LMStudio patterns (supporting various ports and configurations)
+    lmstudio_patterns = [
+        "localhost:1234",        # Standard LMStudio port
+        "127.0.0.1:1234", 
+        "0.0.0.0:1234",
+        ":1234/v1",
+        "localhost:1235",        # Alternative port some users might use
+        "127.0.0.1:1235", 
+        "0.0.0.0:1235",
+        ":1235/v1",
+        "localhost/v1",          # Generic localhost patterns
+        "127.0.0.1/v1"
+    ]
+    
+    return any(pattern in base_url_lower for pattern in lmstudio_patterns)

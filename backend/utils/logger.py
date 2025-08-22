@@ -57,7 +57,7 @@ def setup_logger():
     
     # File formatter
     file_format = '%(asctime)s | %(levelname)-8s | %(location)s | %(message)s'
-    file_formatter = LocationFormatter(file_format, datefmt='%Y-%m-%d %H:%M:%S.%f')
+    file_formatter = LocationFormatter(file_format, datefmt='%Y-%m-%d %H:%M:%S')
     file_handler.setFormatter(file_formatter)
     
     # Add handlers to logger

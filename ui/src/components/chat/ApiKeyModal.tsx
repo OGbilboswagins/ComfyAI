@@ -4,7 +4,11 @@
  * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
  * @LastEditTime: 2025-06-18 20:03:12
  * @FilePath: /comfyui_copilot/ui/src/components/chat/ApiKeyModal.tsx
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBK                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="mb-1"><strong>🔗 For LMStudio:</strong> http://localhost:1234/v1 (leave API key empty)</div>
+                                <div className="mb-1"><strong>🌐 For OpenAI:</strong> https://api.openai.com/v1 (requires API key)</div>
+                                <div><strong>⚙️ For Custom:</strong> Any OpenAI-compatible server URL</div>
+                            </div>koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
@@ -80,15 +84,21 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
     }, [initialApiKey]);
 
     const handleVerifyOpenAiKey = async () => {
-        if (!openaiApiKey.trim()) {
+        // Check if it looks like LMStudio URL
+        const isLMStudio = openaiBaseUrl.toLowerCase().includes('localhost') || 
+                          openaiBaseUrl.toLowerCase().includes('127.0.0.1') ||
+                          openaiBaseUrl.includes(':1234') ||
+                          openaiBaseUrl.includes(':1235');
+        
+        if (!openaiApiKey.trim() && !isLMStudio) {
             setVerificationResult({
                 success: false,
-                message: 'Please enter an OpenAI API key'
+                message: 'Please enter an API key or use LMStudio URL (localhost:1234)'
             });
             return;
         }
         
-        if (!rsaPublicKey) {
+        if (!rsaPublicKey && !isLMStudio) {
             setVerificationResult({
                 success: false,
                 message: 'RSA public key not available. Please try again later.'
@@ -104,12 +114,14 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
             
             setVerificationResult({
                 success: isValid,
-                message: isValid ? 'API key is valid!' : 'Invalid API key. Please check and try again.'
+                message: isValid ? 
+                    (isLMStudio ? 'LMStudio connection successful!' : 'API key is valid!') : 
+                    (isLMStudio ? 'LMStudio connection failed. Please check if LMStudio server is running.' : 'Invalid API key. Please check and try again.')
             });
         } catch (error) {
             setVerificationResult({
                 success: false,
-                message: error instanceof Error ? error.message : 'Failed to verify API key'
+                message: error instanceof Error ? error.message : 'Failed to verify connection'
             });
         } finally {
             setVerifyingKey(false);
@@ -259,23 +271,24 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                     </div> */}
                 </div>
                 
-                {/* OpenAI Configuration */}
+                {/* LLM Configuration */}
                 <CollapsibleCard 
-                    title={<h3 className="text-sm text-gray-900 dark:text-white font-medium">OpenAI API Configuration (Optional)</h3>}
+                    title={<h3 className="text-sm text-gray-900 dark:text-white font-medium">LLM Configuration (OpenAI / LMStudio / Custom)</h3>}
                     className='mb-4'
+                    defaultExpanded={true}
                 >
                     <div>
-                        {/* OpenAI API Key */}
+                        {/* API Key */}
                         <div className="mb-4">
                             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                OpenAI API Key
+                                API Key (Optional for LMStudio)
                             </label>
                             <div className="relative">
                                 <input
                                     type={showOpenaiApiKey ? "text" : "password"}
                                     value={openaiApiKey}
                                     onChange={(e) => setOpenaiApiKey(e.target.value)}
-                                    placeholder="Enter your OpenAI API key"
+                                    placeholder="Enter your OpenAI API key (leave empty for LMStudio)"
                                     className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg pr-12 text-xs
                                     bg-gray-50 dark:bg-gray-700 
                                     text-gray-900 dark:text-white
@@ -304,16 +317,16 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                             </div>
                         </div>
                         
-                        {/* OpenAI Base URL */}
+                        {/* Base URL */}
                         <div className="mb-4">
                             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                OpenAI Base URL
+                                Server URL
                             </label>
                             <input
                                 type="text"
                                 value={openaiBaseUrl}
                                 onChange={(e) => setOpenaiBaseUrl(e.target.value)}
-                                placeholder="https://api.openai.com/v1"
+                                placeholder="https://api.openai.com/v1 or http://localhost:1234/v1 for LMStudio"
                                 className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-xs
                                 bg-gray-50 dark:bg-gray-700 
                                 text-gray-900 dark:text-white
@@ -322,15 +335,20 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                                 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20
                                 focus:outline-none"
                             />
+                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="mb-1"><strong>� For LMStudio:</strong> http://localhost:1235/v1 (leave API key empty)</div>
+                                <div className="mb-1"><strong>🌐 For OpenAI:</strong> https://api.openai.com/v1 (requires API key)</div>
+                                <div><strong>⚙️ For Custom:</strong> Any OpenAI-compatible server URL</div>
+                            </div>
                         </div>
                         
                         {/* Verify Button */}
                         <div className="flex items-center mb-2">
                             <button
                                 onClick={handleVerifyOpenAiKey}
-                                disabled={verifyingKey || !openaiApiKey.trim()}
+                                disabled={verifyingKey}
                                 className={`px-4 py-2 rounded-lg font-medium text-xs transition-colors ${
-                                    verifyingKey || !openaiApiKey.trim()
+                                    verifyingKey
                                         ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                                         : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white'
                                 }`}

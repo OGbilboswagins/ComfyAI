@@ -105,7 +105,7 @@ https://github.com/user-attachments/assets/17f8e822-e852-47fc-8dcb-0471526b099e
 **仓库概览**：访问 [GitHub 仓库](https://github.com/AIDC-AI/ComfyUI-Copilot) 以获取完整代码库。
 
 #### 安装
-  1. 用git把ComfyUI-Copilot安装到ComfyUI的custom_nodes目录下：
+  1. 首先，用git把ComfyUI-Copilot安装到ComfyUI的custom_nodes目录下：
 
    ```bash
    cd ComfyUI/custom_nodes
@@ -119,7 +119,7 @@ https://github.com/user-attachments/assets/17f8e822-e852-47fc-8dcb-0471526b099e
    git clone https://github.com/AIDC-AI/ComfyUI-Copilot
    ```
 
-  2. 在ComfyUI的custom_nodes目录下，找到ComfyUI-Copilot目录，安装ComfyUI-Copilot的依赖
+   然后，在ComfyUI的custom_nodes目录下，找到ComfyUI-Copilot目录，安装ComfyUI-Copilot的依赖
 
    ```bash
    cd ComfyUI/custom_nodes/ComfyUI-Copilot
@@ -132,7 +132,11 @@ https://github.com/user-attachments/assets/17f8e822-e852-47fc-8dcb-0471526b099e
    ```
    
 
-  3. **使用 ComfyUI 管理器**：打开 ComfyUI 管理器，点击自定义节点管理器，搜索 ComfyUI-Copilot，并点击安装按钮。注意：请点击update按钮更新到最新版本的ComfyUI-Copilot。
+  2. **使用 ComfyUI 管理器**：打开 ComfyUI 管理器，点击自定义节点管理器，搜索 ComfyUI-Copilot，并点击安装按钮。注意：请点击update按钮更新到最新版本的ComfyUI-Copilot。
+     - Manager需要权限，为了防止执行的过程中报错，建议运行的时候使用 sudo python main.py。
+     - 如果你遇到update的时候报错，此时需要你删掉这个文件夹或者点击uninstall，再重新install一次。
+     - 如果执行报错，建议打开右上角的底部面板按钮，触发Manager安装ComfyUI-Copilot，此时下方会出现报错日志，截图并贴到git issue里，我们会尽快跟进。
+     - 使用Manager安装容易遇到bug，建议使用上方的git安装方式
    <img src="assets/comfyui_manager.png"/>
    <img src="assets/comfyui_manager_install.png"/>
 
