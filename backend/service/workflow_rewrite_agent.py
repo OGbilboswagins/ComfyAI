@@ -1,8 +1,8 @@
 '''
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-24 17:10:23
-LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-14 06:39:56
+LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
+LastEditTime: 2025-08-22 11:26:59
 FilePath: /comfyui_copilot/backend/service/workflow_rewrite_agent.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -15,6 +15,8 @@ from agents.tool import function_tool
 import os
 from typing import Dict, Any
 
+from ..dao.expert_table import list_rewrite_experts_short, get_rewrite_expert_by_name_list
+
 from ..agent_factory import create_agent
 from ..utils.globals import CLAUDE_4_MODEL_NAME, get_language
 from ..utils.request_context import get_session_id
@@ -25,32 +27,14 @@ from ..service.workflow_rewrite_tools import *
 @function_tool
 def get_rewrite_expert_by_name(name_list: list[str]) -> str:
     """根据经验名称来获取工作流改写专家经验"""
-    result = []
-    with open(os.path.join(os.path.dirname(__file__), "..", "data", "workflow_rewrite_expert.json"), "r", encoding="utf-8") as f:
-        data = json.load(f)
-        for name in name_list:
-            for item in data:
-                if item["name"] == name:
-                    result.append({
-                        "name": name,
-                        "description": item["description"],
-                        "content": item["content"]}
-                    )
+    result = get_rewrite_expert_by_name_list(name_list)
     temp = json.dumps(result, ensure_ascii=False)
     log.info(f"get_rewrite_expert_by_name, name_list: {name_list}, result: {temp}")
     return temp
 
 def get_rewrite_export_schema() -> dict:
     """获取工作流改写专家经验schema"""
-    expert_schema = []
-    with open(os.path.join(os.path.dirname(__file__), "..", "data", "workflow_rewrite_expert.json"), "r", encoding="utf-8") as f:
-        data = json.load(f)
-        for item in data:
-            expert_schema.append({
-                "name": item["name"],
-                "description": item["description"]
-            })
-    return expert_schema
+    return list_rewrite_experts_short()
 
 
 def create_workflow_rewrite_agent():

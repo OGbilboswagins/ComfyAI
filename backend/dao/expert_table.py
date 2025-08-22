@@ -172,6 +172,33 @@ class DatabaseManager:
             return [e.to_dict() for e in experts]
         finally:
             session.close()
+    
+    def list_rewrite_experts_short(self) -> List[Dict[str, Any]]:
+        """获取所有专家记录，按ID倒序"""
+        session = self.get_session()
+        try:
+            experts = session.query(RewriteExpert).order_by(RewriteExpert.id.asc()).all()
+            return [{"name": e.name, "description": e.description} for e in experts]
+        finally:
+            session.close()
+    
+    def get_rewrite_expert_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """根据名称获取专家记录"""
+        session = self.get_session()
+        try:
+            expert = session.query(RewriteExpert).filter(RewriteExpert.name == name).first()
+            return expert.to_dict() if expert else None
+        finally:
+            session.close()
+    
+    def get_rewrite_expert_by_name_list(self, name_list: List[str]) -> List[Dict[str, Any]]:
+        """根据名称列表获取专家记录"""
+        session = self.get_session()
+        try:
+            experts = session.query(RewriteExpert).filter(RewriteExpert.name.in_(name_list)).all()
+            return [e.to_dict() for e in experts]
+        finally:
+            session.close()
 
     def update_rewrite_expert(self, expert_id: int, name: Optional[str] = None, description: Optional[Any] = None, content: Optional[Any] = None) -> bool:
         """根据ID更新专家记录的部分或全部字段"""
@@ -249,3 +276,12 @@ def update_rewrite_expert_by_id(expert_id: int, name: Optional[str] = None, desc
 
 def delete_rewrite_expert_by_id(expert_id: int) -> bool:
     return db_manager.delete_rewrite_expert(expert_id)
+
+def list_rewrite_experts_short() -> List[Dict[str, Any]]:
+    return db_manager.list_rewrite_experts_short()
+
+def get_rewrite_expert_by_name(name: str) -> Optional[Dict[str, Any]]:
+    return db_manager.get_rewrite_expert_by_name(name)
+
+def get_rewrite_expert_by_name_list(name_list: List[str]) -> List[Dict[str, Any]]:
+    return db_manager.get_rewrite_expert_by_name_list(name_list)
