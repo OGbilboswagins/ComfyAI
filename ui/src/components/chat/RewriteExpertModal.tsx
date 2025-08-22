@@ -124,22 +124,19 @@ const RewriteExpertModal: React.FC<IProps> = ({onClose}) => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      ellipsis: { showTitle: true },
-      width: '20%'
+      ellipsis: { showTitle: true }
     },
     {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      ellipsis: { showTitle: true },
-      width: '35%'
+      ellipsis: { showTitle: true }
     },
     {
       title: 'Content',
       dataIndex: 'content',
       key: 'content',
-      ellipsis: { showTitle: true },
-      width: '35%'
+      ellipsis: { showTitle: true }
     },
     {
       title: 'Action',
@@ -159,8 +156,7 @@ const RewriteExpertModal: React.FC<IProps> = ({onClose}) => {
             <TrashIcon className="w-5 h-5" />
           </button>
         </Space>
-      ),
-      width: '10%'
+      )
     },
   ];
 
@@ -173,54 +169,57 @@ const RewriteExpertModal: React.FC<IProps> = ({onClose}) => {
           backgroundColor: 'rgba(0,0,0,0.5)'
         }}
       >
-        <div className="relative bg-white rounded-xl p-6 w-1/2 h-1/2 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl text-gray-900 dark:text-white font-semibold">Set API Key</h2>
-            <button 
-              onClick={onClose}
-              disabled={loading}
-              className="bg-white border-none text-gray-500 hover:!text-gray-700"
-            >
-              <XIcon className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex justify-between mb-2">
-            <button
-              onClick={handleAddRewriteExpert}
-              className="bg-white border-none text-gray-500 hover:!text-gray-700"
-            >
-              <CirclePlusIcon className="w-5 h-5" />
-            </button>
-            <Input 
-              placeholder="Enter search name" 
-              allowClear
-              value={searchValue}
-              disabled={loading}
-              onChange={debounce(handleSearchRewriteExpert, 500)}
-              className="search-input w-1/4 bg-white text-[#888] placeholder-gray-500 border-gray-300"
-            />
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <ConfigProvider
-              theme={{
-                components: {
-                  Table: {
-                    borderColor: isDark ? '#666' : '#f0f0f0',
-                    headerBg: isDark ? '#333' : '#fafafa',
-                    headerColor: isDark ? '#fff' : '#fafafa',
-                    rowHoverBg: isDark ? '#333' : '#fafafa',
-                  },
-                  Pagination: {
-                    itemBg: isDark ? 'rgb(24, 24, 27)' : '#fff',  
-                    itemActiveBg: isDark ? 'rgb(24, 24, 27)' : '#fff',  
-                    colorText: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)',
-                    colorBgTextHover: isDark ? '#555' : 'rgba(0,0,0,0.06)',
-                    colorPrimary: isDark ? '#aaa' : '#1677ff',
-                    colorPrimaryHover: isDark ? '#999' : '#4096ff',
-                  }
-                }
-              }}
-            >
+        <ConfigProvider
+          theme={{
+            components: {
+              Table: {
+                borderColor: isDark ? '#666' : '#f0f0f0',
+                headerBg: isDark ? '#333' : '#fafafa',
+                headerColor: isDark ? '#fff' : '#fafafa',
+                rowHoverBg: isDark ? '#333' : '#fafafa',
+              },
+              Pagination: {
+                itemBg: isDark ? 'rgb(24, 24, 27)' : '#fff',  
+                itemActiveBg: isDark ? 'rgb(24, 24, 27)' : '#fff',  
+                colorText: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)',
+                colorBgTextHover: isDark ? '#555' : 'rgba(0,0,0,0.06)',
+                colorPrimary: isDark ? '#aaa' : '#1677ff',
+                colorPrimaryHover: isDark ? '#999' : '#4096ff',
+              },
+              Form: {
+                labelColor: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)'
+              }
+            }
+          }}
+        >
+          <div className="relative bg-white rounded-xl p-6 w-1/2 h-1/2 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl text-gray-900 dark:text-white font-semibold">Set API Key</h2>
+              <button 
+                onClick={onClose}
+                disabled={loading}
+                className="bg-white border-none text-gray-500 hover:!text-gray-700"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex justify-between mb-2">
+              <button
+                onClick={handleAddRewriteExpert}
+                className="bg-white border-none text-gray-500 hover:!text-gray-700"
+              >
+                <CirclePlusIcon className="w-5 h-5" />
+              </button>
+              <Input 
+                placeholder="Enter search name" 
+                allowClear
+                value={searchValue}
+                disabled={loading}
+                onChange={debounce(handleSearchRewriteExpert, 500)}
+                className="search-input w-1/4 bg-white text-[#888] placeholder-gray-500 border-gray-300"
+              />
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <Table 
                 bordered
                 loading={loading}
@@ -228,67 +227,68 @@ const RewriteExpertModal: React.FC<IProps> = ({onClose}) => {
                 dataSource={currentDataList} 
                 rowClassName={"bg-white text-gray-800"}
               />
-            </ConfigProvider>
-          </div>
-          {
-            editData && <div className="absolute top-0 left-0 w-full h-full bg-white rounded-xl p-6 z-5">
-              <h2 className="text-xl text-gray-900 dark:text-white font-semibold">{`${editData?.name && editData?.name !== '' ? 'Edit' : 'Add'} Rewrite Expert`}</h2>
-              <Form
-                onFinish={onFinish}
-                initialValues={editData}
-              >
-                <Form.Item
-                  name="id" 
-                  label="Id" 
-                  hidden
-                >
-                  <Input 
-                    disabled 
-                  />
-                </Form.Item>
-                <Form.Item 
-                  name="name" 
-                  label="Name" 
-                  rules={[{ required: true }]}
-                >
-                  <Input 
-                    placeholder="Enter name" 
-                  />
-                </Form.Item>
-                <Form.Item 
-                  name="description" 
-                  label="Description" 
-                  rules={[{ required: true }]}
-                >
-                  <TextArea 
-                    placeholder="Enter description" 
-                    autoSize={{ maxRows: 6 }}
-                  />
-                </Form.Item>
-                <Form.Item 
-                  name="content" 
-                  label="Content" 
-                  rules={[{ required: true }]}
-                >
-                  <TextArea 
-                    placeholder="Enter content" 
-                    autoSize={{ maxRows: 10 }}
-                  />
-                </Form.Item>
-                <Form.Item>
-                  <Space align='end' size='middle'>
-                    <Button type="primary" htmlType="submit">
-                      Submit
-                    </Button>
-                    <Button onClick={onCancel}>
-                      Cancel
-                    </Button>
-                  </Space>
-                </Form.Item>
-              </Form>
             </div>
-          }
-        </div>
+            {
+              editData && <div className="absolute top-0 left-0 w-full h-full bg-white rounded-xl p-6 z-5 overflow-y-auto">
+                <h2 className="text-xl text-gray-900 dark:text-white font-semibold">{`${editData?.name && editData?.name !== '' ? 'Edit' : 'Add'} Rewrite Expert`}</h2>
+                <Form
+                  onFinish={onFinish}
+                  initialValues={editData}
+                  layout="vertical"
+                >
+                  <Form.Item
+                    name="id" 
+                    label="Id" 
+                    hidden
+                  >
+                    <Input 
+                      disabled 
+                    />
+                  </Form.Item>
+                  <Form.Item 
+                    name="name" 
+                    label="Name" 
+                    rules={[{ required: true }]}
+                  >
+                    <Input 
+                      placeholder="Enter name" 
+                    />
+                  </Form.Item>
+                  <Form.Item 
+                    name="description" 
+                    label="Description" 
+                    rules={[{ required: true }]}
+                  >
+                    <TextArea 
+                      placeholder="Enter description" 
+                      autoSize={{ maxRows: 6 }}
+                    />
+                  </Form.Item>
+                  <Form.Item 
+                    name="content" 
+                    label="Content" 
+                    rules={[{ required: true }]}
+                  >
+                    <TextArea 
+                      placeholder="Enter content" 
+                      autoSize={{ maxRows: 10 }}
+                    />
+                  </Form.Item>
+                  <Form.Item>
+                    <Space align='end' size='middle'>
+                      <Button type="primary" htmlType="submit">
+                        Submit
+                      </Button>
+                      <Button onClick={onCancel}>
+                        Cancel
+                      </Button>
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </div>
+            }
+          </div>
+        </ConfigProvider>
         <Modal open={!!modalContent && modalContent !== ''} onClose={() => setModalContent(null)}>
           <p>{modalContent}</p>
         </Modal>
