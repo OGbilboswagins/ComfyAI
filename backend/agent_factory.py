@@ -1,8 +1,8 @@
 '''
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-31 19:38:08
-LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-14 06:14:22
+LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
+LastEditTime: 2025-08-25 17:42:41
 FilePath: /comfyui_copilot/backend/agent_factory.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''

@@ -1,8 +1,8 @@
 '''
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-06-16 16:50:17
-LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
-LastEditTime: 2025-08-20 11:57:58
+LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
+LastEditTime: 2025-08-25 20:06:27
 FilePath: /comfyui_copilot/backend/service/mcp-client.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -19,13 +19,16 @@ from agents.items import ItemHelpers
 from agents.mcp import MCPServerSse
 from agents.run import Runner
 from agents.tracing import set_tracing_disabled
+from agents import handoff, RunContextWrapper
+from agents.extensions import handoff_filters
 
 from ..agent_factory import create_agent
 from ..service.workflow_rewrite_agent import create_workflow_rewrite_agent
-from ..utils.request_context import get_session_id, get_config
+from ..utils.request_context import get_rewrite_context, get_session_id, get_config
 from ..utils.logger import log
 from openai.types.responses import ResponseTextDeltaEvent
 from openai import APIError, RateLimitError
+from pydantic import BaseModel
 
 
 class ImageData:
@@ -76,6 +79,19 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             # 创建workflow_rewrite_agent实例 (session_id通过context获取)
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent()
             
+            class HandoffRewriteData(BaseModel):
+                rewrite_intent: str
+            
+            async def on_handoff(ctx: RunContextWrapper[None], input_data: HandoffRewriteData):
+                get_rewrite_context().rewrite_intent = input_data.rewrite_intent
+                log.info(f"Rewrite agent called with intent: {input_data.rewrite_intent}")
+            
+            handoff_rewrite = handoff(
+                agent=workflow_rewrite_agent_instance,
+                input_type=HandoffRewriteData,
+                on_handoff=on_handoff,
+            )
+            
             agent = create_agent(
                 name="ComfyUI-Copilot",
                 instructions=f"""You are a powerful AI assistant for designing image processing workflows, capable of automating problem-solving using tools and commands.
@@ -121,7 +137,7 @@ You must adhere to the following constraints to complete the task:
                 """,
                 mcp_servers=[server],
                 model=model_name,
-                handoffs=[workflow_rewrite_agent_instance],
+                handoffs=[handoff_rewrite],
                 config=config
             )
 
