@@ -235,7 +235,7 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
     // 渲染对应的消息组件
     const renderMessage = (message: Message, index: number) => {
         // 移除频繁的日志输出
-        // console.log('[MessageList] Rendering message:', message);
+        console.log('[MessageList] Rendering message:', message);
         if (message.role === 'user') {
             return <Suspense key={message.id} fallback={<div>Loading...</div>}>
                 <LazyUserMessage 

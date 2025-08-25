@@ -4,7 +4,7 @@ Debug Agent for ComfyUI Workflow Error Analysis
 from ..agent_factory import create_agent
 from agents.items import ItemHelpers
 from agents.run import Runner
-from ..utils.globals import CLAUDE_4_MODEL_NAME, get_language
+from ..utils.globals import WORKFLOW_MODEL_NAME, get_language
 from ..service.workflow_rewrite_tools import *
 from openai.types.responses import ResponseTextDeltaEvent
 
@@ -252,13 +252,13 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any]):
 **Note**: The workflow validation is done using ComfyUI's internal functions, not actual execution, so it's fast and safe.
 
 Start by validating the workflow to see its current state.""",
-            model=CLAUDE_4_MODEL_NAME,
+            model=WORKFLOW_MODEL_NAME,
             tools=[run_workflow, analyze_error_type, save_current_workflow],
         )
         
         workflow_bugfix_default_agent = create_agent(
             name="Workflow Bugfix Default Agent",
-            model=CLAUDE_4_MODEL_NAME,
+            model=WORKFLOW_MODEL_NAME,
             handoff_description="""
             I am the Workflow Bugfix Default Agent. I specialize in fixing structural issues in ComfyUI workflows.
             
@@ -304,7 +304,7 @@ Start by validating the workflow to see its current state.""",
         
         link_agent = create_agent(
             name="Link Agent",
-            model=CLAUDE_4_MODEL_NAME,
+            model=WORKFLOW_MODEL_NAME,
             handoff_description="""
             I am the Link Agent. I specialize in analyzing and fixing workflow connection issues.
             
@@ -392,7 +392,7 @@ Start by validating the workflow to see its current state.""",
 
         parameter_agent = create_agent(
             name="Parameter Agent",
-            model=CLAUDE_4_MODEL_NAME,
+            model=WORKFLOW_MODEL_NAME,
             handoff_description="""
             I am the Parameter Agent. I specialize in handling parameter-related errors in ComfyUI workflows.
             
@@ -719,7 +719,7 @@ async def test_debug():
     
     config = {
         "session_id": "test_session_123",
-        "model": CLAUDE_4_MODEL_NAME
+        "model": WORKFLOW_MODEL_NAME
     }
     
     async for text, ext in debug_workflow_errors(test_workflow_data, config):

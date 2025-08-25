@@ -37,7 +37,9 @@ export function UserMessage({ content, trace_id, ext, finished }: UserMessagePro
     // Check if there's a checkpoint in ext data for workflow_update or param_update
     // let checkpointId: number | null = null;
     // let images: any[] = [];
-    
+    useEffect(() => {
+        console.log(`[UserMessage] checkpointId:`, checkpointId);
+    }, [checkpointId])
     useEffect(() => {
         // 添加调试日志
         console.log(`[UserMessage] Received ext data:`, ext);
