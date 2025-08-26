@@ -311,7 +311,7 @@ async def get_model_files(model_type: str = "checkpoints") -> str:
 def suggest_model_download_by_modelscope(model_name_keyword: str) -> str:
     """建议下载缺失的模型，执行一次即可结束流程返回结果"""
     modelscope_gateway = ModelScopeGateway()
-    return modelscope_gateway.suggest(target=model_name_keyword)
+    return modelscope_gateway.suggest(name=model_name_keyword)
 
 
 @function_tool
