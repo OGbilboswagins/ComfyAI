@@ -20,6 +20,7 @@ from ..dao.workflow_table import save_workflow_data, get_workflow_data_by_id, up
 from ..service.mcp_client import comfyui_agent_invoke
 from ..utils.request_context import set_request_context, get_session_id
 from ..utils.logger import log
+from ..utils.modelscope_gateway import ModelScopeGateway
 
 
 # 不再使用内存存储会话消息，改为从前端传递历史消息
@@ -610,4 +611,69 @@ async def update_workflow_ui(request):
         return web.json_response({
             "success": False,
             "message": f"Failed to update workflow UI data: {str(e)}"
+        })
+
+
+@server.PromptServer.instance.routes.post("/api/download-model")
+async def download_model(request):
+    """
+    Download model from ModelScope using SDK
+    """
+    log.info("Received download-model request")
+    req_json = await request.json()
+    
+    try:
+        model_id = req_json.get('model_id')
+        model_type = req_json.get('model_type')
+        
+        # 验证必需参数
+        if not model_id:
+            return web.json_response({
+                "success": False,
+                "message": "Missing required parameter: model_id"
+            })
+            
+        if not model_type:
+            return web.json_response({
+                "success": False,
+                "message": "Missing required parameter: model_type"
+            })
+        
+        log.info(f"Downloading model: {model_id} (type: {model_type})")
+        
+        # 创建ModelScope网关实例
+        gateway = ModelScopeGateway()
+        
+        # 调用下载方法
+        local_dir = gateway.download_with_sdk(
+            model_id=model_id,
+            model_type=model_type,
+        )
+        
+        log.info(f"Model downloaded successfully to: {local_dir}")
+        
+        return web.json_response({
+            "success": True,
+            "data": {
+                "model_id": model_id,
+                "model_type": model_type,
+                "local_dir": local_dir
+            },
+            "message": f"Model '{model_id}' downloaded successfully"
+        })
+        
+    except ImportError as e:
+        log.error(f"ModelScope SDK not installed: {str(e)}")
+        return web.json_response({
+            "success": False,
+            "message": "ModelScope SDK not installed. Please install with: pip install modelscope"
+        })
+        
+    except Exception as e:
+        log.error(f"Error downloading model: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return web.json_response({
+            "success": False,
+            "message": f"Failed to download model: {str(e)}"
         })

@@ -11,7 +11,6 @@ from agents.tool import function_tool
 import json
 import time
 import uuid
-from agents.tool import function_tool
 import os
 from typing import Dict, Any
 
