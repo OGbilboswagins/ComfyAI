@@ -254,6 +254,9 @@ async def debug_workflow_errors(workflow_data: Dict[str, Any]):
 Start by validating the workflow to see its current state.""",
             model=WORKFLOW_MODEL_NAME,
             tools=[run_workflow, analyze_error_type, save_current_workflow],
+            config={
+                "max_tokens": 8192
+            }
         )
         
         workflow_bugfix_default_agent = create_agent(
@@ -300,6 +303,9 @@ Start by validating the workflow to see its current state.""",
             """,
             tools=[get_current_workflow, get_node_info, update_workflow],
             handoffs=[agent],
+            config={
+                "max_tokens": 8192
+            }
         )
         
         link_agent = create_agent(
@@ -388,6 +394,9 @@ Start by validating the workflow to see its current state.""",
             tools=[analyze_missing_connections, apply_connection_fixes,
                    get_current_workflow, get_node_info],
             handoffs=[agent],
+            config={
+                "max_tokens": 8192
+            }
         )
 
         parameter_agent = create_agent(
@@ -479,6 +488,9 @@ Start by validating the workflow to see its current state.""",
             tools=[find_matching_parameter_value, get_model_files, 
                 suggest_model_download, update_workflow_parameter, get_current_workflow],
             handoffs=[agent],
+            config={
+                "max_tokens": 8192
+            }
         )
 
         agent.handoffs = [link_agent, workflow_bugfix_default_agent, parameter_agent]
@@ -719,7 +731,8 @@ async def test_debug():
     
     config = {
         "session_id": "test_session_123",
-        "model": WORKFLOW_MODEL_NAME
+        "model": WORKFLOW_MODEL_NAME,
+        "max_tokens": 8192
     }
     
     async for text, ext in debug_workflow_errors(test_workflow_data, config):
