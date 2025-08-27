@@ -382,6 +382,13 @@ export const ParameterDebugInterface: React.FC<ParameterDebugInterfaceProps> = (
     doSaveState(key, value);
   }
   
+  useEffect(() => {
+    if (selectedNodes?.length > 0) {
+      // change selectedNodes, need to initialize currentScreen
+      updateState(StateKey.CurrentScreen, 0)
+    }
+  }, [selectedNodes])
+
   // Add useEffect to initialize parameter test values when selectedNodes change
   useEffect(() => {
     if (!isGetLocalstorage || !selectedNodes || selectedNodes.length === 0) return;
