@@ -13,6 +13,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from .logger import log
+import folder_paths
 
 
 class ModelScopeGateway:
@@ -105,8 +106,23 @@ class ModelScopeGateway:
         except ImportError as e:
             raise RuntimeError("缺少依赖 modelscope，请先安装：pip install modelscope") from e
 
-        cache_dir = dest_dir or os.path.abspath(f"../../../models/{model_type}")
-        os.makedirs(cache_dir, exist_ok=True)
+        # Determine destination directory in ComfyUI models folder hierarchy
+        try:
+            if dest_dir:
+                cache_dir = os.path.abspath(os.path.expanduser(dest_dir))
+            else:
+                # Prefer ComfyUI's configured folder for this model_type
+                try:
+                    model_type_paths = folder_paths.get_folder_paths(model_type)
+                    cache_dir = model_type_paths[0] if model_type_paths else os.path.join(folder_paths.models_dir, model_type)
+                except Exception:
+                    # Fallback to models_dir/model_type if the key is unknown
+                    cache_dir = os.path.join(folder_paths.models_dir, model_type)
+
+            os.makedirs(cache_dir, exist_ok=True)
+        except Exception as e:
+            raise RuntimeError(f"Failed to prepare destination directory for download: {e}") from e
+
         local_dir = snapshot_download(model_id, cache_dir=cache_dir, revision=revision)
         return local_dir
     

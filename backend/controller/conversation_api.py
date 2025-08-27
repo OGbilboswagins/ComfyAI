@@ -21,6 +21,7 @@ from ..service.mcp_client import comfyui_agent_invoke
 from ..utils.request_context import set_request_context, get_session_id
 from ..utils.logger import log
 from ..utils.modelscope_gateway import ModelScopeGateway
+import folder_paths
 
 
 # 不再使用内存存储会话消息，改为从前端传递历史消息
@@ -625,6 +626,7 @@ async def download_model(request):
     try:
         model_id = req_json.get('model_id')
         model_type = req_json.get('model_type')
+        dest_dir = req_json.get('dest_dir')
         
         # 验证必需参数
         if not model_id:
@@ -644,10 +646,22 @@ async def download_model(request):
         # 创建ModelScope网关实例
         gateway = ModelScopeGateway()
         
+        # 计算目标目录：优先使用传入的dest_dir，否则使用ComfyUI的models目录下对应类型
+        resolved_dest_dir = None
+        if dest_dir:
+            resolved_dest_dir = os.path.abspath(os.path.expanduser(dest_dir))
+        else:
+            try:
+                model_type_paths = folder_paths.get_folder_paths(model_type)
+                resolved_dest_dir = model_type_paths[0] if model_type_paths else os.path.join(folder_paths.models_dir, model_type)
+            except Exception:
+                resolved_dest_dir = os.path.join(folder_paths.models_dir, model_type)
+
         # 调用下载方法
         local_dir = gateway.download_with_sdk(
             model_id=model_id,
             model_type=model_type,
+            dest_dir=resolved_dest_dir,
         )
         
         log.info(f"Model downloaded successfully to: {local_dir}")
@@ -657,7 +671,8 @@ async def download_model(request):
             "data": {
                 "model_id": model_id,
                 "model_type": model_type,
-                "local_dir": local_dir
+                "local_dir": local_dir,
+                "dest_dir": resolved_dest_dir
             },
             "message": f"Model '{model_id}' downloaded successfully"
         })
