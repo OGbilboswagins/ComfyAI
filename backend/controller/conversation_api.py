@@ -692,3 +692,74 @@ async def download_model(request):
             "success": False,
             "message": f"Failed to download model: {str(e)}"
         })
+
+
+@server.PromptServer.instance.routes.get("/api/model-suggests")
+async def model_suggests(request):
+    """
+    Get model suggest list by keyword
+    """
+    log.info("Received model-suggests request")
+    try:
+        keyword = request.query.get('keyword')
+        if not keyword:
+            return web.json_response({
+                "success": False,
+                "message": "Missing required parameter: keyword"
+            })
+
+        # 创建ModelScope网关实例
+        gateway = ModelScopeGateway()
+
+        suggests = gateway.suggest(name=keyword, page_size=6)
+
+        list = suggests["data"] if suggests.get("data") else []
+
+        return web.json_response({
+            "success": True,
+            "data": {
+                "suggests": list,
+            },
+            "message": f"Get suggests successfully"
+        })
+        
+    except ImportError as e:
+        log.error(f"ModelScope SDK not installed: {str(e)}")
+        return web.json_response({
+            "success": False,
+            "message": "ModelScope SDK not installed. Please install with: pip install modelscope"
+        })  
+
+    except Exception as e:
+        log.error(f"Error get model suggests: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return web.json_response({
+            "success": False,
+            "message": f"Get model suggests failed: {str(e)}"
+        })
+        
+@server.PromptServer.instance.routes.get("/api/model-paths")
+async def model_paths(request):
+    """
+    Get model paths by type
+    """
+    log.info("Received model-paths request")
+    try:
+        model_paths = list(folder_paths.folder_names_and_paths.keys())
+        return web.json_response({
+            "success": True,
+            "data": {
+                "paths": model_paths,
+            },
+            "message": f"Get paths successfully"
+        })
+        
+    except Exception as e:
+        log.error(f"Error get model path: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return web.json_response({
+            "success": False,
+            "message": f"Get model failed: {str(e)}"
+        })

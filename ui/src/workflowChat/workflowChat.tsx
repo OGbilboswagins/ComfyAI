@@ -10,7 +10,7 @@
 // Licensed under the MIT License.
 
 import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import { Message } from "../types/types";
+import { Message, UploadedImage } from "../types/types";
 import { WorkflowChatAPI } from "../apis/workflowChatApi";
 import { ChatHeader } from "../components/chat/ChatHeader";
 import { ChatInput, ChatInputRef } from "../components/chat/ChatInput";
@@ -18,7 +18,6 @@ import { SelectedNodeInfo } from "../components/chat/SelectedNodeInfo";
 import { MessageList } from "../components/chat/MessageList";
 import { generateUUID } from "../utils/uuid";
 import { getInstalledNodes } from "../apis/comfyApiCustom";
-import { UploadedImage } from '../components/chat/ChatInput';
 import React from "react";
 import { debounce } from "lodash";
 import { useChatContext } from '../context/ChatContext';
@@ -436,7 +435,8 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                     content: JSON.stringify(response),
                     format: response.format,
                     finished: response.finished,
-                    name: "Assistant"
+                    name: "Assistant",
+                    ext: response.ext
                 };
 
                 if (isFirstResponse) {

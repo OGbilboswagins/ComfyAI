@@ -2,6 +2,7 @@ import { BaseMessage } from './BaseMessage';
 import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 import DebugCollapsibleCard from '../../ui/DebugCollapsibleCard';
 import Markdown from '../../ui/Markdown';
+import ModelOption from './ModelOption';
 
 interface DebugResultProps {
     content: string;
@@ -27,6 +28,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
         let checkPointId = null
         let isWorkflowUpdate = false
         let response
+        let modelSuggests = []
         try {
             response = JSON.parse(content);
             // Check for different types of checkpoints
@@ -64,6 +66,8 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                 if (workflowUpdateExt) {
                     isWorkflowUpdate = true;
                 }
+
+                modelSuggests = response.ext.find((item: any) => item.type === 'param_update')?.data?.model_suggest || []
             }
         } catch (error) {
             console.error('Failed to parse DebugResult content:', error);
@@ -125,7 +129,11 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
                     {helpText}
                 </div>
             </DebugCollapsibleCard> 
-
+            {
+                modelSuggests?.length > 0 && (
+                    <ModelOption modelSuggests={modelSuggests} />
+                )
+            }
             <div className="flex justify-end mt-2"> 
                 {/* Restore checkpoint icon */}
                 {!!checkPointId && (
@@ -142,6 +150,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
             </div>  
         </div>
     }   
+
     return (
         <BaseMessage name={name}>
             {

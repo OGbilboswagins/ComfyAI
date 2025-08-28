@@ -217,18 +217,11 @@ export function MessageList({ messages, latestInput, onOptionClick, installedNod
             }
         }
 
-        const handleScrollEnd = () => {
-            // console.log('handleScrollEnd--->', el.scrollHeight, el.scrollTop, el.clientHeight)
-            // isAutoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 1
-        }
-
         el.addEventListener('scroll', handleScroll);
-        el.addEventListener('scrollend', handleScrollEnd);
         return () => {
             resizeObserver.disconnect();
             mutationObserver.disconnect();
             el.removeEventListener('scroll', handleScroll);
-            el.removeEventListener('scrollend', handleScrollEnd);
         }
     }, [])
 

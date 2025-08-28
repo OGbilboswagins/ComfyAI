@@ -1,6 +1,7 @@
 #comfyui-copilot-plugin,
-#comfyui-copilot-modal,
-#comfyui-copilot-rewrite-expert-modal {
+#comfyui-copilot-image-upload-modal,
+#comfyui-copilot-rewrite-expert-modal,
+#comfyui-copilot-model-download-modal {
   *, ::before, ::after {
     --tw-border-spacing-x: 0;
     --tw-border-spacing-y: 0;
@@ -233,9 +234,6 @@
   .right-12 {
     right: 3rem;
   }
-  .right-14 {
-    right: 3.5rem;
-  }
   .right-2 {
     right: 0.5rem;
   }
@@ -368,6 +366,9 @@
   .mt-6 {
     margin-top: 1.5rem;
   }
+  .mt-8 {
+    margin-top: 2rem;
+  }
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
@@ -409,6 +410,9 @@
   }
   .h-1 {
     height: 0.25rem;
+  }
+  .h-1\/2 {
+    height: 50%;
   }
   .h-10 {
     height: 2.5rem;
@@ -526,6 +530,9 @@
   }
   .w-2 {
     width: 0.5rem;
+  }
+  .w-20 {
+    width: 5rem;
   }
   .w-28 {
     width: 7rem;
@@ -697,6 +704,9 @@
   }
   .items-center {
     align-items: center;
+  }
+  .justify-start {
+    justify-content: flex-start;
   }
   .justify-end {
     justify-content: flex-end;
@@ -1506,6 +1516,18 @@
   }
 }
 
+#comfyui-copilot-model-download-modal {
+  * {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+  }
+  button {
+    background-color: transparent;
+    background-image: none;
+  }
+}
+
 .hide-scrollbar {
   scrollbar-width: none;
   /* Firefox */
@@ -1773,6 +1795,11 @@
   color: rgb(113 163 242 / var(--tw-text-opacity, 1)) !important;
 }
 
+.hover\:\!text-blue-500:hover {
+  --tw-text-opacity: 1 !important;
+  color: rgb(59 130 246 / var(--tw-text-opacity, 1)) !important;
+}
+
 .hover\:\!text-gray-600:hover {
   color: color-mix(in srgb, var(--p-text-color) 60%, transparent) !important;
 }
@@ -1865,6 +1892,10 @@
   --tw-scale-x: .95;
   --tw-scale-y: .95;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.disabled\:\!text-gray-300:disabled {
+  color: color-mix(in srgb, var(--p-text-color) 30%, transparent) !important;
 }
 
 .disabled\:opacity-50:disabled {

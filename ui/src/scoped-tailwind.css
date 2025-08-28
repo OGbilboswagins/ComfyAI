@@ -1,6 +1,7 @@
 #comfyui-copilot-plugin,
-#comfyui-copilot-modal,
-#comfyui-copilot-rewrite-expert-modal {
+#comfyui-copilot-image-upload-modal,
+#comfyui-copilot-rewrite-expert-modal,
+#comfyui-copilot-model-download-modal {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -37,6 +38,19 @@
     background-image: none;
   }
 } 
+
+#comfyui-copilot-model-download-modal {
+  * {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+  }
+
+  button {
+    background-color: transparent;
+    background-image: none;
+  }
+}
 
 .hide-scrollbar {
   scrollbar-width: none;      /* Firefox */
