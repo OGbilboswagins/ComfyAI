@@ -167,7 +167,7 @@ const TabButton = ({
 );
 
 export default function WorkflowChat({ onClose, visible = true, triggerUsage = false, onUsageTriggered }: WorkflowChatProps) {
-    const { state, dispatch, isAutoScroll, showcasIng, abortControllerRef } = useChatContext();
+    const { state, dispatch, showcasIng, abortControllerRef } = useChatContext();
     const { messages, installedNodes, loading, sessionId, selectedNode, activeTab } = state;
     const messageDivRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState<string>('');
@@ -377,7 +377,6 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         if (messages?.[0]?.role === 'showcase') {
             dispatch({ type: 'CLEAR_MESSAGES' });
         }
-        isAutoScroll.current = true
         showcasIng.current = false;
         dispatch({ type: 'SET_LOADING', payload: true });
         if ((input.trim() === "" && !selectedNode) || !sessionId) return;
