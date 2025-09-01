@@ -174,7 +174,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
         
         // Always persist base URL (needed for LMStudio which may not require API key)
         localStorage.setItem('openaiBaseUrl', openaiBaseUrl);
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> mcp
         // Save or clear OpenAI API key in localStorage
         if (openaiApiKey.trim()) {
             localStorage.setItem('openaiApiKey', openaiApiKey);
@@ -276,7 +280,6 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                 <CollapsibleCard 
                     title={<h3 className="text-sm text-gray-900 dark:text-white font-medium">LLM Configuration (OpenAI / LMStudio / Custom)</h3>}
                     className='mb-4'
-                    defaultExpanded={true}
                 >
                     <div>
                         {/* API Key */}

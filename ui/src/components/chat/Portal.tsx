@@ -1,7 +1,7 @@
 // Copyright (C) 2025 AIDC-AI
 // Licensed under the MIT License.
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface PortalProps {
@@ -11,7 +11,7 @@ interface PortalProps {
 
 export function Portal({ children, container = document.body }: PortalProps) {
     const [mounted, setMounted] = useState(false);
-
+    console.log('container-->', container)
     useEffect(() => {
         setMounted(true);
         return () => setMounted(false);

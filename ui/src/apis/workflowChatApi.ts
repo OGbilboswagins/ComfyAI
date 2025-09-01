@@ -354,7 +354,7 @@ export namespace WorkflowChatAPI {
       // Add OpenAI configuration headers if available
       if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
         try {
-          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
+          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey as string, rsaPublicKey as string);
           headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
           headers['Openai-Base-Url'] = openaiBaseUrl;
         } catch (error) {
@@ -404,7 +404,7 @@ export namespace WorkflowChatAPI {
     // Add OpenAI configuration headers if available
     if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
       try {
-        const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
+        const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey as string, rsaPublicKey as string);
         headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
         headers['Openai-Base-Url'] = openaiBaseUrl;
       } catch (error) {
@@ -455,7 +455,7 @@ export namespace WorkflowChatAPI {
       // Add OpenAI configuration headers if available
       if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
         try {
-          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
+          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey as string, rsaPublicKey as string);
           headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
           headers['Openai-Base-Url'] = openaiBaseUrl;
         } catch (error) {
@@ -523,7 +523,7 @@ export namespace WorkflowChatAPI {
       // Add OpenAI configuration headers if available
       if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
         try {
-          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey, rsaPublicKey);
+          const encryptedApiKey = await encryptWithRsaPublicKey(openaiApiKey as string, rsaPublicKey as string);
           headers['Encrypted-Openai-Api-Key'] = encryptedApiKey;
           headers['Openai-Base-Url'] = openaiBaseUrl;
         } catch (error) {
@@ -616,12 +616,12 @@ export namespace WorkflowChatAPI {
     };
     
     const openaiApiKey = localStorage.getItem('openaiApiKey');
-    if(openaiApiKey) {
+    if (openaiApiKey) {
       headers['Openai-Api-Key'] = openaiApiKey;
     }
     
     const openaiBaseUrl = localStorage.getItem('openaiBaseUrl');
-    if(openaiBaseUrl) {
+    if (openaiBaseUrl) {
       headers['Openai-Base-Url'] = openaiBaseUrl;
     }
 
