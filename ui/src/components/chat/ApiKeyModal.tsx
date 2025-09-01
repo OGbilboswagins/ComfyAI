@@ -1,8 +1,8 @@
 /*
  * @Author: 晴知 qingli.hql@alibaba-inc.com
  * @Date: 2024-12-12 21:28:03
- * @LastEditors: ai-business-hql qingli.hql@alibaba-inc.com
- * @LastEditTime: 2025-06-18 20:03:12
+ * @LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
+ * @LastEditTime: 2025-09-01 19:49:52
  * @FilePath: /comfyui_copilot/ui/src/components/chat/ApiKeyModal.tsx
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBK                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                 <div className="mb-1"><strong>🔗 For LMStudio:</strong> http://localhost:1234/v1 (leave API key empty)</div>
@@ -174,11 +174,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
         
         // Always persist base URL (needed for LMStudio which may not require API key)
         localStorage.setItem('openaiBaseUrl', openaiBaseUrl);
-<<<<<<< HEAD
-
-=======
         
->>>>>>> mcp
         // Save or clear OpenAI API key in localStorage
         if (openaiApiKey.trim()) {
             localStorage.setItem('openaiApiKey', openaiApiKey);
