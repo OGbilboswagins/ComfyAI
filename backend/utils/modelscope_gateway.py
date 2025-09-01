@@ -2,7 +2,7 @@
 Author: ai-business-hql ai.bussiness.hql@gmail.com
 Date: 2025-08-26 15:06:47
 LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
-LastEditTime: 2025-08-26 16:00:45
+LastEditTime: 2025-09-01 19:31:03
 FilePath: /ComfyUI-Copilot/backend/utils/modelscope_gateway.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -94,7 +94,6 @@ class ModelScopeGateway:
         self,
         model_id: str,
         model_type: str,
-        revision: Optional[str] = None,
         dest_dir: Optional[str] = None,
     ) -> str:
         """
@@ -123,7 +122,7 @@ class ModelScopeGateway:
         except Exception as e:
             raise RuntimeError(f"Failed to prepare destination directory for download: {e}") from e
 
-        local_dir = snapshot_download(model_id, cache_dir=cache_dir, revision=revision)
+        local_dir = snapshot_download(model_id, cache_dir=cache_dir)
         return local_dir
     
     def test_modelscope_gateway(self):

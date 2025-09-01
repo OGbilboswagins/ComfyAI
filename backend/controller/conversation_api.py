@@ -18,6 +18,7 @@ import base64
 
 # Import the MCP client function
 import os
+import shutil
 
 from ..service.debug_agent import debug_workflow_errors
 from ..dao.workflow_table import save_workflow_data, get_workflow_data_by_id, update_workflow_ui_by_id
@@ -848,6 +849,41 @@ async def download_model(request):
                 # 下载完成
                 progress_callback.end(success=True)
                 log.info(f"Model downloaded successfully to: {local_dir}")
+
+                # 下载后遍历目录，将所有重要权重/资源文件移动到最外层（与目录同级，即 resolved_dest_dir）
+                try:
+                    moved_count = 0
+                    allowed_exts = {
+                        ".safetensors", ".ckpt", ".pt", ".pth", ".bin"
+                        # ".msgpack", ".json", ".yaml", ".yml", ".toml", ".png", ".onnx"
+                    }
+                    for root, dirs, files in os.walk(local_dir):
+                        for name in files:
+                            ext = os.path.splitext(name)[1].lower()
+                            if ext in allowed_exts:
+                                src_path = os.path.join(root, name)
+                                target_dir = resolved_dest_dir
+                                os.makedirs(target_dir, exist_ok=True)
+                                target_path = os.path.join(target_dir, name)
+                                # 如果已经在目标目录则跳过
+                                if os.path.abspath(os.path.dirname(src_path)) == os.path.abspath(target_dir):
+                                    continue
+                                # 处理重名情况：自动追加 _1, _2 ...
+                                if os.path.exists(target_path):
+                                    base, ext_real = os.path.splitext(name)
+                                    idx = 1
+                                    while True:
+                                        candidate = f"{base}_{idx}{ext_real}"
+                                        candidate_path = os.path.join(target_dir, candidate)
+                                        if not os.path.exists(candidate_path):
+                                            target_path = candidate_path
+                                            break
+                                        idx += 1
+                                shutil.move(src_path, target_path)
+                                moved_count += 1
+                    log.info(f"Moved {moved_count} files with extensions {sorted(list(allowed_exts))} to: {resolved_dest_dir}")
+                except Exception as move_err:
+                    log.error(f"Post-download move failed: {move_err}")
                 
             except Exception as e:
                 progress_callback.fail(str(e))

@@ -71,9 +71,9 @@ const ModelOption: React.FC<IProps> = (props) => {
       model_id: modelId,
       model_type: !!modelType && modelType !== '' ? modelType : selectedPathMap[id],
     }
-    if (!!selectedPathMap[id] && selectedPathMap[id] !== '') {
-      body['dest_dir'] = selectedPathMap[id]
-    }
+    // if (!!selectedPathMap[id] && selectedPathMap[id] !== '') {
+    //   body['dest_dir'] = selectedPathMap[id]
+    // }
     const response = await fetch('/api/download-model', {
       method: 'POST',
       headers: {
