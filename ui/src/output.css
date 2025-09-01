@@ -1,7 +1,8 @@
 #comfyui-copilot-plugin,
 #comfyui-copilot-image-upload-modal,
 #comfyui-copilot-rewrite-expert-modal,
-#comfyui-copilot-model-download-modal {
+#comfyui-copilot-model-download-modal,
+#comfyui-copilot-model-download {
   *, ::before, ::after {
     --tw-border-spacing-x: 0;
     --tw-border-spacing-y: 0;
@@ -366,9 +367,6 @@
   .mt-6 {
     margin-top: 1.5rem;
   }
-  .mt-8 {
-    margin-top: 2rem;
-  }
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
@@ -530,9 +528,6 @@
   }
   .w-2 {
     width: 0.5rem;
-  }
-  .w-20 {
-    width: 5rem;
   }
   .w-28 {
     width: 7rem;
@@ -1510,18 +1505,6 @@
     vertical-align: middle;
   }
   /* Specific resets for buttons that might be affected by ComfyUI styles */
-  button {
-    background-color: transparent;
-    background-image: none;
-  }
-}
-
-#comfyui-copilot-model-download-modal {
-  * {
-    box-sizing: border-box;
-    border-width: 0;
-    border-style: solid;
-  }
   button {
     background-color: transparent;
     background-image: none;

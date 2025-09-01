@@ -3,6 +3,7 @@
 import { createContext, useContext, useReducer, Dispatch, useRef, useEffect, useState } from 'react';
 import { Message } from '../types/types';
 import { app } from '../utils/comfyapp';
+import { ConfigProvider } from 'antd';
 
 // Add tab type definition
 export type TabType = 'chat' | 'parameter-debug';
@@ -106,6 +107,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [modelDownloadMap, setModelDownloadMap] = useState<Record<string, DownloadProgress>>({});
   const currentDownloadingId = useRef<string[]>([]);
 
+  const isDark = app.extensionManager.setting.get('Comfy.ColorPalette') === 'dark';
+
   const getProgress = async (id: string) => {
     const response = await fetch(`/api/download-progress/${id}`)
     const res = await response.json()
@@ -124,7 +127,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             percentage: response.percentage,
             status: response.status
           }
-          if (response.status === 'finished') {
+          if (response.status === 'completed') {
             currentDownloadingId?.current?.splice(currentDownloadingId?.current?.indexOf(response.id), 1)
           }
         }
@@ -170,9 +173,37 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [state.messages, state.sessionId]);
 
   return (
-    <ChatContext.Provider value={{ state, dispatch, showcasIng, abortControllerRef, modelDownloadMap, addDownloadId }}>
-      {children}
-    </ChatContext.Provider>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorBgContainer: isDark ? '#18181b' : '#fff',
+          colorTextDescription: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
+        },
+        components: {
+          Table: {
+            borderColor: isDark ? '#666' : '#f0f0f0',
+            headerBg: isDark ? '#333' : '#fafafa',
+            headerColor: isDark ? '#fff' : '#18181b',
+            rowHoverBg: isDark ? '#333' : '#fafafa',
+          },
+          Pagination: {
+            itemBg: isDark ? 'rgb(24, 24, 27)' : '#fff',  
+            itemActiveBg: isDark ? 'rgb(24, 24, 27)' : '#fff',  
+            colorText: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)',
+            colorBgTextHover: isDark ? '#555' : 'rgba(0,0,0,0.06)',
+            colorPrimary: isDark ? '#aaa' : '#1677ff',
+            colorPrimaryHover: isDark ? '#999' : '#4096ff',
+          },
+          Form: {
+            labelColor: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)'
+          }
+        }
+      }}
+    >
+      <ChatContext.Provider value={{ state, dispatch, showcasIng, abortControllerRef, modelDownloadMap, addDownloadId }}>
+        {children}
+      </ChatContext.Provider>
+    </ConfigProvider>
   );
 }
 

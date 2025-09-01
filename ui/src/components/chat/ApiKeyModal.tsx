@@ -276,7 +276,6 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                 <CollapsibleCard 
                     title={<h3 className="text-sm text-gray-900 dark:text-white font-medium">LLM Configuration (OpenAI / LMStudio / Custom)</h3>}
                     className='mb-4'
-                    defaultExpanded={true}
                 >
                     <div>
                         {/* API Key */}

@@ -1,7 +1,8 @@
 #comfyui-copilot-plugin,
 #comfyui-copilot-image-upload-modal,
 #comfyui-copilot-rewrite-expert-modal,
-#comfyui-copilot-model-download-modal {
+#comfyui-copilot-model-download-modal,
+#comfyui-copilot-model-download {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -33,19 +34,6 @@
   }
 
   /* Specific resets for buttons that might be affected by ComfyUI styles */
-  button {
-    background-color: transparent;
-    background-image: none;
-  }
-} 
-
-#comfyui-copilot-model-download-modal {
-  * {
-    box-sizing: border-box;
-    border-width: 0;
-    border-style: solid;
-  }
-
   button {
     background-color: transparent;
     background-image: none;

@@ -3,6 +3,8 @@ import RestoreCheckpoint from '../../ui/RestoreCheckpoint';
 import DebugCollapsibleCard from '../../ui/DebugCollapsibleCard';
 import Markdown from '../../ui/Markdown';
 import ModelOption from './ModelOption';
+import { Portal } from '../Portal';
+import { useRef } from 'react';
 
 interface DebugResultProps {
     content: string;
@@ -12,17 +14,7 @@ interface DebugResultProps {
 }
 
 export function DebugResult({ content, name = 'Assistant', avatar, format = 'markdown' }: DebugResultProps) {
-    const formatContent = (text: string) => {
-        if (format === 'markdown') {
-            // Simple markdown rendering for basic formatting
-            return text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded">$1</code>')
-                .replace(/\n/g, '<br/>');
-        }
-        return text;
-    };
+    const ref = useRef<HTMLDivElement>(null)
     
     const renderContent = () => {
         let checkPointId = null
@@ -109,7 +101,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
             </div>
         ) : null
 
-        return <div className="sticky top-0 left-0 w-full bg-gray-100 p-4 rounded-lg overflow-hidden">
+        return <div ref={ref} className="sticky top-0 left-0 w-full bg-gray-100 p-4 rounded-lg overflow-hidden">
             <DebugCollapsibleCard 
                 title={title} 
                 isWorkflowUpdate={isWorkflowUpdate} 
@@ -131,7 +123,7 @@ export function DebugResult({ content, name = 'Assistant', avatar, format = 'mar
             </DebugCollapsibleCard> 
             {
                 modelSuggests?.length > 0 && (
-                    <ModelOption modelSuggests={modelSuggests} />
+                    <ModelOption modelSuggests={modelSuggests} showPagination={false} />
                 )
             }
             <div className="flex justify-end mt-2"> 

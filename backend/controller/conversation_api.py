@@ -754,7 +754,7 @@ async def download_model(request):
         # 计算目标目录：优先使用传入的dest_dir，否则使用ComfyUI的models目录下对应类型
         resolved_dest_dir = None
         if dest_dir:
-            resolved_dest_dir = os.path.abspath(os.path.expanduser(dest_dir))
+            resolved_dest_dir = os.path.abspath(os.path.expanduser(f"models/{dest_dir}"))
         else:
             try:
                 model_type_paths = folder_paths.get_folder_paths(model_type)
@@ -964,6 +964,7 @@ async def model_suggests(request):
     log.info("Received model-suggests request")
     try:
         keyword = request.query.get('keyword')
+
         if not keyword:
             return web.json_response({
                 "success": False,
@@ -973,7 +974,7 @@ async def model_suggests(request):
         # 创建ModelScope网关实例
         gateway = ModelScopeGateway()
 
-        suggests = gateway.suggest(name=keyword, page_size=6)
+        suggests = gateway.suggest(name=keyword)
 
         list = suggests["data"] if suggests.get("data") else []
 
@@ -981,6 +982,7 @@ async def model_suggests(request):
             "success": True,
             "data": {
                 "suggests": list,
+                "total": len(list)
             },
             "message": f"Get suggests successfully"
         })
