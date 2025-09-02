@@ -53,17 +53,22 @@ const ModelOption: React.FC<IProps> = (props) => {
     const response = await fetch('/api/model-paths')
     const res = await response.json()
     setModelPaths(res?.data?.paths || [])
-    let selectedPaths: Record<number, string> = {}
-    modelSuggests?.forEach(item => { 
-      const index = res?.data?.paths?.findIndex((path: string) => item.model_type === path)
-      selectedPaths[item.Id] = res?.data?.paths?.[index === -1 ? 0 : index] || ''
-    })
-    setSelectedPathMap(selectedPaths)
   }
 
   useEffect(() => {
     getModelPaths()
   }, [])
+  
+  useEffect(() => {
+    if (!modelPaths || modelPaths.length === 0) 
+      return
+    let selectedPaths: Record<number, string> = {}
+    modelSuggests?.forEach(item => { 
+      const index = modelPaths.findIndex((path: string) => item.model_type === path)
+      selectedPaths[item.Id] = modelPaths[index === -1 ? 0 : index] || ''
+    })
+    setSelectedPathMap(selectedPaths)
+  }, [modelSuggests, modelPaths])
 
   const handleDownload = async (id: number, modelId: string, modelType: string) => {
     let body: Record<string, string | number> = {
