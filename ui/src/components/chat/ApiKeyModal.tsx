@@ -259,13 +259,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                             className='mb-4'
                         />
                     </div>
-                    {/* <div className="text-xs text-gray-600 dark:text-gray-300">
-                        <span>Don't have an API key? </span>
+                    {/* <div className="text-xs text-gray-600">
                         <a 
-                            href="https://form.typeform.com/to/tkg91K8D"
+                            href="https://github.com/comfyanonymous/ComfyUI_Copilot"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                         >
                             Click here to request one
                         </a>

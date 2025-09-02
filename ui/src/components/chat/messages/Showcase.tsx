@@ -1,7 +1,5 @@
-import showcases from '../../../../../public/showcase/showcase.json';
-import showcases_en from '../../../../../public/showcase/showcase_en.json';
 import { useChatContext } from '../../../context/ChatContext';
-import { app } from '../../../utils/comfyapp';
+import useLanguage from '../../../hooks/useLanguage';
 import { generateUUID } from '../../../utils/uuid';
 import BeautifyCard from '../../ui/BeautifyCard';
 import { BaseMessage } from './BaseMessage';
@@ -27,6 +25,12 @@ const ICONS = [
 const Showcase: React.FC<IProps> = ({ scrollRef }) => {
   const { dispatch, showcasIng } = useChatContext();
 
+  const {
+    showcase_title,
+    showcase_subtitle,
+    showcase_list
+  } = useLanguage()
+  
   const doStreamString = (data: any, isUser: boolean = false, cb: () => void = () => {}) => {
     let end = 0;
     const messageId = generateUUID();
@@ -80,34 +84,23 @@ const Showcase: React.FC<IProps> = ({ scrollRef }) => {
     doStreamString(data, false, cb);
   }
 
-  const getShowcaes = () => {
-    const language = app.extensionManager.setting.get('Comfy.Locale')
-    let list = showcases_en
-    let title = ''
-    switch (language) {
-      case 'zh':
-        title = '欢迎使用ComfyUI Copilot!'
-        list = showcases
-        break;
-      case 'en':
-      default:
-        title = 'Welcome to ComfyUI Copilot!'
-        list = showcases_en
-        break;
-    }
-    return {
-      title,
-      list
-    };
-  }
-
   return <BaseMessage name='showcase'>
     <div className='bg-gray-100 p-4 rounded-lg'>
-      <div className='text-xl text-gray-900 font-extrabold text-center mb-4'>
-        {getShowcaes()?.title}
+      <div className='text-xl text-gray-900 font-extrabold text-center mb-2'>
+        {showcase_title}
       </div>
+      {/* <div className='w-full mb-4 flex justify-center items-center'>
+        <a 
+          className='text-xs text-gray-600 font-normal text-center'
+          href='https://github.com/comfyanonymous/ComfyUI_Copilot'
+          target='_blank'
+          rel='noopener noreferrer'
+        >
+          {showcase_subtitle}
+        </a>
+      </div> */}
       {
-        getShowcaes()?.list?.map((item, index) => <div 
+        showcase_list?.map((item, index) => <div 
           key={index.toString()}
           onClick={() => {
             if (scrollRef?.current) {

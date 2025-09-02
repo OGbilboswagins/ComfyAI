@@ -177,9 +177,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       theme={{
         token: {
           colorBgContainer: isDark ? '#18181b' : '#fff',
+          colorBgElevated: isDark ? '#18181b' : '#fff',
+          colorText: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)',
           colorTextDescription: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
+          colorTextPlaceholder: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)',
         },
         components: {
+          Select: {
+            optionSelectedBg: isDark ? '#333' : '#e6f4ff',
+            optionActiveBg: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'
+          },
           Table: {
             borderColor: isDark ? '#666' : '#f0f0f0',
             headerBg: isDark ? '#333' : '#fafafa',
@@ -196,6 +203,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           },
           Form: {
             labelColor: isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.88)'
+          },
+          Button: {
+            primaryShadow: isDark ? '0 2px 0 rgba(5,145,255,0.1)' : '0 2px 0 rgba(5,145,255,0.1)',
           }
         }
       }}
