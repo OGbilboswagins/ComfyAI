@@ -496,7 +496,7 @@ Start by validating the workflow to see its current state.""",
         agent.handoffs = [link_agent, workflow_bugfix_default_agent, parameter_agent]
 
         # Initial message to start the debugging process
-        messages = [{"role": "user", "content": f"Validate and debug this ComfyUI workflow. Session ID: {session_id}"}]
+        messages = [{"role": "user", "content": f"Validate and debug this ComfyUI workflow."}]
             
         log.info(f"-- Starting workflow validation process for session {session_id}")
 
