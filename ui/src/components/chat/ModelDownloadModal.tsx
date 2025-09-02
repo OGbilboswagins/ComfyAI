@@ -3,6 +3,7 @@ import { XIcon } from "./Icons";
 import { Input } from 'antd';
 import { debounce } from "lodash";
 import ModelOption from "./messages/ModelOption";
+import { WorkflowChatAPI } from "../../apis/workflowChatApi";
 import type { InputRef } from 'antd';
 
 interface IProps {
@@ -23,6 +24,11 @@ const ModelDownloadModal: React.FC<IProps> = (props) => {
   const getModelSuggests = async (keyword: string) => {
     setLoading(true)
     try {
+      WorkflowChatAPI.trackEvent({
+        event_type: 'model_search',
+        message_type: 'model',
+        data: { keyword }
+      })
       const response = await fetch(`/api/model-suggests?keyword=${keyword}`)
       const data = await response.json()
       setModelSuggests(data?.data?.suggests || [])

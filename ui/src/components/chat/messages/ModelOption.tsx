@@ -5,6 +5,7 @@ import { useChatContext } from "../../../context/ChatContext";
 import LoadingIcon from "../../ui/LoadingIcon";
 import { Table, type TableProps } from 'antd';
 import TableEmpty from "../../ui/TableEmpty";
+import { WorkflowChatAPI } from "../../../apis/workflowChatApi";
 interface IProps {
   modelSuggests: any[]
   loading?: boolean
@@ -71,6 +72,11 @@ const ModelOption: React.FC<IProps> = (props) => {
   }, [modelSuggests, modelPaths])
 
   const handleDownload = async (id: number, modelId: string, modelType: string) => {
+    WorkflowChatAPI.trackEvent({
+      event_type: 'model_download_trigger',
+      message_type: 'model',
+      data: { id, model_id: modelId, model_type: modelType || selectedPathMap[id] }
+    })
     let body: Record<string, string | number> = {
       id,
       model_id: modelId,

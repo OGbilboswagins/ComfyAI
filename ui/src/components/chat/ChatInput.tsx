@@ -165,6 +165,11 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
     }, []);
 
     const handleDebugClick = () => {
+        WorkflowChatAPI.trackEvent({
+            event_type: 'debug_icon_click',
+            message_type: 'debug',
+            data: {}
+        })
         if (onAddDebugMessage) {
             if (messages?.[0]?.role === 'showcase') {
                 dispatch({ type: 'CLEAR_MESSAGES' });
@@ -214,6 +219,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
                     buttonClass="rounded-md bg-white border-none 
                                 hover:!bg-gray-100"
                     buttonContent={<PackageIcon className="h-5 w-5" />}
+                    onOpen={() => {
+                        WorkflowChatAPI.trackEvent({
+                            event_type: 'model_download_icon_click',
+                            message_type: 'ui',
+                            data: {}
+                        })
+                    }}
                     renderModal={(onClose) => <PackageDownloadModal onClose={onClose} />}
                 />
                 <ButtonWithModal
