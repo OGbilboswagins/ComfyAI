@@ -22,6 +22,8 @@ import Modal from '../ui/Modal';
 import { debounce } from 'lodash';
 import useCountDown from '../../hooks/useCountDown';
 import LoadingIcon from '../ui/Loading-icon';
+import useLanguage from '../../hooks/useLanguage';
+import StartLink from '../ui/StartLink';
 interface ApiKeyModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -48,6 +50,8 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
     const [verifyingKey, setVerifyingKey] = useState(false);
     const [verificationResult, setVerificationResult] = useState<{success: boolean, message: string} | null>(null);
     const [rsaPublicKey, setRsaPublicKey] = useState<string | null>(null);
+
+    const { apikeymodel_title } = useLanguage();
 
     useEffect(() => {
         setApiKey(initialApiKey);
@@ -259,15 +263,9 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
                             className='mb-4'
                         />
                     </div>
-                    {/* <div className="text-xs text-gray-600">
-                        <a 
-                            href="https://github.com/comfyanonymous/ComfyUI_Copilot"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Click here to request one
-                        </a>
-                    </div> */}
+                    <StartLink>
+                        {apikeymodel_title}
+                    </StartLink>
                 </div>
                 
                 {/* LLM Configuration */}

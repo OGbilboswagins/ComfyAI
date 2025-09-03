@@ -2,7 +2,8 @@
 #comfyui-copilot-image-upload-modal,
 #comfyui-copilot-rewrite-expert-modal,
 #comfyui-copilot-model-download-modal,
-#comfyui-copilot-model-download {
+#comfyui-copilot-model-download
+#comfyui-copilot-start-pop-view {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;

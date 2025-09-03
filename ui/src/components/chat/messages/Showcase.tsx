@@ -2,6 +2,7 @@ import { useChatContext } from '../../../context/ChatContext';
 import useLanguage from '../../../hooks/useLanguage';
 import { generateUUID } from '../../../utils/uuid';
 import BeautifyCard from '../../ui/BeautifyCard';
+import StartLink from '../../ui/StartLink';
 import { BaseMessage } from './BaseMessage';
 
 interface IProps { 
@@ -89,16 +90,11 @@ const Showcase: React.FC<IProps> = ({ scrollRef }) => {
       <div className='text-xl text-gray-900 font-extrabold text-center mb-2'>
         {showcase_title}
       </div>
-      {/* <div className='w-full mb-4 flex justify-center items-center'>
-        <a 
-          className='text-xs text-gray-600 font-normal text-center'
-          href='https://github.com/comfyanonymous/ComfyUI_Copilot'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
+      <div className='w-full mb-4 flex justify-center items-center'>
+        <StartLink>
           {showcase_subtitle}
-        </a>
-      </div> */}
+        </StartLink>
+      </div>
       {
         showcase_list?.map((item, index) => <div 
           key={index.toString()}

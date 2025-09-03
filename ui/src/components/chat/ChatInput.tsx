@@ -132,11 +132,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
     const loadModels = async () => {
         try {
             const result = await WorkflowChatAPI.listModels();
+            onModelChange(result.models[0].name);
             setModels(result.models);
         } catch (error) {
             console.error('Failed to load models:', error);
             // Fallback to default models if API fails
-            setModels([{
+            const list = [{
                 "label": "gemini-2.5-flash",
                 "name": "gemini-2.5-flash",
                 "image_enable": true
@@ -150,7 +151,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
                 "label": "gpt-4.1",
                 "name": "gpt-4.1-2025-04-14-GlobalStandard",
                 "image_enable": true,
-            }]);
+            }]
+            onModelChange(list[0].name);
+            setModels(list);
         }
     };
 

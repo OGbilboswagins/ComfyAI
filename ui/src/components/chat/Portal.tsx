@@ -7,9 +7,10 @@ import { createPortal } from 'react-dom';
 interface PortalProps {
     children: ReactNode;
     container?: HTMLElement;
+    className?: string;
 }
 
-export function Portal({ children, container = document.body }: PortalProps) {
+export function Portal({ children, container = document.body, className = '' }: PortalProps) {
     const [mounted, setMounted] = useState(false);
     console.log('container-->', container)
     useEffect(() => {
@@ -23,7 +24,7 @@ export function Portal({ children, container = document.body }: PortalProps) {
 
     // 创建一个包装器来应用样式
     const portalContent = (
-        <div className="relative z-[1000]">
+        <div className={`relative z-[1000] ${className}`}>
             {children}
         </div>
     );
