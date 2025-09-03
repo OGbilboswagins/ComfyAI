@@ -71,10 +71,7 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
         ) as server:
             # tools = await server.list_tools()
             
-            # Get model from environment or use default
-            model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
-            if config and config.get("model_select") and config.get("model_select") != "":
-                model_name = config.get("model_select")
+            # Model selection is handled inside create_agent via config / kwargs precedence
             
             # 创建workflow_rewrite_agent实例 (session_id通过context获取)
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent()
@@ -134,7 +131,6 @@ You must adhere to the following constraints to complete the task:
      - Alternative approaches if the extension is problematic
                 """,
                 mcp_servers=[server],
-                model=model_name,
                 handoffs=[handoff_rewrite],
                 config=config
             )

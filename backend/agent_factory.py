@@ -2,7 +2,7 @@
 Author: ai-business-hql qingli.hql@alibaba-inc.com
 Date: 2025-07-31 19:38:08
 LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
-LastEditTime: 2025-08-25 21:23:10
+LastEditTime: 2025-09-03 11:00:57
 FilePath: /comfyui_copilot/backend/agent_factory.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -65,9 +65,17 @@ def create_agent(**kwargs) -> Agent:
         default_headers=default_headers,
     )
 
-    default_model_name = os.environ.get("OPENAI_MODEL", "gemini-2.5-flash")
-    model_name = kwargs.pop("model") or default_model_name
+    # Determine model with proper precedence:
+    # 1) Explicit selection from config (model_select from frontend)
+    # 2) Explicit kwarg 'model' (call-site override)
+    model_from_config = (config or {}).get("model_select")
+    model_from_kwargs = kwargs.pop("model", None)
+
+    model_name = model_from_config or model_from_kwargs or "gemini-2.5-flash"
     model = OpenAIChatCompletionsModel(model_name, openai_client=client)
+
+    # Safety: ensure no stray 'model' remains in kwargs to avoid duplicate kwarg errors
+    kwargs.pop("model", None)
 
     if config.get("max_tokens"):
         return Agent(model=model, model_settings=ModelSettings(max_tokens=config.get("max_tokens") or 8192), **kwargs)
