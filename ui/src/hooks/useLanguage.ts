@@ -19,7 +19,7 @@ const useLanguage = () => {
             showcase_title = '欢迎使用ComfyUI Copilot!'
             showcase_subtitle = '已有 2600+ 开发者加入🚀，您的Star是我们持续维护和升级的动力， 👉🏻立即Star。'
             showcase_list = showcases
-            apikeymodel_title = '点 Star 支持我们，解锁更多酷炫功能路线图！'
+            apikeymodel_title = '🌟 免费羊毛可持续薅，点个Star服务器不跑路！每个Star都是我们续命的氧气！'
             chatinput_title = '您的Star=我们的动力'
             startpopview_title = '加入我们由 2600+ 位 Star 支持者组成的大家庭 \n 您的 Star 让我们更强大！'
             startpopview_join = '点赞加入我们！'
@@ -29,7 +29,7 @@ const useLanguage = () => {
             showcase_title = 'Welcome to ComfyUI Copilot!'
             showcase_subtitle = '2600+ developers joined🚀, Star us to support continuous updates, 👉🏻Star now.'
             showcase_list = showcases_en
-            apikeymodel_title = 'Star us to unlock more cool features!'
+            apikeymodel_title = '💖 Every ⭐ is our lifeline! Tap that star button to keep the magic alive!'
             chatinput_title = 'Your Star = Our Power'
             startpopview_title = `Join our family of 2600+ Star supporiters \n Your Star makes us stronger!`
             startpopview_join = 'Join Us! Start Now!'
