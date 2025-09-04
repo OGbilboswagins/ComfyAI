@@ -38,6 +38,7 @@ import { mergeByKeyCombine } from "../utils/tools";
 import useLanguage from "../hooks/useLanguage";
 import StartLink from "../components/ui/StartLink";
 import StartPopView from "../components/ui/StartPopView";
+import { LocalStorageKeys, setLocalStorage } from "../utils/localStorageManager";
 
 const BASE_URL = config.apiBaseUrl
 
@@ -874,6 +875,10 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
         dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
     };
 
+    const handleModelChange = (model: string) => {
+        setSelectedModel(model);
+        setLocalStorage(LocalStorageKeys.MODELS_POP_VIEW_SELECTED, model);
+    };
     // Initialize the parameter debug tab component with lazy loading
     // const parameterDebugTabComponent = React.useMemo(() => (
     //     <ParameterDebugTab />
@@ -969,7 +974,7 @@ export default function WorkflowChat({ onClose, visible = true, triggerUsage = f
                         uploadedImages={uploadedImages}
                         onRemoveImage={handleRemoveImage}
                         selectedModel={selectedModel}
-                        onModelChange={setSelectedModel}
+                        onModelChange={handleModelChange}
                         onStop={handleStop}
                         onAddDebugMessage={handleAddMessage}
                     />

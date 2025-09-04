@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import useLanguage from "../../hooks/useLanguage";
 import { github_url } from "../../config";
+import { getLocalStorage, LocalStorageKeys, setLocalStorage } from "../../utils/localStorageManager";
 
 export const ACCEPT_EVENT = 'accept_event'
 
@@ -11,11 +12,11 @@ const enum TIME_KEY {
 
 const TIME_MAP = {
   [TIME_KEY.AUTO]: {
-    name: 'auto_time',
+    name: LocalStorageKeys.START_POP_VIEW_AUTO_TIME,
     offset: 1000 * 60 * 60 * 24 * 3 // 3 days
   },
   [TIME_KEY.ACCEPT]: {
-    name: 'accept_time',
+    name: LocalStorageKeys.START_POP_VIEW_ACCEPT_TIME,
     offset: 1000 * 60 * 60 * 24 * 1 // 1 days
   }
 }
@@ -37,9 +38,9 @@ const StartPopView = () => {
   const checkTime = (key: TIME_KEY) => {
     const { name, offset } = TIME_MAP[key]
     const currentTime = new Date().getTime()
-    const time = localStorage.getItem(name);
+    const time = getLocalStorage(name);
     if (!time || (!!Number(time) && currentTime - Number(time) > offset)) {
-      localStorage.setItem(name, currentTime.toString());
+      setLocalStorage(name, currentTime.toString());
       setShowModal(true);
     }
   }

@@ -12,6 +12,7 @@ import ButtonWithModal from '../ui/ButtonWithModal';
 import { UploadedImage } from '../../types/types';
 import ImageUploadModal from './ImageUploadModal';
 import PackageDownloadModal from './ModelDownloadModal';
+import { getLocalStorage, LocalStorageKeys, setLocalStorage } from '../../utils/localStorageManager';
 
 // Debug icon component
 const DebugIcon = ({ className }: { className: string }) => (
@@ -128,32 +129,55 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
         }
     }, [input]);
 
+    const updateModels = (list: {label: string; name: string; image_enable: boolean }[]) => {
+        const selectedModel = getLocalStorage(LocalStorageKeys.MODELS_POP_VIEW_SELECTED);
+        // 之前记录的能在列表中找到，使用之前的记录。否则使用列表第一项重置
+        if (selectedModel && list.findIndex(model => model.name === selectedModel) !== -1) {
+            onModelChange(selectedModel)
+        } else {
+            onModelChange(list[0].name)
+        }
+        setLocalStorage(LocalStorageKeys.MODELS_POP_VIEW_LIST, JSON.stringify(list));
+        setModels([...list,
+            {
+                "label": "reload",
+                "name": "reload",
+                "image_enable": true
+            }
+        ]);
+    }
+
     // Function to load models from API
     const loadModels = async () => {
         try {
             const result = await WorkflowChatAPI.listModels();
-            onModelChange(result.models[0].name);
-            setModels(result.models);
+            updateModels(result.models);
         } catch (error) {
             console.error('Failed to load models:', error);
             // Fallback to default models if API fails
-            const list = [{
-                "label": "gemini-2.5-flash",
-                "name": "gemini-2.5-flash",
-                "image_enable": true
-            },
-            {
-                "label": "gpt-4.1-mini",
-                "name": "gpt-4.1-mini-2025-04-14-GlobalStandard",
-                "image_enable": true,
-            },
-            {
-                "label": "gpt-4.1",
-                "name": "gpt-4.1-2025-04-14-GlobalStandard",
-                "image_enable": true,
-            }]
-            onModelChange(list[0].name);
-            setModels(list);
+            const list = [
+                {
+                    "label": "gemini-2.5-flash",
+                    "name": "gemini-2.5-flash",
+                    "image_enable": true
+                },
+                {
+                    "label": "gpt-4.1-mini",
+                    "name": "gpt-4.1-mini-2025-04-14-GlobalStandard",
+                    "image_enable": true,
+                },
+                {
+                    "label": "gpt-4.1",
+                    "name": "gpt-4.1-2025-04-14-GlobalStandard",
+                    "image_enable": true,
+                },
+                {
+                    "label": "reload",
+                    "name": "reload",
+                    "image_enable": true
+                }
+            ]
+            updateModels(list);
         }
     };
 
@@ -164,6 +188,18 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
 
     // Load models on component mount
     useEffect(() => {
+        // 1天之内不再重新获取models
+        const currentTime = new Date().getTime()
+        const time = getLocalStorage(LocalStorageKeys.MODELS_POP_VIEW_TIME);
+        // 一天之内使用当前缓存
+        if (!!Number(time) && currentTime - Number(time) < 1000 * 60 * 60 * 24) {
+            const list = getLocalStorage(LocalStorageKeys.MODELS_POP_VIEW_LIST);
+            if (!!list) {
+                updateModels(JSON.parse(list));
+            }
+            return;
+        }
+        setLocalStorage(LocalStorageKeys.MODELS_POP_VIEW_TIME, new Date().getTime().toString());
         loadModels();
     }, []);
 
@@ -190,6 +226,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
             onAddDebugMessage(debugMessage);
         }
     };
+
+    const handleModelSelected = (value: string) => {
+        if (value === 'reload') {
+            loadModels();
+        } else {
+            onModelChange(value);
+        }
+    }
 
     return (
         <div className={`relative ${uploadedImages.length > 0 ? 'mt-12' : ''}`}>
@@ -277,14 +321,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
                 {/* Model selector dropdown */}
                 <select
                     value={selectedModel}
-                    onChange={(e) => onModelChange(e.target.value)}
+                    onChange={(e) => handleModelSelected(e.target.value)}
                     className="px-1.5 py-0.5 text-xs rounded-md 
                              border border-gray-200 bg-white text-gray-700
                              focus:outline-none focus:ring-2 focus:ring-blue-500
                              focus:border-transparent hover:bg-gray-50
                              transition-colors border-0"
                 >
-                    {models.map((model) => (
+                    {models?.map((model) => (
                         <option value={model.name} key={model.name}>{model.label}</option>
                     ))}
                 </select>
@@ -294,7 +338,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
                     buttonClass={`p-1.5 text-gray-500 bg-white border-none
                         hover:!bg-gray-100 hover:!text-gray-600 
                         transition-all duration-200 outline-none
-                        ${!models.find(model => model.name === selectedModel)?.image_enable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        ${!models?.find(model => model.name === selectedModel)?.image_enable ? 'opacity-50 cursor-not-allowed' : ''}`}
                     buttonContent={<ImageIcon className="h-4 w-4" />}
                     renderModal={(onClose) => <ImageUploadModal 
                         onUploadImages={onUploadImages}
