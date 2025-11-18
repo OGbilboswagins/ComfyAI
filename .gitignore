@@ -30,4 +30,4 @@ backup
 *.sw?
 .cache
 # dev
-ui/yarn.lock
+ui/yarn.lockconfig.json
