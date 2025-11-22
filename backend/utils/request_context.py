@@ -1,73 +1,139 @@
 """
-Request context management for ComfyUI Copilot
-Uses contextvars to provide request-scoped context variables with async safety
+ComfyAI - Request Context Utilities
+
+Provides lightweight per-request context storage for:
+  • session ID
+  • active provider name
+  • request language
+  • temporary workflow rewrite context
+
+Uses Python contextvars, safe for async and multithreaded operation.
 """
 
+from __future__ import annotations
 import contextvars
 from typing import Optional, Dict, Any
-from pydantic import BaseModel
+import uuid
+
+from .logger import log
 
 
-class RewriteContext(BaseModel):
-    rewrite_intent: str = ""
-    current_workflow: str = ""
-    node_infos: Optional[Dict[str, Any]] = None
-    rewrite_expert: Optional[str] = ""
+# ============================================================
+# Context Variables
+# ============================================================
 
-# Define context variables
-_session_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar('session_id', default=None)
-_workflow_checkpoint_id: contextvars.ContextVar[Optional[int]] = contextvars.ContextVar('workflow_checkpoint_id', default=None)
-_config: contextvars.ContextVar[Optional[Dict[str, Any]]] = contextvars.ContextVar('config', default=None)
-_rewrite_context: contextvars.ContextVar[Optional[RewriteContext]] = contextvars.ContextVar('rewrite_context', default=None)
+_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
+    "comfyai_request_context", default={}
+)
 
 
-def set_session_id(session_id: str) -> None:
-    """Set the session ID for the current request context"""
-    _session_id.set(session_id)
+# ============================================================
+# Helpers
+# ============================================================
+
+def _ensure_context() -> Dict[str, Any]:
+    """Ensure that a writable context dictionary exists."""
+    ctx = _context.get()
+    if ctx is None:
+        ctx = {}
+        _context.set(ctx)
+    return ctx
+
+
+# ============================================================
+# Accessor Functions
+# ============================================================
+
+def set_session_id(session_id: Optional[str] = None) -> str:
+    """
+    Assign a session ID for the request.
+    If none provided, a fresh UUID is generated.
+    """
+    ctx = _ensure_context()
+    if session_id is None:
+        session_id = uuid.uuid4().hex[:12]
+
+    ctx["session_id"] = session_id
+    return session_id
+
 
 def get_session_id() -> Optional[str]:
-    """Get the session ID from the current request context"""
-    return _session_id.get()
+    """Retrieve the session ID for this request, if set."""
+    ctx = _context.get({})
+    return ctx.get("session_id")
 
-def set_workflow_checkpoint_id(checkpoint_id: Optional[int]) -> None:
-    """Set the workflow checkpoint ID for the current request context"""
-    _workflow_checkpoint_id.set(checkpoint_id)
 
-def get_workflow_checkpoint_id() -> Optional[int]:
-    """Get the workflow checkpoint ID from the current request context"""
-    return _workflow_checkpoint_id.get()
+def set_language(lang: str):
+    """Set user language preference (e.g., 'en', 'cn')."""
+    ctx = _ensure_context()
+    ctx["language"] = lang
 
-def set_config(config: Dict[str, Any]) -> None:
-    """Set the request config for the current request context"""
-    _config.set(config)
 
-def get_config() -> Optional[Dict[str, Any]]:
-    """Get the request config from the current request context"""
-    return _config.get()
+def get_language(default: str = "en") -> str:
+    """Get preferred language; fallback to 'en'."""
+    ctx = _context.get({})
+    return ctx.get("language", default)
 
-def set_request_context(session_id: str, workflow_checkpoint_id: Optional[int] = None, config: Optional[Dict[str, Any]] = None) -> None:
-    """Set all request context variables at once"""
-    set_session_id(session_id)
-    if workflow_checkpoint_id is not None:
-        set_workflow_checkpoint_id(workflow_checkpoint_id)
-    if config is not None:
-        set_config(config)
 
-def clear_request_context() -> None:
-    """Clear all request context variables"""
-    _session_id.set(None)
-    _workflow_checkpoint_id.set(None)
-    _config.set(None)
+def set_active_provider(name: str):
+    """Store active provider name for downstream use."""
+    ctx = _ensure_context()
+    ctx["provider"] = name
 
-def set_rewrite_context(rewrite_context: RewriteContext) -> None:
-    """Set the rewrite context for the current request context"""
-    _rewrite_context.set(rewrite_context)
 
-def get_rewrite_context() -> RewriteContext:
-    """Get the rewrite context from the current request context"""
-    context = _rewrite_context.get()
-    if context is None:
-        # 初始化一个新的 RewriteContext
-        context = RewriteContext()
-        _rewrite_context.set(context)
-    return context
+def get_active_provider() -> Optional[str]:
+    """Return the chosen provider for this request, or None."""
+    ctx = _context.get({})
+    return ctx.get("provider")
+
+
+# ============================================================
+# Workflow Rewrite Context
+# ============================================================
+
+class WorkflowRewriteContext:
+    """Container used to accumulate rewrite-related info."""
+    def __init__(self):
+        self.rewrite_expert = ""
+        self.notes: Dict[str, Any] = {}
+
+    def add_expert_info(self, txt: str):
+        self.rewrite_expert += txt + "\n"
+
+
+_context_rewrite: contextvars.ContextVar[
+    Optional[WorkflowRewriteContext]
+] = contextvars.ContextVar("comfyai_rewrite_context", default=None)
+
+
+def get_rewrite_context() -> WorkflowRewriteContext:
+    """
+    Retrieve or create a rewrite context for this request.
+    """
+    ctx = _context_rewrite.get()
+    if ctx is None:
+        ctx = WorkflowRewriteContext()
+        _context_rewrite.set(ctx)
+    return ctx
+
+
+# ============================================================
+# Clearing
+# ============================================================
+
+def reset_request_context():
+    """Erase *all* stored context for the request."""
+    _context.set({})
+    _context_rewrite.set(None)
+
+
+__all__ = [
+    "set_session_id",
+    "get_session_id",
+    "set_language",
+    "get_language",
+    "set_active_provider",
+    "get_active_provider",
+    "get_rewrite_context",
+    "reset_request_context",
+]

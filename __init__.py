@@ -1,46 +1,45 @@
 """
 ComfyAI - ComfyUI Assistant
-Clean plugin entrypoint for ComfyAI.
+Plugin entrypoint for ComfyAI.
 """
 
 import os
 from aiohttp import web
 import server
 
-print("[ComfyAI] __init__ LOADED")
-def load(app: web.Application):
-    """
-    Loaded automatically by ComfyUI when this directory
-    is inside custom_nodes/.
+# -----------------------------------------------------------
+# REGISTER API ROUTES AT IMPORT TIME (Comfy-Copilot style)
+# -----------------------------------------------------------
 
-    This wires together:
-        • API routes (via router.py)
-        • Static web UI (dist/)
-    """
-    # Correct router import
-    from .router import setup as setup_router
+try:
+    # Import router and register immediately
+    from .backend.router import setup as setup_router
+    setup_router(server.PromptServer.instance.app)
+    print("[ComfyAI] Backend routes registered")
+except Exception as e:
+    print(f"[ComfyAI] ERROR registering backend routes: {e}")
 
-    print("[ComfyAI] load() CALLED")
-    
-    # Setup backend API routes
-    setup_router(app)
 
-    # Serve UI if it exists
-    workspace = os.path.dirname(__file__)
-    dist_dir = os.path.join(workspace, "dist", "copilot_web")
+# -----------------------------------------------------------
+# SERVE STATIC UI AUTOMATICALLY
+# -----------------------------------------------------------
 
-    if os.path.exists(dist_dir):
+workspace = os.path.dirname(__file__)
+dist_dir = os.path.join(workspace, "dist", "copilot_web")
+
+if os.path.exists(dist_dir):
+    try:
         server.PromptServer.instance.app.add_routes([
             web.static("/comfyai/", dist_dir)
         ])
-        print("[ComfyAI] UI mounted at /comfyai/")
-    else:
-        print("[ComfyAI] ⚠ UI folder not found, backend-only mode")
+        print(f"[ComfyAI] UI mounted at /comfyai/  (dir: {dist_dir})")
+    except Exception as e:
+        print(f"[ComfyAI] ERROR mounting UI: {e}")
+else:
+    print("[ComfyAI] No UI found, running backend-only")
 
-    return app
 
-
-# Required by ComfyUI (marks this folder as a plugin)
+# Required exports
 WEB_DIRECTORY = "dist/copilot_web"
 NODE_CLASS_MAPPINGS = {}
-__all__ = ["NODE_CLASS_MAPPINGS", "load"]
+__all__ = ["NODE_CLASS_MAPPINGS"]

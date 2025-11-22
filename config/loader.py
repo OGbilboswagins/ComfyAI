@@ -1,56 +1,59 @@
 """
-ComfyAI Configuration Loader
-Loads config from:
-1. Built-in defaults (defaults.json in this folder)
-2. User overrides (providers.json + settings.json)
-3. Environment variables
+Config Loader for ComfyAI
+
+Loads:
+  • user/default/ComfyUI-ComfyAI/providers.json  (main)
+  • defaults.json                                 (fallback)
 """
 
+from __future__ import annotations
 import json
 import os
-from pathlib import Path
-from typing import Any, Dict
+from typing import Dict, Any
 
 from .schema import ComfyAIConfig
-
-ROOT = Path(__file__).parent
-USER_ROOT = Path(os.getenv("COMFYUI_USER_DIR",
-    "/mnt/ai/apps/comfyui/user/default/ComfyAI"
-))
+from .provider_config import ProviderConfig
 
 
-def load_json_or_empty(path: Path) -> Dict[str, Any]:
-    if not path.exists():
+# Path to user's config:
+USER_CONFIG_DIR = os.path.expanduser(
+    "/mnt/ai/apps/comfyui/user/default/ComfyUI-ComfyAI"
+)
+
+USER_PROVIDERS_PATH = os.path.join(USER_CONFIG_DIR, "providers.json")
+
+# Fallback defaults:
+DEFAULTS_PATH = os.path.join(os.path.dirname(__file__), "defaults.json")
+
+
+def _load_json(path: str) -> Dict[str, Any]:
+    if not os.path.exists(path):
         return {}
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def load_config() -> ComfyAIConfig:
-    # 1. Load defaults
-    defaults_path = ROOT / "defaults.json"
-    defaults = json.loads(defaults_path.read_text())
+    """
+    Load providers from:
+        1. providers.json in user directory
+        2. defaults.json fallback
 
-    # 2. Load user overrides
-    user_providers = load_json_or_empty(USER_ROOT / "providers.json")
-    user_settings = load_json_or_empty(USER_ROOT / "settings.json")
+    providers.json uses FLAT STRUCTURE:
+        {
+            "local_chat": { ... },
+            "local_edit": { ... }
+        }
+    """
+    raw = _load_json(USER_PROVIDERS_PATH)
 
-    merged = defaults.copy()
+    if not raw:
+        raw = _load_json(DEFAULTS_PATH)
 
-    # Merge providers
-    if "providers" in user_providers:
-        for k, v in user_providers["providers"].items():
-            merged["providers"][k] = {**merged["providers"].get(k, {}), **v}
+    # Build ProviderConfig objects
+    providers = {
+        name: ProviderConfig(name=name, **cfg)
+        for name, cfg in raw.items()
+    }
 
-    # Merge settings
-    merged["settings"].update(user_settings)
-
-    # 3. Environment variable overrides
-    for key, value in os.environ.items():
-        if key.startswith("COMFYAI_"):
-            name = key.replace("COMFYAI_", "").lower()
-            merged["settings"][name] = value
-
-    return ComfyAIConfig(**merged)
+    return ComfyAIConfig(providers=providers)

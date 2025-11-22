@@ -1,66 +1,85 @@
 from aiohttp import web
 
-# Provider manager + utils
-from .config.loader import get_provider_manager
-from .backend.utils.logger import log
+from .provider_manager import ProviderManager
+from .utils.logger import log
+from .utils.request_context import (
+    reset_request_context,
+    set_session_id,
+    get_rewrite_context,
+)
 
-# Endpoints
-from .backend.workflow_rewrite import handle_workflow_rewrite
+from .workflow_rewrite import rewrite_workflow
 
 
-# ------------------------------
-# API ROUTES
-# ------------------------------
+# ============================================================
+# ROUTE HANDLER
+# ============================================================
 
-async def workflow_rewrite(request: web.Request):
+async def workflow_rewrite_route(request: web.Request):
     """
     POST /api/workflow/rewrite
-    Accepts:
+
+    Expected JSON:
         {
-            "messages": [ { role: "user", content: "..." }, ... ]
+            "workflow": { ... },     # workflow graph dict
+            "prompt": "Rewrite this workflow..."
         }
     """
     try:
+        reset_request_context()
+        set_session_id()
+
         body = await request.json()
-        messages = body.get("messages", [])
 
-        log.info("[ROUTER] /workflow/rewrite called")
+        workflow = body.get("workflow")
+        prompt = body.get("prompt")
 
-        result = await handle_workflow_rewrite(messages)
+        if workflow is None:
+            return web.json_response(
+                {"error": "Missing `workflow`"}, status=400
+            )
+
+        if prompt is None:
+            return web.json_response(
+                {"error": "Missing `prompt`"}, status=400
+            )
+
+        rewrite_ctx = get_rewrite_context()
+
+        log.info("[ROUTER] /workflow/rewrite received request")
+
+        result = await rewrite_workflow(
+            {"workflow": workflow, "prompt": prompt}
+        )
+
         return web.json_response(result)
 
     except Exception as e:
-        log.exception("Error in /workflow/rewrite endpoint")
-        return web.json_response(
-            {"success": False, "error": str(e)}, status=500
-        )
+        log.exception("[ROUTER] Error in /workflow/rewrite")
+        return web.json_response({"error": str(e)}, status=500)
 
 
-# ------------------------------
-# APP SETUP
-# ------------------------------
+# ============================================================
+# SETUP ROUTES
+# ============================================================
 
 def setup_routes(app: web.Application):
-    """
-    Called automatically by ComfyUI’s extension system.
-    Registers all HTTP endpoints for ComfyAI.
-    """
-    app.router.add_post("/api/workflow/rewrite", workflow_rewrite)
+    app.router.add_post("/api/workflow/rewrite", workflow_rewrite_route)
     log.info("[ROUTER] Registered /api/workflow/rewrite")
 
 
-def setup(app: web.Application):
-    """
-    Main entrypoint loaded by ComfyUI when the custom node loads.
-    Initializes provider manager and routes.
-    """
-    log.info("[ComfyAI] Initializing…")
+# ============================================================
+# MAIN ENTRYPOINT CALLED BY __init__.py
+# ============================================================
 
-    # Load providers BEFORE routes so the backend has config
-    provider_manager = get_provider_manager()
+def setup(app: web.Application):
+    log.info("[ComfyAI] Router initializing…")
+
+    # Ensure ProviderManager is initialized once
+    provider_manager = ProviderManager.instance()
     app["provider_manager"] = provider_manager
 
-    log.info("[ComfyAI] Loaded provider manager")
+    log.info("[ComfyAI] ProviderManager loaded")
 
     setup_routes(app)
 

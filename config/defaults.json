@@ -1,32 +1,34 @@
 {
-  "providers": {
+  "version": 1,
+
+  "llm": {
     "local": {
-      "enabled": true,
-      "type": "local",
-      "models": {
-        "chat": "qwen2.5:7b-instruct-fp16",
-        "edit": "gpt-oss:20b",
-        "code": "deepseek-coder-v2:16b-lite-instruct-q4_0"
-      },
-      "endpoint": "http://127.0.0.1:11434/v1"
+      "provider": "ollama",
+      "base_url": "http://localhost:11434",
+      "chat_model": "qwen2.5:7b-instruct-fp16",
+      "edit_model": "mistral:7b-instruct-v0.3-fp16",
+      "apply_model": "deepseek-coder-v2:16b-lite-instruct-q4_0"
     },
-    "openai": {
-      "enabled": false,
-      "type": "openai",
+
+    "cloud": {
+      "provider": null,
       "api_key": null,
-      "endpoint": "https://api.openai.com/v1"
-    },
-    "gemini": {
-      "enabled": false,
-      "type": "google",
-      "api_key": null,
-      "endpoint": "https://generativelanguage.googleapis.com/v1beta"
+      "base_url": null,
+      "chat_model": null,
+      "edit_model": null,
+      "apply_model": null
     }
   },
-  "settings": {
-    "use_cloud_for_heavy_tasks": true,
-    "preferred_cloud_provider": "gemini",
-    "max_tokens": 8192,
-    "temperature": 0.7
+
+  "workflow": {
+    "rewrite": {
+      "use_cloud_llm": true,
+      "max_tokens": 4096
+    }
+  },
+
+  "mcp": {
+    "enable": false,
+    "endpoint": null
   }
 }

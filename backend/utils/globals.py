@@ -1,129 +1,64 @@
-'''
-Author: ai-business-hql qingli.hql@alibaba-inc.com
-Date: 2025-08-08 17:14:52
-LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
-LastEditTime: 2025-09-30 10:18:44
-FilePath: /comfyui_copilot/backend/utils/globals.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
-
 """
-Global utilities for managing application-wide state and configuration.
+ComfyAI Global Runtime State
+
+This module stores lightweight global objects that need to be shared
+across backend modules without introducing circular imports.
+
+Only store *simple state*, not heavy singletons or initialized clients.
 """
 
-import os
-import threading
-from typing import Optional, Dict, Any
-from pathlib import Path
-from dotenv import load_dotenv
+from __future__ import annotations
+from typing import Optional, Any, Dict
 
-# Load .env file if it exists
-env_path = Path(__file__).parent.parent.parent / '.env'
-if env_path.exists():
-    load_dotenv(env_path)
+# ---------------------------------------------------------------------
+# Global provider manager (set by router.setup() during plugin load)
+# ---------------------------------------------------------------------
 
-class GlobalState:
-    """Thread-safe global state manager for application-wide configuration."""
-    
-    def __init__(self):
-        self._lock = threading.RLock()
-        self._state: Dict[str, Any] = {
-            'LANGUAGE': 'en',  # Default language
-        }
-    
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get a global state value."""
-        with self._lock:
-            return self._state.get(key, default)
-    
-    def set(self, key: str, value: Any) -> None:
-        """Set a global state value."""
-        with self._lock:
-            self._state[key] = value
-    
-    def get_language(self) -> str:
-        """Get the current language setting."""
-        return self.get('LANGUAGE', 'en')
-    
-    def set_language(self, language: str) -> None:
-        """Set the current language setting."""
-        self.set('LANGUAGE', language)
-    
-    def update(self, **kwargs) -> None:
-        """Update multiple state values at once."""
-        with self._lock:
-            self._state.update(kwargs)
-    
-    def get_all(self) -> Dict[str, Any]:
-        """Get a copy of all global state."""
-        with self._lock:
-            return self._state.copy()
-
-# Global instance
-_global_state = GlobalState()
-
-# Convenience functions for external access
-def get_global(key: str, default: Any = None) -> Any:
-    """Get a global state value."""
-    return _global_state.get(key, default)
-
-def set_global(key: str, value: Any) -> None:
-    """Set a global state value."""
-    _global_state.set(key, value)
-
-def get_language() -> str:
-    """Get the current language setting."""
-    language = _global_state.get_language()
-    if not language:
-        language = 'en'
-    return language
-
-def set_language(language: str) -> None:
-    """Set the current language setting."""
-    _global_state.set_language(language)
-
-def update_globals(**kwargs) -> None:
-    """Update multiple global values at once."""
-    _global_state.update(**kwargs)
-
-def get_all_globals() -> Dict[str, Any]:
-    """Get a copy of all global state."""
-    return _global_state.get_all()
-
-def get_comfyui_copilot_api_key() -> Optional[str]:
-    """Get the ComfyUI Copilot API key."""
-    return _global_state.get('comfyui_copilot_api_key')
-
-def set_comfyui_copilot_api_key(api_key: str) -> None:
-    """Set the ComfyUI Copilot API key."""
-    _global_state.set('comfyui_copilot_api_key', api_key)
+_provider_manager: Optional[Any] = None
 
 
-BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "https://comfyui-copilot-server.onrender.com")
-LMSTUDIO_DEFAULT_BASE_URL = "http://localhost:1234/v1"
-WORKFLOW_MODEL_NAME = os.getenv("WORKFLOW_MODEL_NAME", "us.anthropic.claude-sonnet-4-20250514-v1:0")
-# WORKFLOW_MODEL_NAME = "gpt-5-2025-08-07-GlobalStandard"
-LLM_DEFAULT_BASE_URL = os.getenv("LLM_DEFAULT_BASE_URL", BACKEND_BASE_URL + "/v1")
+def set_provider_manager(manager: Any) -> None:
+    """Set the global provider manager at plugin startup."""
+    global _provider_manager
+    _provider_manager = manager
 
 
-def is_lmstudio_url(base_url: str) -> bool:
-    """Check if the base URL is likely LMStudio based on common patterns."""
-    if not base_url:
-        return False
-    
-    base_url_lower = base_url.lower()
-    # Common LMStudio patterns (supporting various ports and configurations)
-    lmstudio_patterns = [
-        "localhost:1234",        # Standard LMStudio port
-        "127.0.0.1:1234", 
-        "0.0.0.0:1234",
-        ":1234/v1",
-        "localhost:1235",        # Alternative port some users might use
-        "127.0.0.1:1235", 
-        "0.0.0.0:1235",
-        ":1235/v1",
-        "localhost/v1",          # Generic localhost patterns
-        "127.0.0.1/v1"
-    ]
-    
-    return any(pattern in base_url_lower for pattern in lmstudio_patterns)
+def get_provider_manager() -> Any:
+    """
+    Retrieve the provider manager.
+
+    Raises:
+        RuntimeError: If accessed before `set_provider_manager()` runs.
+    """
+    if _provider_manager is None:
+        raise RuntimeError(
+            "Provider manager accessed before initialization. "
+            "Did the plugin load correctly?"
+        )
+    return _provider_manager
+
+
+# ---------------------------------------------------------------------
+# Optional workspace storage
+# Useful for MCP client state, rewrite-agent cache, etc.
+# ---------------------------------------------------------------------
+
+_global_kv_store: Dict[str, Any] = {}
+
+
+def global_set(key: str, value: Any) -> None:
+    """Store a global value."""
+    _global_kv_store[key] = value
+
+
+def global_get(key: str, default: Any = None) -> Any:
+    """Retrieve a global value."""
+    return _global_kv_store.get(key, default)
+
+
+__all__ = [
+    "set_provider_manager",
+    "get_provider_manager",
+    "global_set",
+    "global_get",
+]
