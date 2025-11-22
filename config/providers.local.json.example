@@ -1,0 +1,8 @@
+{
+  "cloud_chat": {
+    "api_key": "PUT_YOUR_GEMINI_KEY_HERE"
+  },
+  "cloud_workflow": {
+    "api_key": "PUT_YOUR_GEMINI_KEY_HERE"
+  }
+}

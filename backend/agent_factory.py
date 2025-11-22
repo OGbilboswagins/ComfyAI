@@ -1,95 +1,144 @@
-'''
-Author: ai-business-hql qingli.hql@alibaba-inc.com
-Date: 2025-07-31 19:38:08
-LastEditors: ai-business-hql ai.bussiness.hql@gmail.com
-LastEditTime: 2025-09-03 11:00:57
-FilePath: /comfyui_copilot/backend/agent_factory.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
-import os
-try:
-    from agents import Agent, OpenAIChatCompletionsModel, ModelSettings
-    if not hasattr(__import__('agents'), 'Agent'):
-        raise ImportError
-except Exception:
-    # Give actionable guidance without crashing obscurely
-    raise ImportError(
-        "Detected incorrect or missing 'agents' package. "
-        "Please uninstall legacy RL 'agents' (and tensorflow/gym if pulled transitively) and install openai-agents. "
-        "Commands:\n"
-        "  python -m pip uninstall -y agents gym tensorflow\n"
-        "  python -m pip install -U openai-agents\n\n"
-        "Alternatively, keep both by setting COMFYUI_COPILOT_PREFER_OPENAI_AGENTS=1 so this plugin prefers openai-agents."
-    )
-from dotenv import dotenv_values
-from .utils.globals import LLM_DEFAULT_BASE_URL, LMSTUDIO_DEFAULT_BASE_URL, get_comfyui_copilot_api_key, is_lmstudio_url
-from openai import AsyncOpenAI
+"""
+Agent factory for ComfyAI.
 
+Centralizes:
+- provider selection (local / cloud)
+- model selection per task type
+- OpenAI-compatible client configuration for the `openai-agents` library
+"""
 
+from typing import Optional, List, Any, Dict
+
+from agents.agent import Agent
 from agents._config import set_default_openai_api
-from agents.tracing import set_tracing_disabled
-# from .utils.logger import log
 
-# def load_env_config():
-#     """Load environment variables from .env.llm file"""
-#     from dotenv import load_dotenv
-
-#     env_file_path = os.path.join(os.path.dirname(__file__), '.env.llm')
-#     if os.path.exists(env_file_path):
-#         load_dotenv(env_file_path)
-#         log.info(f"Loaded environment variables from {env_file_path}")
-#     else:
-#         log.warning(f"Warning: .env.llm not found at {env_file_path}")
+from .provider_manager import provider_manager
+from .utils.logger import log
+from .utils.request_context import get_config as get_request_config
 
 
-# # Load environment configuration
-# load_env_config()
+def _merge_config(base: Optional[Dict[str, Any]], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Shallow merge two config dicts, with override taking precedence."""
+    result: Dict[str, Any] = dict(base or {})
+    for k, v in (override or {}).items():
+        if v is not None:
+            result[k] = v
+    return result
 
-set_default_openai_api("chat_completions")
-set_tracing_disabled(True)
-def create_agent(**kwargs) -> Agent:
-    # 通过用户配置拿/环境变量
-    config = kwargs.pop("config") if "config" in kwargs else {}
-    # 避免将 None 写入 headers
-    session_id = (config or {}).get("session_id")
-    default_headers = {}
-    if session_id:
-        default_headers["X-Session-ID"] = session_id
 
-    # Determine base URL and API key
-    base_url = LLM_DEFAULT_BASE_URL
-    api_key = get_comfyui_copilot_api_key() or ""
-    
-    if config:
-        if config.get("openai_base_url") and config.get("openai_base_url") != "":
-            base_url = config.get("openai_base_url")
-        if config.get("openai_api_key") and config.get("openai_api_key") != "":
-            api_key = config.get("openai_api_key")
-    
-    # Check if this is LMStudio and adjust API key handling
-    is_lmstudio = is_lmstudio_url(base_url)
-    if is_lmstudio and not api_key:
-        # LMStudio typically doesn't require an API key, use a placeholder
-        api_key = "lmstudio-local"
+def _infer_task_type(agent_name: str, explicit: Optional[str]) -> str:
+    """Infer a reasonable task type from the agent name if explicit is not given."""
+    if explicit:
+        return explicit
 
-    client = AsyncOpenAI(
-        api_key=api_key,
-        base_url=base_url,
-        default_headers=default_headers,
+    name = agent_name.lower()
+    if "debug" in name:
+        return "workflow_debug"
+    if "rewrite" in name:
+        return "workflow_rewrite"
+    # Default for the main chat assistant
+    return "chat"
+
+
+def create_agent(
+    *,
+    name: str,
+    instructions: str,
+    model: Optional[str] = None,
+    tools: Optional[List[Any]] = None,
+    mcp_servers: Optional[List[Any]] = None,
+    handoffs: Optional[List[Any]] = None,
+    handoff_description: Optional[str] = None,
+    config: Optional[Dict[str, Any]] = None,
+    task_type: Optional[str] = None,
+) -> Agent:
+    """
+    Unified agent factory used by:
+    - main ComfyAI / Comfy Copilot agent (chat)
+    - workflow rewrite agent
+    - debug agent
+    - any future agents
+
+    Call sites can keep using keyword args as before:
+
+        create_agent(
+            name="ComfyUI-Copilot",
+            instructions="...",
+            mcp_servers=server_list,
+            handoffs=[...],
+            config=config,
+        )
+
+        create_agent(
+            name="Workflow Rewrite Agent",
+            instructions="...",
+            tools=[...],
+            config=config,
+        )
+    """
+
+    # 1. Start from request-scoped config (conversation_api passes it via context)
+    request_cfg = get_request_config() or {}
+    cfg = _merge_config(request_cfg, config or {})
+
+    # 2. Determine task type for routing
+    inferred_task = _infer_task_type(name, task_type)
+
+    # 3. Ask ProviderManager which provider/model to use
+    routing_choice: Optional[Dict[str, Any]] = None
+    try:
+        routing_choice = provider_manager.choose_model(inferred_task)
+    except Exception as e:
+        log.error(f"[AgentFactory] Provider routing failed for {name}: {e}")
+        log.error("[AgentFactory] Falling back to raw config/model without routing.")
+
+    if routing_choice:
+        endpoint = routing_choice.get("endpoint")
+        api_key = routing_choice.get("api_key") or cfg.get("openai_api_key")
+        final_model = routing_choice.get("model") or model or cfg.get("model_select")
+
+        if endpoint:
+            cfg["openai_base_url"] = endpoint
+        if api_key:
+            cfg["openai_api_key"] = api_key
+
+        log.info(
+            "[AgentFactory] Agent '%s' → provider=%s type=%s model=%s",
+            name,
+            routing_choice.get("provider"),
+            routing_choice.get("type"),
+            final_model,
+        )
+    else:
+        # No routing decision: use whatever was passed in
+        final_model = model or cfg.get("model_select")
+        log.info(
+            "[AgentFactory] Agent '%s' using fallback model=%s (no routing)",
+            name,
+            final_model,
+        )
+
+    # 4. Configure OpenAI-compatible client (used by `openai-agents`)
+    if cfg.get("openai_api_key") or cfg.get("openai_base_url"):
+        set_default_openai_api(
+            api_key=cfg.get("openai_api_key"),
+            base_url=cfg.get("openai_base_url"),
+        )
+        log.info(
+            "[AgentFactory] set_default_openai_api base_url=%s",
+            cfg.get("openai_base_url"),
+        )
+
+    # 5. Create the Agent instance
+    agent = Agent(
+        name=name,
+        model=final_model,
+        instructions=instructions,
+        tools=tools or [],
+        mcp_servers=mcp_servers,
+        handoffs=handoffs or [],
+        handoff_description=handoff_description,
+        config=cfg,
     )
 
-    # Determine model with proper precedence:
-    # 1) Explicit selection from config (model_select from frontend)
-    # 2) Explicit kwarg 'model' (call-site override)
-    model_from_config = (config or {}).get("model_select")
-    model_from_kwargs = kwargs.pop("model", None)
-
-    model_name = model_from_kwargs or model_from_config or "gemini-2.5-flash"
-    model = OpenAIChatCompletionsModel(model_name, openai_client=client)
-
-    # Safety: ensure no stray 'model' remains in kwargs to avoid duplicate kwarg errors
-    kwargs.pop("model", None)
-
-    if config.get("max_tokens"):
-        return Agent(model=model, model_settings=ModelSettings(max_tokens=config.get("max_tokens") or 8192), **kwargs)
-    return Agent(model=model, **kwargs)
+    return agent

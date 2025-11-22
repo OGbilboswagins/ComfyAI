@@ -1,7 +1,7 @@
 __pycache__
 hash
-.env
 .env.llm
+
 # Logs
 logs
 *.log
@@ -31,5 +31,42 @@ backup
 .cache
 # dev
 ui/yarn.lockconfig.json
+
+# MY ENTRIES
 config.json
 settings.json
+# User configs (never commit secrets)
+../user/*/ComfyAI/
+!../user/*/ComfyAI/README.md
+
+# Local config
+config/*.local.json
+config/local.json
+*.local.json
+
+# Secrets
+**/providers.local.json
+**/.env
+.env
+
+# Python cruft
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node cruft
+node_modules/
+dist/
+*.log
+
+# ComfyAI local secrets
+custom_nodes/ComfyAI/config/providers.local.json
+custom_nodes/ComfyAI/config/*.local.json
+custom_nodes/ComfyAI/config/*.secret.json
+
+# VSCode workspace crap
+.vscode/
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
