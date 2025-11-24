@@ -36,9 +36,19 @@ async def main():
     }
 
     test_payload = {
-        "workflow": dummy_workflow,
+        "workflow": {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "EmptyNode",
+                    "inputs": {},
+                    "outputs": {}
+                }
+            ]
+        },
         "prompt": "Rewrite this workflow: add a VAE encode node."
     }
+
 
     async with aiohttp.ClientSession() as session:
         async with session.post(API_URL, json=test_payload) as resp:

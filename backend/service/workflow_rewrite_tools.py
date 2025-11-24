@@ -1,13 +1,12 @@
 """
 ComfyAI - Workflow Rewrite Tools
 
-This module contains the core rewrite_graph_with_llm() function used by
-workflow_rewrite_agent.py.
+Core rewrite_graph_with_llm() used by workflow_rewrite_agent.py.
 
-It takes:
+Takes:
     • workflow graph (dict)
     • user prompt (string)
-It returns:
+Returns:
     • rewritten graph (dict)
     • notes (str)
 """
@@ -18,7 +17,6 @@ from typing import Dict, Any, Tuple
 import json
 
 from ..provider_manager import ProviderManager
-from ..agent_factory import ChatMessage, ChatClient
 from ..utils.logger import log
 
 
@@ -39,8 +37,10 @@ async def rewrite_graph_with_llm(
 
     log.info("[ComfyAI] rewrite_graph_with_llm(): starting rewrite")
 
-    provider: ProviderManager = ProviderManager.instance()
-    llm: ChatClient | None = provider.get_default_llm()
+    provider_mgr = ProviderManager.instance()
+
+    # Prefer a provider suitable for "rewrite" task
+    llm = provider_mgr.pick_provider(task="rewrite") or provider_mgr.get_default_llm()
 
     if llm is None:
         raise RuntimeError("No LLM provider configured")
@@ -60,19 +60,23 @@ async def rewrite_graph_with_llm(
         "Return ONLY JSON. No explanation."
     )
 
-    messages: list[ChatMessage] = [
+    log.info("[ComfyAI] Sending rewrite request to LLM provider…")
+
+    messages = [
         {"role": "system", "content": system_msg},
         {"role": "user", "content": user_msg},
     ]
 
-    log.info("[ComfyAI] Sending rewrite request to LLM provider…")
-
     # --------------------------------------------------------
     # Query the model
     # --------------------------------------------------------
-    raw_output = await llm.chat(messages)
+    response = await llm.chat(messages)
 
     log.info("[ComfyAI] Received LLM rewrite response")
+
+    # ChatClient returns raw string content
+    raw_output = response
+
 
     # --------------------------------------------------------
     # Parse rewritten graph

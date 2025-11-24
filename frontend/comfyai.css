@@ -1,0 +1,196 @@
+/* -------------------------------------------------------
+   FIX: Prevent sidebar icon from appearing HUGE on load.
+   Forces the icon to the correct size BEFORE Vue hydrates.
+   ------------------------------------------------------- */
+.comfyai-sidebar-icon,
+.side-bar-button-icon {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    max-width: 18px !important;
+    max-height: 18px !important;
+
+    object-fit: contain !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
+/* Slide-out panel docked to the left, next to sidebar */
+#comfyai-chat-panel {
+    position: absolute;
+    top: 95px;
+
+    /* IMPORTANT:
+       Attach to right edge of the sidebar item group */
+    left: var(--comfyui-sidebar-width, 64px);
+
+    width: 380px;
+    height: calc(100% - 95px - 5px); /* 95px top offset, 5px bottom gap */
+    background-color: #1e1e1e;
+    border-left: 1px solid #333;
+ 
+    /* Rounded corners (matches ComfyUI style) */
+    border-radius: 12px;
+    border: 1px solid #333;
+
+    /* Clean drop shadow */
+    box-shadow: 0 0 12px rgba(0,0,0,0.45);
+
+    /* under sidebar, above canvas */
+    z-index: 1;
+
+    /* Hidden by default – under the sidebar */
+    transform: translateX(calc(-100% - 8px)); /* adjust shadow width */
+    transition: transform 0.22s ease-out;
+}
+
+/* when open, slide into view */
+#comfyai-chat-panel.open {
+    transform: translateX(0);
+}
+
+/* inner content */
+#comfyai-chat-window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #f0f0f0;
+
+    /* match rounded corners */
+    border-radius: 12px;
+
+    /* ensures header + chat area respect rounding */
+    overflow: hidden;
+}
+
+/* Header */
+#comfyai-chat-window .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: linear-gradient(90deg, #242424, #2f2f2f);
+    border-bottom: 1px solid #333;
+}
+
+#comfyai-chat-window .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comfyai-header-icon {
+    width: 18px;
+    height: 18px;
+}
+
+#comfyai-chat-window .header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Close button */
+#comfyai-close-button {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+#comfyai-close-button:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+/* Model selector */
+#comfyai-chat-window .model-selector {
+    padding: 8px 12px;
+    border-bottom: 1px solid #333;
+    background-color: #262626;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#comfyai-model-dropdown {
+    flex: 1;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #333;
+    color: #f0f0f0;
+}
+
+/* Chat area */
+#comfyai-chat-window .chat-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    background-color: #1b1b1b;
+    gap: 8px;
+}
+
+#comfyai-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: #141414;
+    border-radius: 4px;
+    padding: 10px;
+    border: 1px solid #333;
+}
+
+#comfyai-input {
+    width: 100%;
+    min-height: 70px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #252525;
+    color: #f0f0f0;
+    resize: vertical;
+}
+
+#comfyai-send-button {
+    align-self: flex-end;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+#comfyai-send-button:hover {
+    background-color: #2563eb;
+}
+
+/* ------------------------------------------------------
+   Fix label size BEFORE AND AFTER Vue hydration
+   ------------------------------------------------------ */
+#comfyui-sidebar-button .side-bar-button-label,
+button#comfyai-sidebar-button .side-bar-button-label,
+#comfyai-sidebar-button .side-bar-button-label,
+button.comfyai-tab-button .side-bar-button-label {
+    font-size: 10px !important;
+    line-height: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+
+    display: inline-block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+
+    /* prevents PrimeVue auto-scaling */
+    transform: none !important;
+    scale: 1 !important;
+}

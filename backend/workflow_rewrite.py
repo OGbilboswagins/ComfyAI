@@ -28,7 +28,9 @@ async def rewrite_handler(request: web.Request):
     data = await request.json()
 
     workflow = data.get("workflow")
-    provider = data.get("provider", "openai")
+    provider = data.get("provider")
+    if provider:
+        set_active_provider(provider)
     session_id = data.get("session_id")
 
     # Reset + initialize request context

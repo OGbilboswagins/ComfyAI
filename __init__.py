@@ -4,42 +4,46 @@ Plugin entrypoint for ComfyAI.
 """
 
 import os
-from aiohttp import web
-import server
 
 # -----------------------------------------------------------
-# REGISTER API ROUTES AT IMPORT TIME (Comfy-Copilot style)
+# REGISTER BACKEND ROUTES
 # -----------------------------------------------------------
 
 try:
-    # Import router and register immediately
-    from .backend.router import setup as setup_router
-    setup_router(server.PromptServer.instance.app)
-    print("[ComfyAI] Backend routes registered")
+    from aiohttp import web
+    import server
+
+    from .backend.router import setup as setup_backend_router
+    from .backend.api import setup as setup_frontend_api_router
+
+    app = server.PromptServer.instance.app
+    setup_backend_router(app)
+    setup_frontend_api_router(app)
+    print("[ComfyAI] Backend + Frontend API routes registered")
 except Exception as e:
-    print(f"[ComfyAI] ERROR registering backend routes: {e}")
-
+    print(f"[ComfyAI] ERROR registering routes: {e}")
 
 # -----------------------------------------------------------
-# SERVE STATIC UI AUTOMATICALLY
+# SERVE FRONTEND STATIC ASSETS
 # -----------------------------------------------------------
 
-workspace = os.path.dirname(__file__)
-dist_dir = os.path.join(workspace, "dist", "copilot_web")
+# ComfyUI will load JS from this directory under /extensions/ComfyAI/
+# and automatically execute any .js files there.
+WEB_DIRECTORY = "frontend"
 
-if os.path.exists(dist_dir):
-    try:
-        server.PromptServer.instance.app.add_routes([
-            web.static("/comfyai/", dist_dir)
-        ])
-        print(f"[ComfyAI] UI mounted at /comfyai/  (dir: {dist_dir})")
-    except Exception as e:
-        print(f"[ComfyAI] ERROR mounting UI: {e}")
-else:
-    print("[ComfyAI] No UI found, running backend-only")
+try:
+    from aiohttp import web
+    import server
 
+    workspace = os.path.dirname(__file__)
+    frontend_dir = os.path.join(workspace, "frontend")
 
-# Required exports
-WEB_DIRECTORY = "dist/copilot_web"
+    server.PromptServer.instance.app.add_routes([
+        web.static("/extensions/ComfyAI/frontend", frontend_dir)
+    ])
+    print(f"[ComfyAI] Frontend static assets mounted at /extensions/ComfyAI/frontend (dir: {frontend_dir})")
+except Exception as e:
+    print(f"[ComfyAI] ERROR explicitly mounting frontend static assets: {e}")
+
 NODE_CLASS_MAPPINGS = {}
 __all__ = ["NODE_CLASS_MAPPINGS"]

@@ -25,8 +25,17 @@ async def mcp_chat(messages: List[ChatMessage]) -> str:
     # provider is ChatClient, so adapt API
     log.info(f"[MCP-Client] Using provider: {provider.provider_name}")
 
-    # ChatClient.chat() returns a string
-    reply = await provider.chat(messages)
+    # Convert ChatMessage → dict for ChatClient
+    message_dicts = [
+        {
+            "role": msg.get("role", "user"),
+            "content": msg.get("content", "")
+        }
+        for msg in messages
+    ]
+
+    reply = await provider.chat(message_dicts)
+
 
     return reply
 

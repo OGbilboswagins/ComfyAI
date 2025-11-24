@@ -8,6 +8,7 @@ Loads:
 
 from __future__ import annotations
 import json
+import re
 import os
 from typing import Dict, Any
 
@@ -25,13 +26,38 @@ USER_PROVIDERS_PATH = os.path.join(USER_CONFIG_DIR, "providers.json")
 # Fallback defaults:
 DEFAULTS_PATH = os.path.join(os.path.dirname(__file__), "defaults.json")
 
+_var_pattern = re.compile(r"\$\{([^}]+)\}")
+
+def expand_env(value):
+    """Replace ${VAR} with environment vars."""
+    if isinstance(value, str):
+        return _var_pattern.sub(lambda m: os.getenv(m.group(1), ""), value)
+    return value
 
 def _load_json(path: str) -> Dict[str, Any]:
     if not os.path.exists(path):
         return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Root must be dict for config files
+    if not isinstance(data, dict):
+        raise ValueError(f"Config file must contain a JSON object: {path}")
+
+    # Expand env vars inside dict only
+    def walk_dict(obj: Dict[str, Any]) -> Dict[str, Any]:
+        out = {}
+        for k, v in obj.items():
+            if isinstance(v, dict):
+                out[k] = walk_dict(v)
+            elif isinstance(v, list):
+                out[k] = [walk_dict(i) if isinstance(i, dict) else expand_env(i) for i in v]
+            else:
+                out[k] = expand_env(v)
+        return out
+
+    return walk_dict(data)
 
 def load_config() -> ComfyAIConfig:
     """
