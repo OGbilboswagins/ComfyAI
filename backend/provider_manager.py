@@ -10,6 +10,7 @@ from typing import Dict, Optional, Any
 from .utils.logger import log
 from ..config.loader import load_config
 from .agent_factory import ChatClient
+from ..config.provider_config import ProviderConfig
 
 
 class ProviderManager:
@@ -40,46 +41,41 @@ class ProviderManager:
     # Provider Loading
     # ============================================================
     def _load_providers(self):
-        """Load all providers defined in config and build ChatClient instances."""
-        providers_cfg: Dict[str, Any] = getattr(self.config, "providers", {})
+        """Load ProviderConfig objects and build ChatClient instances."""
+        providers_cfg = getattr(self.config, "providers", {})
 
-        for name, raw_cfg in providers_cfg.items():
-            # raw_cfg may be a plain dict or a ProviderConfig-like object
-            if isinstance(raw_cfg, dict):
-                p_type = raw_cfg.get("type", "local")
-                base_url = raw_cfg.get("base_url", "")
-                model = raw_cfg.get("model", "")
-                api_key = raw_cfg.get("api_key", "")
-                label = raw_cfg.get("label", name)
-                is_default = bool(raw_cfg.get("default", False))
-            else:
-                # Dataclass-like ProviderConfig
-                p_type = getattr(raw_cfg, "type", "local")
-                base_url = getattr(raw_cfg, "base_url", "")
-                model = getattr(raw_cfg, "model", "")
-                api_key = getattr(raw_cfg, "api_key", "")
-                label = getattr(raw_cfg, "label", name)
-                is_default = bool(getattr(raw_cfg, "default", False))
+        for name, cfg in providers_cfg.items():
+            if not isinstance(cfg, ProviderConfig):
+                log.error(f"[ComfyAI] Invalid provider config for {name}, skipping.")
+                continue
+
+            model_name = (
+                cfg.default_model
+                or (cfg.models[0].name if cfg.models else None)
+                or ""
+            )
 
             client = ChatClient(
                 provider_name=name,
-                provider_type=p_type,
-                base_url=base_url,
-                api_key=api_key,
-                model=model,
+                provider_type=cfg.type,
+                base_url=cfg.base_url or "",
+                api_key=cfg.api_key or "",
+                model=model_name or "",
             )
+
 
             self.providers[name] = client
 
-            if is_default and self.default_provider is None:
+        # Default provider: first one with a default_model OR first provider
+            if self.default_provider is None:
                 self.default_provider = name
 
-        # Fallback default if none explicitly marked
-        if self.default_provider is None and self.providers:
+        if not self.default_provider and self.providers:
             self.default_provider = next(iter(self.providers.keys()))
 
         log.info(f"[ComfyAI] Loaded providers: {list(self.providers.keys())}")
         log.info(f"[ComfyAI] Default provider: {self.default_provider}")
+
 
     # ============================================================
     # Accessors

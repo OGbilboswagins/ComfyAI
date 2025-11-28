@@ -9,30 +9,27 @@
 </head>
 <body>
 
-    <div id="comfyai-chat-panel">
-        <div id="comfyai-chat-window">
+    <div id="comfyai-chat-window">
 
-            <div class="header">
-                <div class="header-left">
-                    <img src="/extensions/ComfyAI/frontend/icon.svg"
-                         class="comfyai-header-icon" />
-                    <h3>ComfyAI</h3>
-                </div>
-                <button id="comfyai-close-button" title="Close">×</button>
+        <div class="header">
+            <div class="header-left">
+                <img src="/extensions/ComfyAI/frontend/header.png"
+                     id="comfyai-header-image"
+                     alt="ComfyAI Header">
             </div>
-
-            <div class="model-selector">
-                <label for="comfyai-model-dropdown">Model:</label>
-                <select id="comfyai-model-dropdown"></select>
-            </div>
-
-            <div class="chat-area">
-                <div id="comfyai-messages"></div>
-                <textarea id="comfyai-input" placeholder="Type your message..."></textarea>
-                <button id="comfyai-send-button">Send</button>
-            </div>
-
         </div>
+
+        <div class="model-selector">
+            <label for="comfyai-model-dropdown">Model:</label>
+            <select id="comfyai-model-dropdown"></select>
+        </div>
+
+        <div class="chat-area">
+            <div id="comfyai-messages"></div>
+            <textarea id="comfyai-input" placeholder="Type your message..."></textarea>
+            <button id="comfyai-send-button">   </button>
+        </div>
+
     </div>
 
     <script src="/extensions/ComfyAI/frontend/comfyai.js"></script>

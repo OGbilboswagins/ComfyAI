@@ -25,13 +25,12 @@
        Attach to right edge of the sidebar item group */
     left: var(--comfyui-sidebar-width, 64px);
 
-    width: 380px;
+    width: 410px;
     height: calc(100% - 95px - 5px); /* 95px top offset, 5px bottom gap */
-    background-color: #1e1e1e;
-    border-left: 1px solid #333;
+    background-color: #171718;
  
     /* Rounded corners (matches ComfyUI style) */
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid #333;
 
     /* Clean drop shadow */
@@ -60,81 +59,76 @@
     color: #f0f0f0;
 
     /* match rounded corners */
-    border-radius: 12px;
+    border-radius: 8px;
 
     /* ensures header + chat area respect rounding */
     overflow: hidden;
 }
 
 /* Header */
+/* Background */
 #comfyai-chat-window .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 10px 12px;
-    background: linear-gradient(90deg, #242424, #2f2f2f);
+    padding: 0;
+    background: linear-gradient(90deg, #171718, #1e1e1f);
     border-bottom: 1px solid #333;
 }
 
-#comfyai-chat-window .header-left {
+/*#comfyai-chat-window .header-left {
     display: flex;
     align-items: center;
     gap: 8px;
+}*/
+
+/* Custom header image replacing icon + text */
+#comfyai-header-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 60px;          /* adjust to your image's natural height */
+    object-fit: contain;       /* keeps aspect ratio */
+    padding: 5px 0;
 }
 
-.comfyai-header-icon {
-    width: 18px;
-    height: 18px;
-}
-
-#comfyai-chat-window .header h3 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-}
-
-/* Close button */
-#comfyai-close-button {
-    background: transparent;
-    border: none;
-    color: #aaa;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-#comfyai-close-button:hover {
-    background-color: #444;
-    color: #fff;
-}
+/*#comfyai-chat-window .header {
+    padding: 0;
+    background: #242424;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}*/
 
 /* Model selector */
+/* Background */
 #comfyai-chat-window .model-selector {
     padding: 8px 12px;
     border-bottom: 1px solid #333;
-    background-color: #262626;
+    background-color: #353535;
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
+/* Actual Drop Down */
 #comfyai-model-dropdown {
     flex: 1;
     padding: 4px 6px;
     border-radius: 4px;
     border: 1px solid #555;
-    background-color: #333;
+    background-color: #222;
     color: #f0f0f0;
 }
 
 /* Chat area */
+/* Background */
 #comfyai-chat-window .chat-area {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     padding: 10px 12px;
-    background-color: #1b1b1b;
+    background-color: #171718;
     gap: 8px;
 }
 

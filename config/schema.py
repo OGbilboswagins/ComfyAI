@@ -6,22 +6,27 @@ Defines:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import Dict
 
 from .provider_config import ProviderConfig
+
 
 @dataclass
 class ComfyAIConfig:
     """
-    Top-level config object.
+    Modern top-level config.
 
-    This matches the real providers.json structure:
+    Matches providers.json format:
 
         {
-           "local_chat": { ... },
-           "local_edit": { ... },
-           "cloud_chat": { ... },
-           ...
+          "version": 1,
+          "providers": {
+             "ollama": {...},
+             "google": {...},
+             "openai": {...}
+          }
         }
     """
-    providers: Dict[str, ProviderConfig]
+
+    version: int = 1
+    providers: Dict[str, ProviderConfig] = field(default_factory=dict)

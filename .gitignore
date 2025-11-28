@@ -47,6 +47,7 @@ config/local.json
 # Secrets
 **/providers.local.json
 providers.local.json
+providers.json
 **/.env
 .env
 
