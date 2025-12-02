@@ -1,170 +1,18 @@
-/* -------------------------------------------------------
-   FIX: Prevent sidebar icon from appearing HUGE on load.
-   Forces the icon to the correct size BEFORE Vue hydrates.
-   ------------------------------------------------------- */
+/* ============================================================
+   COMFYAI — FULL CLEAN UI REWRITE
+   ChatGPT-style bubbles, streaming-safe layout,
+   fixed scrolling, compact spacing, modern dark theme.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Sidebar icon (fixes giant icon during hydration)
+------------------------------------------------------------ */
 .comfyai-sidebar-icon,
 .side-bar-button-icon {
     width: 18px !important;
     height: 18px !important;
-    min-width: 18px !important;
-    min-height: 18px !important;
-    max-width: 18px !important;
-    max-height: 18px !important;
-
     object-fit: contain !important;
-    display: inline-block !important;
     flex-shrink: 0 !important;
-}
-
-/* Slide-out panel docked to the left, next to sidebar */
-#comfyai-chat-panel {
-    position: absolute;
-    top: 95px;
-
-    /* IMPORTANT:
-       Attach to right edge of the sidebar item group */
-    left: var(--comfyui-sidebar-width, 64px);
-
-    width: 410px;
-    height: calc(100% - 95px - 5px); /* 95px top offset, 5px bottom gap */
-    background-color: #171718;
- 
-    /* Rounded corners (matches ComfyUI style) */
-    border-radius: 8px;
-    border: 1px solid #333;
-
-    /* Clean drop shadow */
-    box-shadow: 0 0 12px rgba(0,0,0,0.45);
-
-    /* under sidebar, above canvas */
-    z-index: 1;
-
-    /* Hidden by default – under the sidebar */
-    transform: translateX(calc(-100% - 8px)); /* adjust shadow width */
-    transition: transform 0.22s ease-out;
-}
-
-/* when open, slide into view */
-#comfyai-chat-panel.open {
-    transform: translateX(0);
-}
-
-/* inner content */
-#comfyai-chat-window {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #f0f0f0;
-
-    /* match rounded corners */
-    border-radius: 8px;
-
-    /* ensures header + chat area respect rounding */
-    overflow: hidden;
-}
-
-/* Header */
-/* Background */
-#comfyai-chat-window .header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    background: linear-gradient(90deg, #171718, #1e1e1f);
-    border-bottom: 1px solid #333;
-}
-
-/*#comfyai-chat-window .header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}*/
-
-/* Custom header image replacing icon + text */
-#comfyai-header-image {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 60px;          /* adjust to your image's natural height */
-    object-fit: contain;       /* keeps aspect ratio */
-    padding: 5px 0;
-}
-
-/*#comfyai-chat-window .header {
-    padding: 0;
-    background: #242424;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}*/
-
-/* Model selector */
-/* Background */
-#comfyai-chat-window .model-selector {
-    padding: 8px 12px;
-    border-bottom: 1px solid #333;
-    background-color: #353535;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* Actual Drop Down */
-#comfyai-model-dropdown {
-    flex: 1;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid #555;
-    background-color: #222;
-    color: #f0f0f0;
-}
-
-/* Chat area */
-/* Background */
-#comfyai-chat-window .chat-area {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 10px 12px;
-    background-color: #171718;
-    gap: 8px;
-}
-
-#comfyai-messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    background-color: #141414;
-    border-radius: 4px;
-    padding: 10px;
-    border: 1px solid #333;
-}
-
-#comfyai-input {
-    width: 100%;
-    min-height: 70px;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #555;
-    background-color: #252525;
-    color: #f0f0f0;
-    resize: vertical;
-}
-
-#comfyai-send-button {
-    align-self: flex-end;
-    background-color: #3b82f6;
-    color: white;
-    border: none;
-    padding: 7px 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-#comfyai-send-button:hover {
-    background-color: #2563eb;
 }
 
 /* ------------------------------------------------------
@@ -187,4 +35,272 @@ button.comfyai-tab-button .side-bar-button-label {
     /* prevents PrimeVue auto-scaling */
     transform: none !important;
     scale: 1 !important;
+}
+
+/* ------------------------------------------------------------
+   PANEL CONTAINER
+------------------------------------------------------------ */
+#comfyai-chat-panel {
+    position: absolute;
+    top: 94px;
+    left: var(--comfyui-sidebar-width, 63px);
+
+    width: 408px;
+    height: calc(100% - 94px - 5px);
+
+    background-color: #171718;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.45);
+
+    resize: horizontal;
+    min-width: 300px;
+    max-width: 900px;
+    overflow: hidden;
+
+    transform: translateX(calc(-100% - 8px));
+    transition: transform 0.25s ease;
+    z-index: 5;
+}
+
+#comfyai-chat-panel.open {
+    transform: translateX(0);
+}
+
+/* ------------------------------------------------------------
+   ROOT CHAT WINDOW
+------------------------------------------------------------ */
+#comfyai-chat-window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    color: #f0f0f0;
+    font-family: system-ui, sans-serif;
+    overflow: hidden;
+}
+
+/* ------------------------------------------------------------
+   HEADER WITH LOGO
+------------------------------------------------------------ */
+#comfyai-chat-window .header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    background: linear-gradient(90deg, #171718, #1e1e1f);
+    border-bottom: 1px solid #333;
+}
+
+#comfyai-header-image {
+    width: 100%;
+    max-height: 64px;
+    object-fit: contain;
+    padding: 4px 0;
+}
+
+/* ------------------------------------------------------------
+   MODEL SELECTOR
+------------------------------------------------------------ */
+.model-selector {
+    padding: 8px 12px;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#comfyai-model-dropdown {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 4px;
+    background: #1e1e1e;
+    border: 1px solid #505050;
+    color: #eee;
+}
+
+/* ------------------------------------------------------------
+   CHAT AREA LAYOUT
+------------------------------------------------------------ */
+.chat-area {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 8px;
+    min-height: 0; /* CRITICAL so child (#messages) can scroll */
+}
+
+/* ------------------------------------------------------------
+   THE SCROLLING MESSAGE AREA
+------------------------------------------------------------ */
+#comfyai-messages {
+    flex: 1 1 auto;
+    min-height: 0;               /* REQUIRED */
+    max-height: 100%;
+
+    overflow-y: auto !important;
+    overflow-x: hidden;
+
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #141414;
+    border: 1px solid #333;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Modern thin scrollbar */
+#comfyai-messages::-webkit-scrollbar {
+    width: 6px;
+}
+#comfyai-messages::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 3px;
+}
+#comfyai-messages::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+/* ------------------------------------------------------------
+   CHAT BUBBLES
+   ChatGPT-style, non-shrinking, no internal scrollbars
+------------------------------------------------------------ */
+.comfyai-msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.45;
+    font-size: 12px;
+
+    /* Prevent bubbles from shrinking and gaining scrollbars */
+    overflow: visible !important;
+    max-height: none !important;
+}
+
+/* USER — left side */
+.comfyai-user {
+    align-self: flex-start;
+    background: #2f2f2f;
+    color: #e5e5e5;
+    border: 1px solid #444;
+    border-top-left-radius: 4px;
+}
+
+/* ASSISTANT — right side */
+.comfyai-assistant {
+    align-self: flex-end;
+    background: #1d2b3a;
+    color: #dbeafe;
+    border: 1px solid #334155;
+    border-top-right-radius: 4px;
+}
+
+/* ------------------------------------------------------------
+   MARKDOWN STYLES
+------------------------------------------------------------ */
+.comfyai-msg code {
+    background: #292929;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: "Fira Code", monospace;
+    font-size: 12px;
+}
+
+.comfyai-msg pre {
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 6px;
+    background: #0f0f0f;
+    border: 1px solid #333;
+    overflow-x: auto; /* horizontal scroll allowed inside code block only */
+}
+
+.comfyai-msg pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Headings */
+.comfyai-msg h1,
+.comfyai-msg h2,
+.comfyai-msg h3 {
+    margin: 6px 0;
+    font-weight: bold;
+}
+
+/* Lists */
+.comfyai-msg ul,
+.comfyai-msg ol {
+    padding-left: 20px;
+}
+
+/* Links */
+.comfyai-msg a {
+    color: #93c5fd;
+}
+
+/* ------------------------------------------------------------
+   TYPING INDICATOR (3 DOTS)
+------------------------------------------------------------ */
+.comfyai-typing {
+    align-self: flex-end;
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+}
+
+.comfyai-dot {
+    width: 6px;
+    height: 6px;
+    background: #9ca3af;
+    border-radius: 50%;
+    animation: comfyai-blink 1.4s infinite both;
+}
+
+.comfyai-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+.comfyai-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes comfyai-blink {
+    0% { opacity: 0.3; transform: translateY(0); }
+    20% { opacity: 1; transform: translateY(-2px); }
+    100% { opacity: 0.3; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------
+   INPUT AREA
+------------------------------------------------------------ */
+#comfyai-input {
+    width: 100%;
+    min-height: 55px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #222;
+    color: #eee;
+    resize: vertical;
+    font-size: 12px;
+}
+
+#comfyai-send-button {
+    align-self: flex-end;
+    padding: 7px 12px;
+    font-size: 14px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+}
+#comfyai-send-button:hover {
+    background: #2563eb;
 }

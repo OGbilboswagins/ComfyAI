@@ -9,7 +9,8 @@ from .utils.request_context import (
 )
 
 from .workflow_rewrite import rewrite_workflow
-
+from .routes.chat import chat_handler, chat_stream_handler
+from .routes.providers import setup_provider_routes
 
 # ============================================================
 # ROUTE HANDLER
@@ -67,6 +68,12 @@ def setup_routes(app: web.Application):
     app.router.add_post("/api/workflow/rewrite", workflow_rewrite_route)
     log.info("[ROUTER] Registered /api/workflow/rewrite")
 
+    setup_provider_routes(app)
+
+    app.router.add_post("/api/comfyai/chat", chat_handler)
+    app.router.add_post("/api/comfyai/chat/stream", chat_stream_handler)
+    log.info("[ROUTER] Registered /api/comfyai/chat")
+    log.info("[ROUTER] Registered /api/comfyai/chat/stream")
 
 # ============================================================
 # MAIN ENTRYPOINT CALLED BY __init__.py
