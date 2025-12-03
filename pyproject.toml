@@ -1,0 +1,21 @@
+[project]
+name = "ComfyAI"
+version = "0.1.0"
+description = "AI assistant and chat interface inside ComfyUI."
+license = { text = "MIT" }
+readme = "README.md"
+authors = [
+  { name = "Bill (OGbilboswagins)" }
+]
+
+keywords = ["ComfyUI", "AI", "chat", "assistant", "LLM", "plugin", "workflow", "Ollama", "OpenAI", "Gemini"]
+
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/OGbilboswagins/ComfyAI"
+Issues = "https://github.com/OGbilboswagins/ComfyAI/issues"
+Source = "https://github.com/OGbilboswagins/ComfyAI"
+
+[tool.comfy]
+module = "ComfyUI-ComfyAI"

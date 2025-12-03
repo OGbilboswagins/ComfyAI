@@ -94,3 +94,12 @@ async def chat_stream_handler(request: web.Request) -> web.StreamResponse:
         await resp.write_eof()
 
     return resp
+
+def setup(app: web.Application) -> None:
+    """
+    Register chat + streaming chat endpoints
+    """
+    app.router.add_post("/api/comfyai/chat", chat_handler)
+    app.router.add_post("/api/comfyai/chat/stream", chat_stream_handler)
+
+    log.info("[ROUTER] Registered /api/comfyai/chat* routes")

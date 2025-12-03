@@ -1,38 +1,164 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>ComfyAI Chat</title>
+<div id="comfyai-chat-window">
 
-    <link rel="stylesheet"
-          href="/extensions/ComfyAI/frontend/comfyai.css" />
-</head>
-<body>
-
-    <div id="comfyai-chat-window">
-
-        <div class="header">
-            <div class="header-left">
-                <img src="/extensions/ComfyAI/frontend/header.png"
-                     id="comfyai-header-image"
-                     alt="ComfyAI Header">
-            </div>
-        </div>
-
-        <div class="model-selector">
-            <label for="comfyai-model-dropdown">Model:</label>
-            <select id="comfyai-model-dropdown"></select>
-        </div>
-
-        <div class="chat-area">
-            <div id="comfyai-messages"></div>
-            <textarea id="comfyai-input" placeholder="Type your message..."></textarea>
-            <button id="comfyai-send-button">   </button>
-        </div>
-
+    <!-- HEADER -->
+    <div class="header">
+        <img src="/extensions/ComfyAI/frontend/header/header.png"
+             id="comfyai-header-image"
+             alt="ComfyAI Header">
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="/extensions/ComfyAI/frontend/comfyai.js"></script>
-</body>
-</html>
+    <!-- MODEL SELECTOR -->
+    <div class="model-selector">
+        <label for="comfyai-model-dropdown">Model:</label>
+        <select id="comfyai-model-dropdown"></select>
+    </div>
+
+    <!-- MAIN CHAT AREA -->
+    <div class="chat-area">
+        <div id="comfyai-messages"></div>
+
+        <div class="comfyai-footer">
+            <textarea id="comfyai-input" placeholder="Type your message..."></textarea>
+
+            <div class="comfyai-footer-buttons">
+                <button id="comfyai-settings-button"
+                        class="comfyai-icon-button"
+                        title="Settings">
+                    <img src="/extensions/ComfyAI/frontend/icons/settings-btn.png"
+                         alt="Settings">
+                </button>
+
+                <button id="comfyai-send-button"
+                        class="comfyai-send-button"
+                        title="Send"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- SETTINGS PANEL — FULL SCREEN OVERLAY -->
+<div id="comfyai-settings-panel" class="comfyai-settings-panel hidden">
+
+    <button id="comfyai-settings-close"
+            class="comfyai-icon-button comfyai-close-btn"
+            title="Close">✕</button>
+
+    <div class="comfyai-settings-layout">
+
+        <!-- SIDEBAR -->
+        <div class="comfyai-sidebar">
+            <button class="sidebar-item active" data-tab="general">
+                <img src="/extensions/ComfyAI/frontend/icons/general.png">
+            </button>
+            <button class="sidebar-item" data-tab="appearance">
+                <img src="/extensions/ComfyAI/frontend/icons/appearance.png">
+            </button>
+            <button class="sidebar-item" data-tab="chat">
+                <img src="/extensions/ComfyAI/frontend/icons/chat.png">
+            </button>
+            <button class="sidebar-item" data-tab="providers">
+                <img src="/extensions/ComfyAI/frontend/icons/providers.png">
+            </button>
+            <button class="sidebar-item" data-tab="advanced">
+                <img src="/extensions/ComfyAI/frontend/icons/advanced.png">
+            </button>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="comfyai-settings-content">
+
+            <!-- GENERAL -->
+            <div class="settings-tab" id="tab-general">
+                <h2>General Settings</h2>
+
+                <label class="cai-field">
+                    Theme:
+                    <select id="cai-theme">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </label>
+
+                <label class="cai-field checkbox">
+                    <input type="checkbox" id="cai-autoscroll">
+                    Auto-scroll chat
+                </label>
+
+                <label class="cai-field checkbox">
+                    <input type="checkbox" id="cai-streaming">
+                    Streaming mode
+                </label>
+            </div>
+
+            <!-- APPEARANCE -->
+            <div class="settings-tab hidden" id="tab-appearance">
+                <h2>Appearance</h2>
+                <p>Future UI options go here…</p>
+            </div>
+
+            <!-- CHAT BEHAVIOR -->
+            <div class="settings-tab hidden" id="tab-chat">
+                <h2>Chat Behavior</h2>
+
+                <label class="cai-field">
+                    System Prompt:
+                    <textarea id="cai-system-prompt"></textarea>
+                </label>
+
+                <label class="cai-field">
+                    Temperature:
+                    <input type="number" id="cai-temperature" min="0" max="2" step="0.1">
+                </label>
+
+                <label class="cai-field checkbox">
+                    <input type="checkbox" id="cai-markdown">
+                    Enable Markdown
+                </label>
+            </div>
+
+            <!-- PROVIDERS & MODELS -->
+            <div class="settings-tab hidden" id="tab-providers">
+                <h2>Providers & Default Models</h2>
+
+                <label class="cai-field">
+                    Default Provider:
+                    <select id="cai-default-provider"></select>
+                </label>
+
+                <h3>Default Models</h3>
+
+                <label class="cai-field">Chat Model:
+                    <select id="cai-model-chat"></select>
+                </label>
+
+                <label class="cai-field">Plan Model:
+                    <select id="cai-model-plan"></select>
+                </label>
+
+                <label class="cai-field">Edit Model:
+                    <select id="cai-model-edit"></select>
+                </label>
+
+                <button id="cai-save-settings" class="comfyai-save-btn">
+                    Save Settings
+                </button>
+            </div>
+
+            <!-- ADVANCED -->
+            <div class="settings-tab hidden" id="tab-advanced">
+                <h2>Advanced</h2>
+
+                <label class="cai-field checkbox">
+                    <input type="checkbox" id="cai-dev-mode">
+                    Developer Mode
+                </label>
+
+                <button id="cai-reset-settings" class="comfyai-reset-btn">
+                    Reset to Defaults
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>

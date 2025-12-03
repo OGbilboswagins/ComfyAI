@@ -292,7 +292,7 @@ async def delete_provider(request: web.Request) -> web.Response:
 # Public setup hook called from backend/router.py
 # ---------------------------------------------------------------------------
 
-def setup_provider_routes(app: web.Application) -> None:
+def setup(app: web.Application) -> None:
     """
     Register all /api/comfyai/* routes on the given aiohttp app.
     """

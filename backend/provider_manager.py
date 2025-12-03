@@ -76,6 +76,17 @@ class ProviderManager:
         log.info(f"[ComfyAI] Loaded providers: {list(self.providers.keys())}")
         log.info(f"[ComfyAI] Default provider: {self.default_provider}")
 
+    def reload(self):
+        """Reload providers.json and rebuild clients."""
+        log.info("[ComfyAI] Reloading provider config…")
+
+        self.config = load_config()
+        self.providers = {}
+        self.default_provider = None
+
+        self._load_providers()
+
+        log.info(f"[ComfyAI] Reload complete → {list(self.providers.keys())}")
 
     # ============================================================
     # Accessors

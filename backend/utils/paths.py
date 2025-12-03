@@ -22,7 +22,7 @@ DEFAULTS_PATH = PLUGIN_CONFIG_DIR / "defaults.json"
 # User Config (WRITABLE)
 # -------------------------------
 # These are user-writable configs (settings, cache, state)
-USER_CONFIG_DIR = COMFYUI_ROOT / "user" / "default" / "ComfyAI"
+USER_CONFIG_DIR = COMFYUI_ROOT / "user" / "default" / "ComfyUI-ComfyAI"
 SETTINGS_PATH = USER_CONFIG_DIR / "settings.json"
 CACHE_DIR = USER_CONFIG_DIR / "cache"
 
