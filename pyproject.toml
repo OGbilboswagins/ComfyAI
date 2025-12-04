@@ -1,8 +1,8 @@
 [project]
 name = "ComfyAI"
-version = "0.1.0"
+version = "0.3.0"
 description = "AI assistant and chat interface inside ComfyUI."
-license = { text = "MIT" }
+license = {file = "LICENSE"}
 readme = "README.md"
 authors = [
   { name = "Bill (OGbilboswagins)" }
@@ -13,10 +13,10 @@ keywords = ["ComfyUI", "AI", "chat", "assistant", "LLM", "plugin", "workflow", "
 requires-python = ">=3.10"
 
 [project.urls]
-Homepage = "https://github.com/OGbilboswagins/ComfyAI"
+Repository = "https://github.com/OGbilboswagins/ComfyAI"
 Issues = "https://github.com/OGbilboswagins/ComfyAI/issues"
 Source = "https://github.com/OGbilboswagins/ComfyAI"
 
 [tool.comfy]
-publisher = "OGbilboswagins"
-module = "ComfyUI-ComfyAI"
+PublisherId = "OGbilboswagins"
+DisplayName = "ComfyUI-ComfyAI"
