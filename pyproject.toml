@@ -1,22 +1,13 @@
 [project]
-name = "ComfyAI"
-version = "0.3.0"
-description = "AI assistant and chat interface inside ComfyUI."
-license = {file = "LICENSE"}
-readme = "README.md"
-authors = [
-  { name = "Bill (OGbilboswagins)" }
-]
-
-keywords = ["ComfyUI", "AI", "chat", "assistant", "LLM", "plugin", "workflow", "Ollama", "OpenAI", "Gemini"]
-
-requires-python = ">=3.10"
+name = "ComfyUI-ComfyAI"
+description = "The Intelligent AI Assistant for ComfyUI — chat, plan, edit workflows, and automate tasks with local or cloud LLMs."
+version = "1.0.0"
+license = { file = "LICENSE" }
 
 [project.urls]
 Repository = "https://github.com/OGbilboswagins/ComfyAI"
-Issues = "https://github.com/OGbilboswagins/ComfyAI/issues"
-Source = "https://github.com/OGbilboswagins/ComfyAI"
 
 [tool.comfy]
 PublisherId = "OGbilboswagins"
-DisplayName = "ComfyUI-ComfyAI"
+DisplayName = "ComfyAI"
+Icon = "https://raw.githubusercontent.com/OGbilboswagins/ComfyAI/main/assets/comfyai_logo.png"
