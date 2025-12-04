@@ -18,4 +18,5 @@ Issues = "https://github.com/OGbilboswagins/ComfyAI/issues"
 Source = "https://github.com/OGbilboswagins/ComfyAI"
 
 [tool.comfy]
+publisher = "OGbilboswagins"
 module = "ComfyUI-ComfyAI"
