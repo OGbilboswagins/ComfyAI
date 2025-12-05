@@ -2,7 +2,7 @@
   <img src="assets/comfyai_logo.png" alt="ComfyAI Logo" width="260">
 </p>
 
-<h1 align="center">ComfyAI — Your AI Copilot Inside ComfyUI</h1>
+<h1 align="center">Your AI Copilot Inside ComfyUI</h1>
 
 <p align="center">
   <strong>Chat • Plan • Edit • Automate</strong><br>
@@ -43,11 +43,6 @@
     <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT">
   </a>
 
-<!-- ComfyUI Manager / Registry Badge -->
-  <a href="https://registry.comfy.org/node/ComfyUI-ComfyAI">
-    <img src="https://registry.comfy.org/badge/ComfyUI-ComfyAI" alt="Available via ComfyUI Manager" style="height:28px;"/>
-  </a>
-
   <!-- Funding -->
   <a href="https://github.com/sponsors/OGbilboswagins">
     <img src="https://img.shields.io/badge/Sponsor-❤-ff69b4?style=for-the-badge&logo=githubsponsors" alt="GitHub Sponsors">
@@ -57,11 +52,16 @@
     <img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate via PayPal">
   </a>
 
+  <!-- ComfyUI Manager / Registry Badge -->
+  <a href="#">
+    <img src="https://img.shields.io/badge/ComfyUI%20Manager-Available-0f766e?style=for-the-badge" alt="Available via ComfyUI Manager">
+  </a>
+
 </p>
 
 ---
 
-## 🚀 What Is ComfyAI?
+## 🛈 What Is ComfyAI?
 
 **ComfyAI** is a fully embedded AI assistant panel for **ComfyUI**, inspired by tools like Continue.dev but purpose-built for AI image generation and node-based workflows.
 
@@ -77,9 +77,9 @@ All without leaving the ComfyUI interface.
 
 ---
 
-## ✨ Key Features
+## ⭐ Key Features
 
-### 🧩 Integrated Chat Panel
+### 🗯️ Integrated Chat Panel
 
 - Side-panel button in the ComfyUI sidebar
 - Sliding chat panel that matches ComfyUI’s dark theme
@@ -88,7 +88,7 @@ All without leaving the ComfyUI interface.
 - Auto-scroll that doesn’t fight with you
 - Local history persistence
 
-### ⚙️ Fullscreen Settings Panel
+### 🛠️ Fullscreen Settings Panel
 
 - Opens from the chat footer via a settings icon
 - Covers the chat UI with a dedicated settings layout
@@ -101,7 +101,7 @@ All without leaving the ComfyUI interface.
 - All settings persisted under the ComfyUI `user/default/ComfyUI-ComfyAI` directory
 - Backed by `/api/comfyai/settings` in the Python backend
 
-### 🔌 Provider & Model Management
+### ✦ Provider & Model Management
 
 - Backend provider manager detects configured providers
 - Designed for:
@@ -168,7 +168,7 @@ See [docs/settings.md](docs/settings.md) for the detailed schema.
 
 ---
 
-## 🧭 Basic Usage
+## ⭐ Basic Usage
 
 1. Start ComfyUI
 2. Click the **ComfyAI** button in the left sidebar (above the Queue tab)
@@ -194,7 +194,9 @@ See [ROADMAP.md](ROADMAP.md) for a living roadmap. Highlights:
 
 ---
 
-## 🤝 Contributing
+## 🖌️ Contributing
+
+Contributions of all kinds are welcome:
 
 Contributions of all kinds are welcome:
 
@@ -239,7 +241,7 @@ If you discover a security issue, please follow the process described in [SECURI
 
 ---
 
-## 📜 License
+## 🗒️ License
 
 ComfyAI is released under the **MIT License**.
 See [LICENSE](LICENSE) for full details.
