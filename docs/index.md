@@ -1,9 +1,8 @@
 # ComfyAI Documentation
 
-Welcome to **ComfyAI**, your AI copilot inside ComfyUI.
+Welcome to **ComfyAI** docs, your AI copilot inside ComfyUI.
 
-This `docs/` folder can be used later with GitHub Pages or a static site generator,
-but for now it provides a central place to expand documentation as the project grows.
+ComfyAI is an intelligent assistant extension for **ComfyUI** that embeds an LLM-powered chat + control panel directly into the ComfyUI interface.
 
 ## Contents
 
@@ -14,9 +13,33 @@ but for now it provides a central place to expand documentation as the project g
 - `SECURITY.md` (security policy)
 - `SUPPORT.md` (support instructions)
 
-As ComfyAI evolves, you can add:
+## What is ComfyAI?
 
-- Detailed usage guides
-- Provider-specific setup docs
-- Examples and screenshots
-- FAQ and troubleshooting
+ComfyAI adds:
+
+- A sliding chat panel inside ComfyUI
+- ChatGPT-style bubbles with markdown support
+- Streaming responses and typing indicator
+- Model & provider selection (Ollama, OpenAI, Google, etc.)
+- A full settings panel with tabs and icons
+- Persistent user configuration stored in `user/default/ComfyUI-ComfyAI/settings.json`
+
+It is designed to eventually:
+
+- Plan and edit workflows (graph-aware AI)
+- Run "chat / plan / edit" modes
+- Integrate tools / MCP servers
+- Automate common ComfyUI tasks
+
+## Key Links
+
+- GitHub: https://github.com/OGbilboswagins/ComfyAI
+- ComfyUI Registry: https://registry.comfy.org/node/ComfyUI-ComfyAI
+- Issues & Feature Requests: https://github.com/OGbilboswagins/ComfyAI/issues
+- Discussions: https://github.com/OGbilboswagins/ComfyAI/discussions
+
+## Sections
+
+- [Architecture](architecture.md)
+- [Settings & Configuration](settings.md)
+- [Roadmap](roadmap.md)
