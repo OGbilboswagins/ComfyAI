@@ -52,7 +52,7 @@
     <img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate via PayPal">
   </a>
 
-<!-- ComfyUI Manager / Registry Badge -->
+  <!-- ComfyUI Manager / Registry Badge -->
   <a href="#">
     <img src="https://img.shields.io/badge/ComfyUI%20Manager-Available-0f766e?style=for-the-badge" alt="Available via ComfyUI Manager">
   </a>
@@ -67,11 +67,11 @@
 
 It lets you:
 
-  🗨️ Chat with LLMs directly inside ComfyUI  
-  ⚡  Plan and debug workflows in natural language  
-  🎛 Switch between local and cloud models via providers  
-  🛠 Configure everything through a fullscreen settings panel  
-  🟢 (Roadmap) Use AI-powered modes like **Chat / Plan / Edit** to control how the assistant behaves
+- 🗨️ Chat with LLMs directly inside ComfyUI
+- ⚡ Plan and debug workflows in natural language
+- 🎛 Switch between local and cloud models via providers
+- ⚙️ Configure everything through a fullscreen settings panel
+- 🛠 (Roadmap) Use AI-powered modes like **Chat / Plan / Edit** to control how the assistant behaves
 
 All without leaving the ComfyUI interface.
 
@@ -81,35 +81,35 @@ All without leaving the ComfyUI interface.
 
 ### 🗯️ Integrated Chat Panel
 
-- Side-panel button in the ComfyUI sidebar  
-- Sliding chat panel that matches ComfyUI’s dark theme  
-- ChatGPT-style bubbles with markdown & code blocks  
-- Animated 3-dot typing indicator  
-- Auto-scroll that doesn’t fight with you  
+- Side-panel button in the ComfyUI sidebar
+- Sliding chat panel that matches ComfyUI’s dark theme
+- ChatGPT-style bubbles with markdown & code blocks
+- Animated 3-dot typing indicator
+- Auto-scroll that doesn’t fight with you
 - Local history persistence
 
 ### 🛠️ Fullscreen Settings Panel
 
-- Opens from the chat footer via a settings icon  
-- Covers the chat UI with a dedicated settings layout  
+- Opens from the chat footer via a settings icon
+- Covers the chat UI with a dedicated settings layout
 - Left-hand sidebar with icons for:
-  - General  
-  - Appearance  
-  - Chat Behavior  
-  - Providers & Models  
-  - Advanced  
-- All settings persisted under the ComfyUI `user/default/ComfyUI-ComfyAI` directory  
+  - General
+  - Appearance
+  - Chat Behavior
+  - Providers & Models
+  - Advanced
+- All settings persisted under the ComfyUI `user/default/ComfyUI-ComfyAI` directory
 - Backed by `/api/comfyai/settings` in the Python backend
 
 ### ✦ Provider & Model Management
 
-- Backend provider manager detects configured providers  
+- Backend provider manager detects configured providers
 - Designed for:
   - **Ollama** (local models)
   - **OpenAI-compatible APIs**
   - **Google Gemini**
-  - More providers as the project evolves  
-- UI model dropdown groups models by provider  
+  - More providers as the project evolves
+- UI model dropdown groups models by provider
 - Settings panel supports:
   - Default provider
   - Default model per mode (Chat / Plan / Edit) — roadmap
@@ -168,7 +168,7 @@ See [docs/settings.md](docs/settings.md) for the detailed schema.
 
 ---
 
-## 🤖 Basic Usage
+## ⭐ Basic Usage
 
 1. Start ComfyUI
 2. Click the **ComfyAI** button in the left sidebar (above the Queue tab)
@@ -183,18 +183,20 @@ See [docs/settings.md](docs/settings.md) for the detailed schema.
 
 See [ROADMAP.md](ROADMAP.md) for a living roadmap. Highlights:
 
-- [x] Floating chat panel with streaming  
-- [x] Backend provider + settings APIs  
-- [x] Fullscreen settings UI with tabs  
-- [ ] Mode selector (Chat / Plan / Edit)  
-- [ ] Per-mode model defaults and behavior knobs  
-- [ ] MCP tools integration  
-- [ ] Workflow rewrite and automation helpers  
-- [ ] Deeper integration with ComfyUI’s queue and workflow graph  
+- [x] Floating chat panel with streaming
+- [x] Backend provider + settings APIs
+- [x] Fullscreen settings UI with tabs
+- [ ] Mode selector (Chat / Plan / Edit)
+- [ ] Per-mode model defaults and behavior knobs
+- [ ] MCP tools integration
+- [ ] Workflow rewrite and automation helpers
+- [ ] Deeper integration with ComfyUI’s queue and workflow graph
 
 ---
 
 ## 🖌️ Contributing
+
+Contributions of all kinds are welcome:
 
 Contributions of all kinds are welcome:
 
@@ -221,8 +223,8 @@ And feel free to start a conversation in:
 If ComfyAI makes your workflow better, consider supporting its development:
 
 - **Star** the repo on GitHub
-- **GitHub Sponsors:** https://github.com/sponsors/OGbilboswagins  
-- **PayPal Tips:** https://paypal.me/ogbilboswaggins  
+- **GitHub Sponsors:** https://github.com/sponsors/OGbilboswagins
+- **PayPal Tips:** https://paypal.me/ogbilboswaggins
 
 Even small recurring sponsorships help justify time spent building new features, testing changes with ComfyUI updates, and keeping docs up to date.
 
@@ -241,7 +243,7 @@ If you discover a security issue, please follow the process described in [SECURI
 
 ## 🗒️ License
 
-ComfyAI is released under the **MIT License**.  
+ComfyAI is released under the **MIT License**.
 See [LICENSE](LICENSE) for full details.
 
 ---
