@@ -30,6 +30,10 @@
     <img src="https://img.shields.io/github/last-commit/OGbilboswagins/ComfyAI?style=for-the-badge&logo=git" alt="Last Commit">
   </a>
 
+  <a href="https://github.com/OGbilboswagins/ComfyAI/releases">
+    <img src="https://img.shields.io/github/v/release/OGbilboswagins/ComfyAI?style=for-the-badge" alt="Latest release"/>
+  </a>
+    
   <!-- Size / license -->
   <a href="https://github.com/OGbilboswagins/ComfyAI">
     <img src="https://img.shields.io/github/repo-size/OGbilboswagins/ComfyAI?style=for-the-badge&logo=github" alt="Repo Size">
@@ -39,9 +43,9 @@
     <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT">
   </a>
 
-  <!-- ComfyUI Manager availability (link can be updated once registry page exists) -->
-  <a href="https://github.com/comfyanonymous/ComfyUI">
-    <img src="https://img.shields.io/badge/Available%20via-ComfyUI%20Manager-0f766e?style=for-the-badge&logo=data:image/svg+xml;base64," alt="Available via ComfyUI Manager">
+<!-- ComfyUI Manager / Registry Badge -->
+  <a href="https://registry.comfy.org/node/ComfyUI-ComfyAI">
+    <img src="https://registry.comfy.org/badge/ComfyUI-ComfyAI" alt="Available via ComfyUI Manager" style="height:28px;"/>
   </a>
 
   <!-- Funding -->
@@ -63,11 +67,11 @@
 
 It lets you:
 
-- 💬 Chat with LLMs directly inside ComfyUI  
-- 🧠 Plan and debug workflows in natural language  
-- 🎛 Switch between local and cloud models via providers  
-- ⚙️ Configure everything through a fullscreen settings panel  
-- 🔮 (Roadmap) Use AI-powered modes like **Chat / Plan / Edit** to control how the assistant behaves
+- 🗨️ Chat with LLMs directly inside ComfyUI
+- ⚡ Plan and debug workflows in natural language
+- 🎛 Switch between local and cloud models via providers
+- ⚙️ Configure everything through a fullscreen settings panel
+- 🛠 (Roadmap) Use AI-powered modes like **Chat / Plan / Edit** to control how the assistant behaves
 
 All without leaving the ComfyUI interface.
 
@@ -77,35 +81,35 @@ All without leaving the ComfyUI interface.
 
 ### 🧩 Integrated Chat Panel
 
-- Side-panel button in the ComfyUI sidebar  
-- Sliding chat panel that matches ComfyUI’s dark theme  
-- ChatGPT-style bubbles with markdown & code blocks  
-- Animated 3-dot typing indicator  
-- Auto-scroll that doesn’t fight with you  
+- Side-panel button in the ComfyUI sidebar
+- Sliding chat panel that matches ComfyUI’s dark theme
+- ChatGPT-style bubbles with markdown & code blocks
+- Animated 3-dot typing indicator
+- Auto-scroll that doesn’t fight with you
 - Local history persistence
 
 ### ⚙️ Fullscreen Settings Panel
 
-- Opens from the chat footer via a settings icon  
-- Covers the chat UI with a dedicated settings layout  
+- Opens from the chat footer via a settings icon
+- Covers the chat UI with a dedicated settings layout
 - Left-hand sidebar with icons for:
-  - General  
-  - Appearance  
-  - Chat Behavior  
-  - Providers & Models  
-  - Advanced  
-- All settings persisted under the ComfyUI `user/default/ComfyUI-ComfyAI` directory  
+  - General
+  - Appearance
+  - Chat Behavior
+  - Providers & Models
+  - Advanced
+- All settings persisted under the ComfyUI `user/default/ComfyUI-ComfyAI` directory
 - Backed by `/api/comfyai/settings` in the Python backend
 
 ### 🔌 Provider & Model Management
 
-- Backend provider manager detects configured providers  
+- Backend provider manager detects configured providers
 - Designed for:
   - **Ollama** (local models)
   - **OpenAI-compatible APIs**
   - **Google Gemini**
-  - More providers as the project evolves  
-- UI model dropdown groups models by provider  
+  - More providers as the project evolves
+- UI model dropdown groups models by provider
 - Settings panel supports:
   - Default provider
   - Default model per mode (Chat / Plan / Edit) — roadmap
@@ -114,25 +118,25 @@ All without leaving the ComfyUI interface.
 
 ## 📦 Installation
 
-### 1. ComfyUI Manager (Recommended)
+### 1. Via ComfyUI Manager (Recommended)
 
-Once published to the registry:
+1. Open **ComfyUI Manager** inside ComfyUI.
+2. Search for **"ComfyAI"**.
+3. Click **Install** or **Update**.
+4. Restart ComfyUI.
 
-1. Open **ComfyUI Manager**
-2. Go to the **Custom Nodes** tab  
-3. Search for **“ComfyAI”**  
-4. Click **Install** and restart ComfyUI
+> ComfyAI is published to the official **ComfyUI Registry**, so Manager can detect and manage it automatically.
 
-### 2. Manual Git Clone
+### 2. Manual Install (Git)
 
-From your ComfyUI root:
+From your ComfyUI root directory:
 
 ```bash
 cd custom_nodes
-git clone https://github.com/OGbilboswagins/ComfyAI.git
+git clone https://github.com/OGbilboswagins/ComfyAI.git ComfyUI-ComfyAI
 ```
 
-Restart ComfyUI.
+Then restart ComfyUI.
 
 ### 3. ZIP Download
 
@@ -141,6 +145,26 @@ Download the latest release ZIP from:
 👉 https://github.com/OGbilboswagins/ComfyAI/releases
 
 Extract into `ComfyUI/custom_nodes/ComfyAI` and restart.
+
+---
+
+## ⚙️ Configuration
+
+ComfyAI stores settings in:
+
+```text
+COMFYUI_ROOT/user/default/ComfyUI-ComfyAI/settings.json
+```
+
+You can:
+
+- Edit them via the **Settings** UI.
+- Read/write via the HTTP API:
+  - `GET /api/comfyai/settings`
+  - `POST /api/comfyai/settings`
+- Manually edit the JSON while ComfyUI is stopped.
+
+See [docs/settings.md](docs/settings.md) for the detailed schema.
 
 ---
 
@@ -159,24 +183,36 @@ Extract into `ComfyUI/custom_nodes/ComfyAI` and restart.
 
 See [ROADMAP.md](ROADMAP.md) for a living roadmap. Highlights:
 
-- [x] Floating chat panel with streaming  
-- [x] Backend provider + settings APIs  
-- [x] Fullscreen settings UI with tabs  
-- [ ] Mode selector (Chat / Plan / Edit)  
-- [ ] Per-mode model defaults and behavior knobs  
-- [ ] MCP tools integration  
-- [ ] Workflow rewrite and automation helpers  
-- [ ] Deeper integration with ComfyUI’s queue and workflow graph  
+- [x] Floating chat panel with streaming
+- [x] Backend provider + settings APIs
+- [x] Fullscreen settings UI with tabs
+- [ ] Mode selector (Chat / Plan / Edit)
+- [ ] Per-mode model defaults and behavior knobs
+- [ ] MCP tools integration
+- [ ] Workflow rewrite and automation helpers
+- [ ] Deeper integration with ComfyUI’s queue and workflow graph
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests, issues, and ideas are very welcome.
+Contributions of all kinds are welcome:
 
-- Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines  
-- Check [ROADMAP.md](ROADMAP.md) and [ISSUES](https://github.com/OGbilboswagins/ComfyAI/issues) for ideas  
-- If you build something cool on top of ComfyAI, please share it!
+- Bug fixes
+- New features (web search, tools, workflow automation)
+- UI/UX improvements
+- Docs and examples
+- Provider integrations
+
+Please see:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md)
+
+And feel free to start a conversation in:
+
+- **Discussions** → https://github.com/OGbilboswagins/ComfyAI/discussions
 
 ---
 
@@ -184,23 +220,28 @@ Pull requests, issues, and ideas are very welcome.
 
 If ComfyAI makes your workflow better, consider supporting its development:
 
-- **GitHub Sponsors:** https://github.com/sponsors/OGbilboswagins  
-- **PayPal Tips:** https://paypal.me/ogbilboswaggins  
+- **Star** the repo on GitHub
+- **GitHub Sponsors:** https://github.com/sponsors/OGbilboswagins
+- **PayPal Tips:** https://paypal.me/ogbilboswaggins
 
 Even small recurring sponsorships help justify time spent building new features, testing changes with ComfyUI updates, and keeping docs up to date.
 
 ---
 
-## 🔐 Security
+## 🛡 Security & Privacy
 
-Please do **not** disclose security issues publicly.  
-See [SECURITY.md](SECURITY.md) for how to report vulnerabilities responsibly.
+- ComfyAI does not send data anywhere you haven’t configured.
+- Local providers like **Ollama** keep data on your machine.
+- Cloud providers (OpenAI, Gemini, etc.) depend on their privacy policies.
+- API keys are stored in your local configuration and never hard-coded in the repo.
+
+If you discover a security issue, please follow the process described in [SECURITY.md](SECURITY.md).
 
 ---
 
 ## 📜 License
 
-ComfyAI is released under the **MIT License**.  
+ComfyAI is released under the **MIT License**.
 See [LICENSE](LICENSE) for full details.
 
 ---

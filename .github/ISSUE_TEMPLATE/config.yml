@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 ComfyAI Discussions
+    url: https://github.com/OGbilboswagins/ComfyAI/discussions
+    about: Ask questions, share ideas, or get help before opening an issue.
