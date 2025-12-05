@@ -1,13 +1,13 @@
 [project]
 name = "ComfyUI-ComfyAI"
 description = "The Intelligent AI Assistant for ComfyUI — chat, plan, edit workflows, and automate tasks with local or cloud LLMs."
-version = "1.0.0"
+version = "0.3.0"
 license = { file = "LICENSE" }
 
 [project.urls]
 Repository = "https://github.com/OGbilboswagins/ComfyAI"
 
 [tool.comfy]
-PublisherId = "OGbilboswagins"
+PublisherId = "ogbilboswagins"
 DisplayName = "ComfyAI"
 Icon = "https://raw.githubusercontent.com/OGbilboswagins/ComfyAI/main/assets/comfyai_logo.png"
