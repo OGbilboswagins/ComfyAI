@@ -254,19 +254,26 @@ button.comfyai-tab-button .side-bar-button-label {
     height: 20px;
 }
 
-/* SEND BUTTON */
+/* SEND BUTTON (ICON) */
 .comfyai-send-button {
-    padding: 7px 12px;
-    font-size: 14px;
-    background: #3b82f6;
+    background: transparent;
     border: none;
-    border-radius: 6px;
-    color: #fff;
+    padding: 6px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .comfyai-send-button:hover {
-    background: #2563eb;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+}
+
+.comfyai-send-icon {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
 }
 
 /* ------------------------------------------------------------

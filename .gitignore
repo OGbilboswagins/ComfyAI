@@ -72,3 +72,5 @@ custom_nodes/ComfyAI/config/*.secret.json
 .vscode/settings.json
 .vscode/launch.json
 .vscode/tasks.json
+.clinerules/
+.continue/

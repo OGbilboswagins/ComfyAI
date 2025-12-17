@@ -15,7 +15,6 @@ COMFYUI_ROOT = PLUGIN_ROOT.parent.parent
 # -------------------------------
 # These are *global plugin* configs, version-controlled.
 PLUGIN_CONFIG_DIR = PLUGIN_ROOT / "config"
-PROVIDERS_PATH = PLUGIN_CONFIG_DIR / "providers.json"
 DEFAULTS_PATH = PLUGIN_CONFIG_DIR / "defaults.json"
 
 # -------------------------------
@@ -24,6 +23,7 @@ DEFAULTS_PATH = PLUGIN_CONFIG_DIR / "defaults.json"
 # These are user-writable configs (settings, cache, state)
 USER_CONFIG_DIR = COMFYUI_ROOT / "user" / "default" / "ComfyUI-ComfyAI"
 SETTINGS_PATH = USER_CONFIG_DIR / "settings.json"
+PROVIDERS_PATH =USER_CONFIG_DIR / "providers.json"
 CACHE_DIR = USER_CONFIG_DIR / "cache"
 
 def ensure_user_config_dir() -> None:

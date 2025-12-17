@@ -101,7 +101,7 @@ All without leaving the ComfyUI interface.
 - All settings persisted under the ComfyUI `user/default/ComfyUI-ComfyAI` directory
 - Backed by `/api/comfyai/settings` in the Python backend
 
-### ✦ Provider & Model Management
+### 🧩 Provider & Model Management
 
 - Backend provider manager detects configured providers
 - Designed for:

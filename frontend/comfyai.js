@@ -274,93 +274,36 @@ async function loadChatPanel() {
         console.log("[ComfyAI] Chat panel loaded");
 
         // ------------------------------------------------------
-        // SETTINGS PANEL EVENT BINDINGS (must run AFTER HTML loads)
+        // SETTINGS PANEL EVENT BINDINGS (HTML only, no logic)
         // ------------------------------------------------------
         const settingsPanel = document.getElementById("comfyai-settings-panel");
         if (settingsPanel) {
-
-            // --- CLOSE BUTTON ---
             const closeBtn = settingsPanel.querySelector("#comfyai-settings-close");
+
             if (closeBtn) {
                 console.log("[ComfyAI] Close button found — binding handler");
                 closeBtn.addEventListener("click", () => {
                     console.log("[ComfyAI] Close button clicked");
-                    settingsPanel.classList.add("hidden");
+                    if (typeof window.__comfyaiCloseSettings === "function") {
+                        window.__comfyaiCloseSettings();
+                    }
                 });
             } else {
                 console.warn("[ComfyAI] Close button NOT found in settings panel markup");
             }
-
-            // ---- SIDEBAR TAB SWITCHING ----
-            const sidebarItems = settingsPanel.querySelectorAll(".sidebar-item");
-            sidebarItems.forEach((item) => {
-                item.addEventListener("click", () => {
-
-                    // highlight tab
-                    sidebarItems.forEach((i) => i.classList.remove("active"));
-                    item.classList.add("active");
-
-                    // show matching content
-                    const tab = item.dataset.tab;
-                    settingsPanel.querySelectorAll(".settings-tab").forEach((tabEl) =>
-                        tabEl.classList.add("hidden")
-                    );
-                    settingsPanel.querySelector(`#tab-${tab}`).classList.remove("hidden");
-                });
-            });
-
-            // ---- SAVE BUTTON ----
-            const saveBtn = settingsPanel.querySelector("#cai-save-settings");
-            if (saveBtn) {
-                saveBtn.addEventListener("click", async () => {
-
-                    const payload = {
-                        theme: document.getElementById("cai-theme").value,
-                        auto_scroll: document.getElementById("cai-autoscroll").checked,
-                        streaming: document.getElementById("cai-streaming").checked,
-                        default_provider: document.getElementById("cai-default-provider").value,
-                        model_chat: document.getElementById("cai-model-chat").value,
-                        model_plan: document.getElementById("cai-model-plan").value,
-                        model_edit: document.getElementById("cai-model-edit").value
-                    };
-
-                    await fetch("/api/comfyai/settings", {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify(payload)
-                    });
-
-                    alert("Settings saved!");
-                });
-            }
-        }
-
-        // --- SETTINGS BUTTON (bind after chat.html loads) ---
-        const settingsBtn = document.getElementById("comfyai-settings-button");
-        if (settingsBtn) {
-            settingsBtn.addEventListener("click", () => {
-                document.getElementById("comfyai-settings-panel").classList.remove("hidden");
-            });
         }
 
         modelDropdown = document.getElementById("comfyai-model-dropdown");
         await populateModelDropdown();
         loadHistory();
 
-        // Hook send button
         const sendBtn = document.getElementById("comfyai-send-button");
-        if (sendBtn) {
-            sendBtn.addEventListener("click", sendMessage);
-        }
+        if (sendBtn) sendBtn.addEventListener("click", sendMessage);
 
         const input = document.getElementById("comfyai-input");
         if (input) {
             input.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    if (e.shiftKey) {
-                        // Insert newline instead of sending
-                        return;
-                    }
+                if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
                 }
@@ -521,11 +464,24 @@ async function insertSidebarButton() {
             return;
         }
 
-        console.log("[ComfyAI][DEBUG] Creating button…");
+        if (!document.getElementById("comfyai-sidebar-button")) {
+            console.log("[ComfyAI][DEBUG] Creating button…");
+            sidebarButton = document.createElement("button");
+            sidebarButton.id = "comfyai-sidebar-button";
+            sidebarButton.type = "button";
+        }
 
-        sidebarButton = document.createElement("button");
-        sidebarButton.id = "comfyai-sidebar-button";
-        sidebarButton.type = "button";
+
+        window.addEventListener("DOMContentLoaded", () => {
+            if (
+                sidebarButton &&
+                !document.getElementById("comfyai-sidebar-button")
+            ) {
+                sidebarContainer.appendChild(sidebarButton);
+            }
+        });
+
+
 
         /* REQUIRED PrimeVue + Vue hydration metadata */
         sidebarButton.setAttribute("data-v-c90a38ba", "");
@@ -541,8 +497,8 @@ async function insertSidebarButton() {
         sidebarButton.innerHTML = `
             <div class="side-bar-button-content">
                 <img src="/extensions/ComfyAI/frontend/icons/sidebar-icon.svg"
-                     class="side-bar-button-icon comfyai-sidebar-icon"
-                     style="width:18px;height:18px;">
+                class="side-bar-button-icon comfyai-sidebar-icon"
+                style="width:18px;height:18px;">
                 <span class="side-bar-button-label">ComfyAI</span>
             </div>
             <span class="p-button-label">&nbsp;</span>
@@ -621,14 +577,6 @@ async function saveComfyAISettings(data) {
     });
 }
 
-// Toggle settings panel open/close
-const settingsPanel = document.getElementById("comfyai-settings-panel");
-const closeButton = document.getElementById("comfyai-settings-close");
-
-closeButton.onclick = () => {
-    settingsPanel.classList.add("hidden");
-};
-
 // =====================================================
 // WAIT FOR THE COMFYAI CHAT PANEL TO APPEAR
 // =====================================================
@@ -636,14 +584,13 @@ const comfyAIObserver = new MutationObserver(() => {
     const panel = document.getElementById("comfyai-chat-panel");
     if (!panel) return;
 
-    const chatWindow    = panel.querySelector("#comfyai-chat-window");
+    const chatWindow = panel.querySelector("#comfyai-chat-window");
     const settingsPanel = panel.querySelector("#comfyai-settings-panel");
     const settingsButton = panel.querySelector("#comfyai-settings-button");
 
     if (!chatWindow || !settingsPanel || !settingsButton) return;
 
     console.log("[ComfyAI] Chat panel detected — installing settings handlers");
-
     comfyAIObserver.disconnect();
 
     // Sidebar + tabs
@@ -651,30 +598,18 @@ const comfyAIObserver = new MutationObserver(() => {
     const tabs = settingsPanel.querySelectorAll(".settings-tab");
 
     function activateTab(tabName) {
-        sidebarItems.forEach((item) => {
-            if (item.dataset.tab === tabName) {
-                item.classList.add("active");
-            } else {
-                item.classList.remove("active");
-            }
-        });
-        tabs.forEach((tab) => {
-            if (tab.id === `tab-${tabName}`) {
-                tab.classList.remove("hidden");
-            } else {
-                tab.classList.add("hidden");
-            }
-        });
+        sidebarItems.forEach(i =>
+            i.classList.toggle("active", i.dataset.tab === tabName)
+        );
+        tabs.forEach(t =>
+            t.classList.toggle("hidden", t.id !== `tab-${tabName}`)
+        );
     }
 
-    sidebarItems.forEach((item) => {
-        item.onclick = () => {
-            const tab = item.dataset.tab;
-            activateTab(tab);
-        };
+    sidebarItems.forEach(item => {
+        item.onclick = () => activateTab(item.dataset.tab);
     });
 
-    // Open/close settings: toggle full replacement of chat
     let settingsOpen = false;
 
     async function openSettings() {
@@ -682,26 +617,17 @@ const comfyAIObserver = new MutationObserver(() => {
         chatWindow.style.display = "none";
         settingsPanel.classList.remove("hidden");
 
-        // Load settings from backend
         const settings = await loadComfyAISettings();
 
-        // GENERAL
         panel.querySelector("#cai-theme").value = settings.theme ?? "dark";
         panel.querySelector("#cai-autoscroll").checked = settings.auto_scroll ?? true;
         panel.querySelector("#cai-streaming").checked = settings.streaming ?? true;
-
-        // CHAT BEHAVIOR
         panel.querySelector("#cai-system-prompt").value = settings.system_prompt ?? "";
-        panel.querySelector("#cai-temperature").value =
-            settings.temperature != null ? settings.temperature : 0.7;
+        panel.querySelector("#cai-temperature").value = settings.temperature ?? 0.7;
         panel.querySelector("#cai-markdown").checked = settings.markdown ?? true;
-
-        // ADVANCED
         panel.querySelector("#cai-dev-mode").checked = settings.dev_mode ?? false;
 
-        // PROVIDERS & MODELS
         await populateProviderAndModelsUI(panel, settings);
-
         activateTab("general");
     }
 
@@ -711,15 +637,16 @@ const comfyAIObserver = new MutationObserver(() => {
         chatWindow.style.display = "flex";
     }
 
-    settingsButton.onclick = () => {
-        if (settingsOpen) {
-            closeSettings();
-        } else {
-            openSettings();
-        }
-    };
+    function toggleSettings() {
+        settingsOpen ? closeSettings() : openSettings();
+    }
 
-    // Reset button (advanced tab)
+    // 🔑 expose canonical controls
+    window.__comfyaiCloseSettings = closeSettings;
+    window.__comfyaiToggleSettings = toggleSettings;
+
+    settingsButton.onclick = toggleSettings;
+
     const resetBtn = panel.querySelector("#cai-reset-settings");
     if (resetBtn) {
         resetBtn.onclick = async () => {
@@ -728,106 +655,118 @@ const comfyAIObserver = new MutationObserver(() => {
                 auto_scroll: true,
                 streaming: true,
                 default_provider: Object.keys(comfyAIProviders)[0] || null,
-                default_models: {
-                    chat: "",
-                    plan: "",
-                    edit: ""
-                }
+                default_models: { chat: "", plan: "", edit: "" }
             };
             await saveComfyAISettings(comfyAISettings);
-            alert("Settings reset to defaults.");
             openSettings();
         };
     }
 
-    // Save button
     const saveBtn = panel.querySelector("#cai-save-settings");
     if (saveBtn) {
         saveBtn.onclick = async () => {
             if (!comfyAISettings) comfyAISettings = {};
 
-            // GENERAL
             comfyAISettings.theme = panel.querySelector("#cai-theme").value;
-            comfyAISettings.auto_scroll =
-                panel.querySelector("#cai-autoscroll").checked;
-            comfyAISettings.streaming =
-                panel.querySelector("#cai-streaming").checked;
-
-            // CHAT BEHAVIOR
-            comfyAISettings.system_prompt =
-                panel.querySelector("#cai-system-prompt").value;
+            comfyAISettings.auto_scroll = panel.querySelector("#cai-autoscroll").checked;
+            comfyAISettings.streaming = panel.querySelector("#cai-streaming").checked;
+            comfyAISettings.system_prompt = panel.querySelector("#cai-system-prompt").value;
             comfyAISettings.temperature =
                 parseFloat(panel.querySelector("#cai-temperature").value) || 0.7;
-            comfyAISettings.markdown =
-                panel.querySelector("#cai-markdown").checked;
+            comfyAISettings.markdown = panel.querySelector("#cai-markdown").checked;
+            comfyAISettings.dev_mode = panel.querySelector("#cai-dev-mode").checked;
 
-            // ADVANCED
-            comfyAISettings.dev_mode =
-                panel.querySelector("#cai-dev-mode").checked;
+            comfyAISettings.default_provider =
+                panel.querySelector("#cai-default-provider").value || null;
 
-            // PROVIDER + DEFAULT MODELS
-            const providerSelect = panel.querySelector("#cai-default-provider");
-            const chatModelSelect = panel.querySelector("#cai-model-chat");
-            const planModelSelect = panel.querySelector("#cai-model-plan");
-            const editModelSelect = panel.querySelector("#cai-model-edit");
-
-            comfyAISettings.default_provider = providerSelect.value || null;
-
-            const dm = comfyAISettings.default_models || {};
             comfyAISettings.default_models = {
-                chat: chatModelSelect.value || dm.chat || "",
-                plan: planModelSelect.value || dm.plan || "",
-                edit: editModelSelect.value || dm.edit || ""
+                chat: panel.querySelector("#cai-model-chat").value || "",
+                plan: panel.querySelector("#cai-model-plan").value || "",
+                edit: panel.querySelector("#cai-model-edit").value || ""
             };
 
             await saveComfyAISettings(comfyAISettings);
-            alert("Settings saved!");
+            closeSettings();
         };
     }
 });
 
-// Helper to populate provider + model dropdowns in Providers tab
+// Helper to populate provider + model dropdowns in Providers tab (READ-ONLY)
 async function populateProviderAndModelsUI(panel, settings) {
-    // Load providers list
-    const provRes = await fetch("/api/comfyai/providers");
-    const provData = await provRes.json();
-    const providers = provData.providers || {};
+    // Always resolve from the actual settings panel
+    const settingsPanel =
+        panel?.querySelector?.("#comfyai-settings-panel") ||
+        document.getElementById("comfyai-settings-panel");
 
-    // Provider dropdown
-    const providerSelect = panel.querySelector("#cai-default-provider");
-    providerSelect.innerHTML = "";
-    const providerIds = Object.keys(providers);
-    providerIds.forEach((pid) => {
-        const opt = document.createElement("option");
-        opt.value = pid;
-        opt.textContent = providers[pid].name || pid;
-        providerSelect.appendChild(opt);
-    });
-    if (settings.default_provider && providerIds.includes(settings.default_provider)) {
-        providerSelect.value = settings.default_provider;
+    if (!settingsPanel) {
+        console.warn("[ComfyAI][Settings] settings panel not found");
+        return;
     }
 
-    // Flatten model options as provider::model
-    const modelChatSelect = panel.querySelector("#cai-model-chat");
-    const modelPlanSelect = panel.querySelector("#cai-model-plan");
-    const modelEditSelect = panel.querySelector("#cai-model-edit");
+    const providerSelect = settingsPanel.querySelector("#cai-default-provider");
+    const modelChatSelect = settingsPanel.querySelector("#cai-model-chat");
+    const modelPlanSelect = settingsPanel.querySelector("#cai-model-plan");
+    const modelEditSelect = settingsPanel.querySelector("#cai-model-edit");
 
+    if (!providerSelect || !modelChatSelect || !modelPlanSelect || !modelEditSelect) {
+        console.warn("[ComfyAI][Settings] One or more selects not found", {
+            providerSelect,
+            modelChatSelect,
+            modelPlanSelect,
+            modelEditSelect
+        });
+        return;
+    }
+
+    // Fetch providers
+    const provRes = await fetch("/api/comfyai/providers");
+    if (!provRes.ok) {
+        console.error("[ComfyAI][Settings] Failed to fetch providers");
+        return;
+    }
+
+    const provData = await provRes.json();
+    const providers = provData.providers || {};
+    const providerIds = Object.keys(providers);
+
+    // Clear selects
+    providerSelect.innerHTML = "";
     modelChatSelect.innerHTML = "";
     modelPlanSelect.innerHTML = "";
     modelEditSelect.innerHTML = "";
 
-    // We'll fetch models for each provider and append to the selects
+    // Populate provider dropdown
     for (const pid of providerIds) {
+        const opt = document.createElement("option");
+        opt.value = pid;
+        opt.textContent = providers[pid].name || pid;
+        providerSelect.appendChild(opt);
+    }
+
+    // Select default provider
+    if (settings?.default_provider && providerIds.includes(settings.default_provider)) {
+        providerSelect.value = settings.default_provider;
+    } else if (providerIds.length > 0) {
+        providerSelect.value = providerIds[0];
+    }
+
+    // Load models for selected provider
+    async function loadModelsForProvider(pid) {
+        modelChatSelect.innerHTML = "";
+        modelPlanSelect.innerHTML = "";
+        modelEditSelect.innerHTML = "";
+
         try {
             const res = await fetch(`/api/comfyai/models?provider=${pid}`);
-            if (!res.ok) continue;
+            if (!res.ok) return;
+
             const models = await res.json();
 
             for (const m of models) {
                 const value = `${pid}::${m.name}`;
                 const label = `${pid}: ${m.display_name || m.name}`;
 
-                [modelChatSelect, modelPlanSelect, modelEditSelect].forEach((sel) => {
+                [modelChatSelect, modelPlanSelect, modelEditSelect].forEach(sel => {
                     const opt = document.createElement("option");
                     opt.value = value;
                     opt.textContent = label;
@@ -835,11 +774,22 @@ async function populateProviderAndModelsUI(panel, settings) {
                 });
             }
         } catch (err) {
-            console.error("[ComfyAI] Error loading models for provider", pid, err);
+            console.error("[ComfyAI][Settings] Failed to load models", err);
         }
     }
 
-    const dm = settings.default_models || {};
+    // Initial load
+    if (providerSelect.value) {
+        await loadModelsForProvider(providerSelect.value);
+    }
+
+    // Reload when provider changes
+    providerSelect.addEventListener("change", () => {
+        loadModelsForProvider(providerSelect.value);
+    });
+
+    // Apply default models
+    const dm = settings?.default_models || {};
     if (dm.chat) modelChatSelect.value = dm.chat;
     if (dm.plan) modelPlanSelect.value = dm.plan;
     if (dm.edit) modelEditSelect.value = dm.edit;
