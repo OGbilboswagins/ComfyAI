@@ -142,6 +142,7 @@ button.comfyai-tab-button .side-bar-button-label {
 
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
 }
 
@@ -158,6 +159,7 @@ button.comfyai-tab-button .side-bar-button-label {
    CHAT BUBBLES (yours unchanged)
 ------------------------------------------------------------ */
 .comfyai-msg {
+    position: relative;
     max-width: 80%;
     padding: 10px 14px;
     border-radius: 10px;
@@ -165,6 +167,7 @@ button.comfyai-tab-button .side-bar-button-label {
     white-space: pre-wrap;
     line-height: 1.45;
     font-size: 12px;
+    user-select: text;
 }
 
 .comfyai-user {
@@ -175,12 +178,135 @@ button.comfyai-tab-button .side-bar-button-label {
     border-top-left-radius: 4px;
 }
 
-.comfyai-assistant {
+/* Assistant message wrapper (layout anchor) */
+.comfyai-msg-wrapper.assistant {
+    position: relative;
+
+    display: inline-flex;
+    flex-direction: column;
+
+    align-items: flex-end;
     align-self: flex-end;
+
+    width: fit-content;
+    max-width: 80%;
+
+    /* Extend hover hit-area below assistant bubble without blocking clicks */
+    padding-bottom: 32px;
+    margin-bottom: -32px;
+}
+
+.comfyai-assistant {
+    align-self: stretch;
     background: #1d2b3a;
     color: #dbeafe;
     border: 1px solid #334155;
     border-top-right-radius: 4px;
+    display: flex;
+    flex-direction: column;
+}
+
+.comfyai-msg.comfyai-assistant {
+    width: fit-content;
+    max-width: 80%;
+    align-self: flex-end;
+}
+
+/* Metadata section inside bubble */
+.comfyai-msg-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    color: #94a3b8;
+    overflow: hidden;
+}
+
+.comfyai-msg-meta.hidden {
+    display: none !important;
+}
+
+.mode-icon {
+    width: 14px;
+    height: 14px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+    filter: brightness(0.8);
+}
+
+.mode-icon.chat { background-image: url("/extensions/ComfyAI/frontend/icons/mode-chat.svg"); }
+.mode-icon.plan { background-image: url("/extensions/ComfyAI/frontend/icons/mode-plan.svg"); }
+.mode-icon.edit { background-image: url("/extensions/ComfyAI/frontend/icons/mode-edit.svg"); }
+
+.model-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    opacity: 0.8;
+}
+
+.meta-expanded {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.meta-expanded.hidden {
+    display: none;
+}
+
+/* External Controls */
+.comfyai-msg-controls {
+    position: absolute;
+    right: 0;
+    bottom: 6px;
+
+    display: flex;
+    gap: 6px;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.comfyai-msg-wrapper.assistant:hover .comfyai-msg-controls,
+.comfyai-msg-controls:hover {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.comfyai-msg-controls button {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.comfyai-msg-controls img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.65;
+    transition: opacity 0.15s ease;
+}
+
+.comfyai-msg-controls button:hover img {
+    opacity: 1;
+}
+
+.meta-copy.copied {
+    background: #059669 !important;
+    border-color: #10b981 !important;
 }
 
 /* ------------------------------------------------------------
@@ -217,12 +343,25 @@ button.comfyai-tab-button .side-bar-button-label {
 }
 
 /* ------------------------------------------------------------
-   FOOTER INPUT AREA
+   BUTTON BAR AREA
+------------------------------------------------------------ */
+.comfyai-command-bar {
+    display: flex;
+    align-items: center;
+    background: #1a1a1a;
+    gap: 6px;
+    padding-left: 10px;
+    
+    /* spacing from messages window */
+    padding-top: 10px;
+}
+
+/* ------------------------------------------------------------
+   FOOTER INPUT AREA (CANONICAL)
 ------------------------------------------------------------ */
 .comfyai-footer {
     padding: 10px;
     background: #1a1a1a;
-    border-top: 1px solid #333;
 
     display: flex;
     flex-direction: column;
@@ -230,6 +369,7 @@ button.comfyai-tab-button .side-bar-button-label {
     flex-shrink: 0;
 }
 
+/* Input box */
 #comfyai-input {
     width: 100%;
     min-height: 55px;
@@ -242,19 +382,34 @@ button.comfyai-tab-button .side-bar-button-label {
     font-size: 12px;
 }
 
-.comfyai-footer-buttons {
+/* Single row: mode selector (left) + send (right) */
+.comfyai-footer-row {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 10px;
 }
 
-.comfyai-icon-button img {
-    width: 20px;
-    height: 20px;
+/* Mode selector */
+#comfyai-mode-container {
+    display: flex;
+    align-items: center;
 }
 
-/* SEND BUTTON (ICON) */
+#comfyai-mode-select {
+    font-size: 12px;
+    padding: 4px 8px;
+    padding-left: 28px;
+    background-color: #1a1a1a;
+    color: var(--comfy-text-primary);
+    border: 1px solid var(--comfy-border);
+    border-radius: 4px;
+    background-repeat: no-repeat;
+    background-position: 8px center;
+    background-size: 14px 14px;
+}
+
+/* Send button */
 .comfyai-send-button {
     background: transparent;
     border: none;
@@ -263,6 +418,7 @@ button.comfyai-tab-button .side-bar-button-label {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .comfyai-send-button:hover {
@@ -429,14 +585,6 @@ button.comfyai-tab-button .side-bar-button-label {
     flex-direction: column;
     gap: 8px;
     padding-top: 6px;
-}
-
-/* Footer buttons are horizontal (settings + send) */
-.comfyai-footer-buttons {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
 }
 
 /* Remove ugly borders from icon buttons */

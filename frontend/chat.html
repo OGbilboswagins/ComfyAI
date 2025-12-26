@@ -17,16 +17,28 @@
     <div class="chat-area">
         <div id="comfyai-messages"></div>
 
+        <div class="comfyai-command-bar">
+            <button id="comfyai-settings-button"
+                    class="comfyai-icon-button"
+                    title="Settings">
+                <img src="/extensions/ComfyAI/frontend/icons/settings-btn.svg"
+                     alt="Settings">
+            </button>
+
+            <!-- Rules / Tools / Models will go here later -->
+        </div>
+
         <div class="comfyai-footer">
             <textarea id="comfyai-input" placeholder="Type your message..."></textarea>
 
-            <div class="comfyai-footer-buttons">
-                <button id="comfyai-settings-button"
-                        class="comfyai-icon-button"
-                        title="Settings">
-                    <img src="/extensions/ComfyAI/frontend/icons/settings-btn.svg"
-                         alt="Settings">
-                </button>
+            <div class="comfyai-footer-row">
+                <div id="comfyai-mode-container">
+                    <select id="comfyai-mode-select">
+                        <option value="chat">Chat</option>
+                        <option value="plan">Plan</option>
+                        <option value="edit">Edit</option>
+                    </select>
+                </div>
 
                 <button
                     id="comfyai-send-button"
@@ -101,7 +113,11 @@
             <!-- APPEARANCE -->
             <div class="settings-tab hidden" id="tab-appearance">
                 <h2>Appearance</h2>
-                <p>Future UI options go here…</p>
+                
+                <label class="cai-field checkbox">
+                    <input type="checkbox" id="cai-show-metadata">
+                    Show message metadata
+                </label>
             </div>
 
             <!-- CHAT BEHAVIOR -->

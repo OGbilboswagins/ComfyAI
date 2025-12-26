@@ -1,3 +1,5 @@
+import { ComfyAISettings } from "/extensions/ComfyAI/frontend/settings.js";
+
 console.log("[ComfyAI] comfyai.js loaded");
 
 // ------------------------------------------------------------
@@ -27,6 +29,9 @@ async function sleep(ms) {
 let comfyAIProviders = {};
 let comfyAIDefaultProvider = null;
 let comfyAISettings = null;
+let lastMetaExpanded = false;
+let currentMode = "chat";
+let modelOverride = false;
 
 let sidebarButton = null;
 let chatPanel = null;
@@ -41,7 +46,7 @@ let modelDropdown = null;
  * role: "user" | "assistant"
  * markdown: content in markdown/plain text
  */
-function appendMessage(role, markdown) {
+function appendMessage(role, markdown, modelName = null, mode = null) {
     const msgArea = document.getElementById("comfyai-messages");
     if (!msgArea) return null;
 
@@ -60,22 +65,112 @@ function appendMessage(role, markdown) {
     }
 
     // --- NORMAL MESSAGE BUBBLES ---
-    const div = document.createElement("div");
-    const roleClass = role === "user" ? "comfyai-user" : "comfyai-assistant";
-    div.className = `comfyai-msg ${roleClass}`;
-
-    // Render markdown → HTML
-    if (window.marked && markdown) {
-        div.innerHTML = marked.parse(markdown);
-    } else if (markdown) {
+    if (role === "user") {
+        const div = document.createElement("div");
+        div.className = `comfyai-msg comfyai-user`;
         div.textContent = markdown;
+        msgArea.appendChild(div);
+        msgArea.scrollTop = msgArea.scrollHeight;
+        saveHistory();
+        return div;
     }
 
-    msgArea.appendChild(div);
+    // --- ASSISTANT MESSAGE WITH METADATA ---
+    const wrapper = document.createElement("div");
+    wrapper.className = "comfyai-msg-wrapper assistant";
+
+    const bubble = document.createElement("div");
+    bubble.className = "comfyai-msg comfyai-assistant";
+
+    const content = document.createElement("div");
+    content.className = "comfyai-msg-content";
+
+    const meta = document.createElement("div");
+    const isHidden = comfyAISettings?.show_metadata === false ? "hidden" : "";
+    const isCollapsed = lastMetaExpanded ? "" : "collapsed";
+    meta.className = `comfyai-msg-meta ${isCollapsed} ${isHidden}`;
+
+    const modeIcon = document.createElement("span");
+    modeIcon.className = `mode-icon ${mode || "chat"}`;
+
+    const MODE_LABELS = {
+        chat: "Chat mode",
+        plan: "Plan mode",
+        edit: "Edit mode",
+    };
+    modeIcon.title = MODE_LABELS[mode || "chat"] || (mode || "chat");
+
+    const modelSpan = document.createElement("span");
+    modelSpan.className = "model-name";
+    modelSpan.title = modelName || "Unknown Model";
+    modelSpan.textContent = modelName || "Unknown Model";
+
+    const expanded = document.createElement("div");
+    expanded.className = `meta-expanded ${lastMetaExpanded ? "" : "hidden"}`;
+    // future MCP/tool UI will go here
+
+    meta.appendChild(modeIcon);
+    meta.appendChild(modelSpan);
+    meta.appendChild(expanded);
+
+    bubble.appendChild(content);
+    bubble.appendChild(meta);
+
+    const controls = document.createElement("div");
+    controls.className = "comfyai-msg-controls";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "meta-copy";
+    copyBtn.innerHTML = `<img src="/extensions/ComfyAI/frontend/icons/copy.svg">`;
+    copyBtn.title = "Copy raw message";
+    copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        const textToCopy = bubble.dataset.rawText;
+        if (textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                copyBtn.classList.add("copied");
+                setTimeout(() => copyBtn.classList.remove("copied"), 1500);
+            });
+        }
+    };
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "meta-toggle";
+    toggleBtn.innerHTML = `<img src="/extensions/ComfyAI/frontend/icons/metadata.svg">`;
+    toggleBtn.title = "Toggle Metadata";
+    toggleBtn.onclick = (e) => {
+        e.stopPropagation();
+        lastMetaExpanded = !lastMetaExpanded;
+        
+        // Update all existing bubbles? No, just this one for now, 
+        // but new ones will inherit. Actually, the requirement says 
+        // "The next assistant message inherits the previous expand/collapse state."
+        // So we only update this one and the global state.
+        
+        meta.classList.toggle("collapsed", !lastMetaExpanded);
+        expanded.classList.toggle("hidden", !lastMetaExpanded);
+    };
+
+    controls.appendChild(copyBtn);
+    controls.appendChild(toggleBtn);
+
+    wrapper.appendChild(bubble);
+    wrapper.appendChild(controls);
+
+    if (markdown) {
+        if (window.marked) {
+            content.innerHTML = marked.parse(markdown);
+        } else {
+            content.textContent = markdown;
+        }
+        bubble.dataset.rawText = markdown;
+    }
+
+    msgArea.appendChild(wrapper);
     msgArea.scrollTop = msgArea.scrollHeight;
 
     saveHistory();
-    return div;
+    return content; // Return content div so streaming can update it
 }
 
 /**
@@ -118,15 +213,29 @@ function saveHistory() {
     if (!container) return;
 
     const history = [];
+    // We need to find all messages, including wrapped ones
     container.querySelectorAll(".comfyai-msg").forEach((msg) => {
         let role = "assistant";
-        if (msg.classList.contains("comfyai-user")) role = "user";
-        if (msg.classList.contains("comfyai-assistant")) role = "assistant";
-
-        history.push({
-            role,
-            html: msg.innerHTML,
-        });
+        if (msg.classList.contains("comfyai-user")) {
+            role = "user";
+            history.push({
+                role,
+                raw: msg.textContent,
+            });
+        } else if (msg.classList.contains("comfyai-assistant")) {
+            role = "assistant";
+            // For assistant messages, we want the model and mode too
+            const meta = msg.querySelector(".comfyai-msg-meta");
+            const modelName = msg.querySelector(".model-name")?.textContent || "";
+            const mode = msg.querySelector(".mode-icon")?.classList[1] || "chat";
+            
+            history.push({
+                role,
+                raw: msg.dataset.rawText || "",
+                modelName,
+                mode
+            });
+        }
     });
 
     localStorage.setItem("comfyai-chat-history", JSON.stringify(history));
@@ -147,9 +256,8 @@ function loadHistory() {
     }
 
     history.forEach((m) => {
-        appendMessage(m.role, m.content || m.html || "");
+        appendMessage(m.role, m.raw || "", m.modelName, m.mode);
     });
-
 }
 
 // ========================================================
@@ -173,6 +281,9 @@ async function sendMessage() {
 
     const value = dropdown.value; // "provider::model"
     const [provider_id, model_name] = value.split("::");
+    
+    const modeSelect = document.getElementById("comfyai-mode-select");
+    const currentMode = modeSelect ? modeSelect.value : "chat";
 
     const payload = {
         provider: provider_id,
@@ -194,7 +305,7 @@ async function sendMessage() {
         if (!res.ok) {
             if (typingDiv) typingDiv.remove();
             const errText = await res.text();
-            appendMessage("assistant", `[ERROR] HTTP ${res.status}: ${errText}`);
+            appendMessage("assistant", `[ERROR] HTTP ${res.status}: ${errText}`, model_name, currentMode);
             return;
         }
 
@@ -212,7 +323,9 @@ async function sendMessage() {
 
             appendMessage(
                 "assistant",
-                data.error ? `[ERROR] ${data.error}` : data.reply
+                data.error ? `[ERROR] ${data.error}` : data.reply,
+                model_name,
+                currentMode
             );
 
             return;
@@ -223,10 +336,14 @@ async function sendMessage() {
         const decoder = new TextDecoder();
 
         // Remove typing indicator and create real assistant bubble
-        let assistantDiv = null;
+        // assistantContentDiv is the .comfyai-msg-content element
+        let assistantContentDiv = null;
         if (typingDiv) typingDiv.remove();
-        assistantDiv = appendMessage("assistant", ""); 
-        if (!assistantDiv) return;
+        assistantContentDiv = appendMessage("assistant", "", model_name, currentMode); 
+        if (!assistantContentDiv) return;
+
+        // Get the bubble element (parent of content)
+        const assistantBubble = assistantContentDiv.parentElement;
 
         let accumulated = "";
 
@@ -238,10 +355,12 @@ async function sendMessage() {
             accumulated += chunk;
 
             if (window.marked) {
-                assistantDiv.innerHTML = marked.parse(accumulated);
+                assistantContentDiv.innerHTML = marked.parse(accumulated);
             } else {
-                assistantDiv.textContent = accumulated;
+                assistantContentDiv.textContent = accumulated;
             }
+
+            assistantBubble.dataset.rawText = accumulated;
 
             const msgArea = document.getElementById("comfyai-messages");
             if (msgArea) {
@@ -261,6 +380,103 @@ async function sendMessage() {
 }
 
 // --------------------------------------------------------
+// Centralized model selection for mode switching
+// --------------------------------------------------------
+function applyModelForMode(mode, { force = false } = {}) {
+    if (!comfyAISettings) return;
+
+    if (!force && modelOverride) return;
+
+    const targetModel = comfyAISettings.default_models?.[mode];
+
+    if (!targetModel) {
+        console.warn(`[ComfyAI] No default model for mode: ${mode}`);
+        return;
+    }
+
+    const dropdown = document.getElementById("comfyai-model-dropdown");
+    if (!dropdown) return;
+
+    const exists = [...dropdown.options].some((o) => o.value === targetModel);
+    if (!exists) {
+        console.warn(
+            `[ComfyAI] Default model not found in dropdown: ${targetModel}`
+        );
+        return;
+    }
+
+    dropdown.value = targetModel;
+}
+
+// --------------------------------------------------------
+// Add mode icon
+// --------------------------------------------------------
+const COMFYAI_MODE_ICON_MAP = {
+    chat: "/extensions/ComfyAI/frontend/icons/mode-chat.svg",
+    plan: "/extensions/ComfyAI/frontend/icons/mode-plan.svg",
+    edit: "/extensions/ComfyAI/frontend/icons/mode-edit.svg",
+};
+
+function applyComfyAIModeIcon(mode) {
+    const select = document.getElementById("comfyai-mode-select");
+    if (!select) return;
+
+    const icon = COMFYAI_MODE_ICON_MAP[mode];
+    if (icon) {
+        select.style.backgroundImage = `url("${icon}")`;
+    } else {
+        select.style.backgroundImage = "none";
+    }
+}
+
+// --------------------------------------------------------
+// Load and apply mode
+// --------------------------------------------------------
+async function loadAndApplyComfyAIMode() {
+    try {
+        const settings = await ComfyAISettings.fetch();
+        comfyAISettings = settings; // Update global state
+
+        const select = document.getElementById("comfyai-mode-select");
+        if (!select) return;
+
+        const newMode = settings.mode || "chat";
+        currentMode = newMode;
+        select.value = newMode;
+        applyComfyAIModeIcon(newMode);
+    } catch (err) {
+        console.error("[ComfyAI] Failed to load mode:", err);
+    }
+}
+
+// --------------------------------------------------------
+// Save mode on change
+// --------------------------------------------------------
+async function bindComfyAIModeSelector() {
+    const select = document.getElementById("comfyai-mode-select");
+    if (!select) return;
+
+    select.addEventListener("change", async (e) => {
+        const newMode = e.target.value;
+
+        if (newMode === currentMode) {
+            modelOverride = false;
+            applyModelForMode(newMode, { force: true });
+        } else {
+            currentMode = newMode;
+            applyModelForMode(newMode);
+        }
+
+        try {
+            await ComfyAISettings.save({ mode: newMode });
+            applyComfyAIModeIcon(newMode);
+        } catch (err) {
+            console.error("[ComfyAI] Failed to save mode:", err);
+        }
+    });
+}
+
+// --------------------------------------------------------
 // Load chat.html into the floating panel
 // --------------------------------------------------------
 async function loadChatPanel() {
@@ -272,6 +488,9 @@ async function loadChatPanel() {
         chatPanel.innerHTML = html;
 
         console.log("[ComfyAI] Chat panel loaded");
+
+        await loadAndApplyComfyAIMode();
+        bindComfyAIModeSelector();
 
         // ------------------------------------------------------
         // SETTINGS PANEL EVENT BINDINGS (HTML only, no logic)
@@ -294,7 +513,13 @@ async function loadChatPanel() {
         }
 
         modelDropdown = document.getElementById("comfyai-model-dropdown");
+        if (modelDropdown) {
+            modelDropdown.addEventListener("change", () => {
+                modelOverride = true;
+            });
+        }
         await populateModelDropdown();
+        applyModelForMode(currentMode);
         loadHistory();
 
         const sendBtn = document.getElementById("comfyai-send-button");
@@ -623,8 +848,9 @@ const comfyAIObserver = new MutationObserver(() => {
         panel.querySelector("#cai-autoscroll").checked = settings.auto_scroll ?? true;
         panel.querySelector("#cai-streaming").checked = settings.streaming ?? true;
         panel.querySelector("#cai-system-prompt").value = settings.system_prompt ?? "";
-        panel.querySelector("#cai-temperature").value = settings.temperature ?? 0.7;
+        panel.querySelector("#cai-temperature").value = settings.defaults?.temperature ?? 0.7; // Access temperature from defaults
         panel.querySelector("#cai-markdown").checked = settings.markdown ?? true;
+        panel.querySelector("#cai-show-metadata").checked = settings.show_metadata ?? true;
         panel.querySelector("#cai-dev-mode").checked = settings.dev_mode ?? false;
 
         await populateProviderAndModelsUI(panel, settings);
@@ -671,13 +897,17 @@ const comfyAIObserver = new MutationObserver(() => {
             comfyAISettings.auto_scroll = panel.querySelector("#cai-autoscroll").checked;
             comfyAISettings.streaming = panel.querySelector("#cai-streaming").checked;
             comfyAISettings.system_prompt = panel.querySelector("#cai-system-prompt").value;
-            comfyAISettings.temperature =
-                parseFloat(panel.querySelector("#cai-temperature").value) || 0.7;
             comfyAISettings.markdown = panel.querySelector("#cai-markdown").checked;
+            comfyAISettings.show_metadata = panel.querySelector("#cai-show-metadata").checked;
             comfyAISettings.dev_mode = panel.querySelector("#cai-dev-mode").checked;
 
             comfyAISettings.default_provider =
                 panel.querySelector("#cai-default-provider").value || null;
+
+            // Ensure defaults object exists
+            if (!comfyAISettings.defaults) comfyAISettings.defaults = {};
+            comfyAISettings.defaults.temperature =
+                parseFloat(panel.querySelector("#cai-temperature").value) || 0.7;
 
             comfyAISettings.default_models = {
                 chat: panel.querySelector("#cai-model-chat").value || "",
@@ -686,6 +916,8 @@ const comfyAIObserver = new MutationObserver(() => {
             };
 
             await saveComfyAISettings(comfyAISettings);
+            modelOverride = false;
+            applyModelForMode(currentMode, { force: true });
             closeSettings();
         };
     }

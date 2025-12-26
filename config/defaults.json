@@ -1,19 +1,37 @@
 {
   "version": 1,
+  "mode": "chat",
+  "theme": "dark",
+  "auto_scroll": true,
+  "streaming": true,
+  "system_prompt": "",
+  "markdown": true,
+  "dev_mode": false,
+  "default_provider": null,
+  "default_models": {
+    "chat": null,
+    "plan": null,
+    "edit": null
+  },
 
   "defaults": {
-    "chat": "local_chat",
-    "plan": "local_plan",
-    "build": "cloud_build"
+    "chat_model": "local_chat",
+    "edit_model": "local_edit",
+    "plan_model": "local_apply",
+    "workflow_model": "cloud_workflow",
+    "temperature": 0.2,
+    "max_tokens": 4096,
+    "top_p": 0.95,
+    "system_prompt_chat": "You are ComfyAI, an expert assistant for ComfyUI. Be concise, practical, and accurate. Prefer actionable guidance over theory. Assume the user is technical.",
+    "system_prompt_edit": "You are an editing assistant. Apply the requested changes exactly. Do not explain unless asked. Preserve existing structure unless explicitly told otherwise.",
+    "system_prompt_plan": "You are an editing assistant. Apply the requested changes exactly. Do not explain unless asked. Preserve existing structure unless explicitly told otherwise."
   },
-
   "workflow": {
     "rewrite": {
-      "use_cloud_llm": true,
-      "max_tokens": 4096
+      "max_tokens": 4096,
+      "use_cloud": true
     }
   },
-
   "mcp": {
     "enable": false,
     "endpoint": null

@@ -4,13 +4,16 @@ from aiohttp import web
 
 from ..provider_manager import ProviderManager
 from ..utils.logger import log
-
-
+from ..utils.settings import load_settings
+from ..utils.paths import SETTINGS_PATH
+log.warning(f"[ComfyAI][DEBUG] Using settings file: {SETTINGS_PATH}")
+log.error("[ComfyAI][LOAD] backend/routes/chat.py LOADED")
 async def chat_handler(request: web.Request) -> web.Response:
     """
     POST /api/comfyai/chat
     Non-streaming chat, returns full reply as JSON.
     """
+    log.error("[ComfyAI][HIT] chat_handler ENTERED")
     try:
         body = await request.json()
     except Exception:
@@ -20,6 +23,46 @@ async def chat_handler(request: web.Request) -> web.Response:
     model_name = body.get("model")
     messages = body.get("messages")
 
+    # -------------------------------------------------
+    # Mode-aware system prompt injection
+    # -------------------------------------------------
+    settings = load_settings()
+    mode = settings.get("mode", "chat")
+
+    log.warning(f"[ComfyAI][DEBUG] Loaded mode = {mode}")
+
+    # Get the mode-specific system prompt from defaults
+    defaults = settings.get("defaults", {})
+    mode_system_prompt = defaults.get(f"system_prompt_{mode}", "").strip()
+
+    # Get the global user-defined system prompt
+    user_system_prompt = settings.get("system_prompt", "").strip()
+
+    # Combine prompts: user_system_prompt (if present) prepends mode_system_prompt
+    final_system_prompt = ""
+    if user_system_prompt and mode_system_prompt:
+        final_system_prompt = f"{user_system_prompt}\n\n{mode_system_prompt}"
+    elif user_system_prompt:
+        final_system_prompt = user_system_prompt
+    elif mode_system_prompt:
+        final_system_prompt = mode_system_prompt
+
+    log.warning(
+        f"[ComfyAI][DEBUG] Final system_prompt (mode={mode}) = {final_system_prompt!r}"
+    )
+
+    final_messages = []
+
+    if final_system_prompt:
+        final_messages.append({
+            "role": "system",
+            "content": final_system_prompt,
+        })
+
+    final_messages.extend(messages)
+
+    messages = final_messages
+    
     if not provider_id or not model_name or not messages:
         return web.json_response(
             {"error": "Missing provider, model, or messages"}, status=400
@@ -49,6 +92,7 @@ async def chat_stream_handler(request: web.Request) -> web.StreamResponse:
     POST /api/comfyai/chat/stream
     Streaming chat: returns plain text chunks.
     """
+    log.error("[ComfyAI][HIT] chat_stream_handler ENTERED")
     try:
         body = await request.json()
     except Exception:
@@ -57,6 +101,46 @@ async def chat_stream_handler(request: web.Request) -> web.StreamResponse:
     provider_id = body.get("provider")
     model_name = body.get("model")
     messages = body.get("messages")
+
+    # -------------------------------------------------
+    # Mode-aware system prompt injection
+    # -------------------------------------------------
+    settings = load_settings()
+    mode = settings.get("mode", "chat")
+
+    log.warning(f"[ComfyAI][DEBUG] Loaded mode = {mode}")
+
+    # Get the mode-specific system prompt from defaults
+    defaults = settings.get("defaults", {})
+    mode_system_prompt = defaults.get(f"system_prompt_{mode}", "").strip()
+
+    # Get the global user-defined system prompt
+    user_system_prompt = settings.get("system_prompt", "").strip()
+
+    # Combine prompts: user_system_prompt (if present) prepends mode_system_prompt
+    final_system_prompt = ""
+    if user_system_prompt and mode_system_prompt:
+        final_system_prompt = f"{user_system_prompt}\n\n{mode_system_prompt}"
+    elif user_system_prompt:
+        final_system_prompt = user_system_prompt
+    elif mode_system_prompt:
+        final_system_prompt = mode_system_prompt
+
+    log.warning(
+        f"[ComfyAI][DEBUG] Final system_prompt (mode={mode}) = {final_system_prompt!r}"
+    )
+
+    final_messages = []
+
+    if final_system_prompt:
+        final_messages.append({
+            "role": "system",
+            "content": final_system_prompt,
+        })
+
+    final_messages.extend(messages)
+
+    messages = final_messages
 
     if not provider_id or not model_name or not messages:
         return web.json_response(

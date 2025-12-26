@@ -9,28 +9,45 @@ and this project adheres to **Semantic Versioning**.
 
 ## [Unreleased]
 
+<!-- Future changes go here -->
+
+---
+
+## [1.0.0] – 2025-12-XX
+
 ### Added
 - Major documentation overhaul: README, LICENSE, CONTRIBUTING, FUNDING, SECURITY.
-- Added complete chat panel + settings panel UI integration.
-- Added ComfyUI-style modal settings panel with icons and tabs.
-- Added full provider management backend (OpenAI, Gemini, Ollama, Groq-ready).
-- Added unified persistent settings backend using JSON in `user/default/ComfyUI-ComfyAI/`.
-- Added UI model selector and settings-driven default model loader.
-- Added workflow rewrite infrastructure & agent stubs.
-- Added typing indicator (3-dot animation).
+- Complete chat panel + settings panel UI integration.
+- ComfyUI-style modal settings panel with icons and tabs.
+- Full provider management backend (OpenAI, Gemini, Ollama, Groq-ready).
+- Unified persistent settings backend using JSON in `user/default/ComfyUI-ComfyAI/`.
+- UI model selector with per-mode default model support.
+- Mode-aware chat system (Chat / Plan / Edit).
+- Automatic model switching per mode with manual override protection.
+- Collapsible assistant message metadata (mode + model).
+- Markdown rendering for assistant messages.
+- One-click copy of raw Markdown responses.
+- Typing indicator (3-dot animation).
+- Workflow rewrite infrastructure & agent stubs.
 
 ### Improved
-- Significant UI polish: fixed scrolling, streaming, bubbles layout.
-- Improved sidebar button injection and event handlers.
-- Cleaner CSS architecture for chat + settings layout.
-- Better error handling for provider load and settings load failures.
+- Significant UI polish: scrolling, streaming, bubbles layout.
+- Sidebar button injection and event handlers.
+- CSS architecture for chat + settings layout.
+- Error handling for provider load and settings failures.
+- Streaming stability and message rendering pipeline.
+- Hover-based icon-only controls with no layout shift.
 
 ### Fixed
-- Fixed settings JSON being written to the wrong path.
-- Fixed chat panel not sliding open due to transform not being applied.
-- Fixed settings button click not registering.
-- Fixed large icons and label scaling in sidebar.
-- Fixed missing styles due to extension path prefix mismatch.
+- System prompts being dropped during streaming.
+- Model auto-switch race conditions.
+- Hover flicker and unclickable message controls.
+- Settings JSON being written to the wrong path.
+- Chat panel slide-in transform not applying.
+- Settings button click not registering.
+- Large icon and label scaling in sidebar.
+- Missing styles due to extension path prefix mismatch.
+- Duplicate backend routing (“split-brain” issue).
 
 ---
 

@@ -14,12 +14,10 @@ try:
     import server
 
     from .backend.router import setup as setup_backend_router
-    from .backend.api import setup as setup_frontend_api_router
 
     app = server.PromptServer.instance.app
     setup_backend_router(app)
-    setup_frontend_api_router(app)
-    print("[ComfyAI] Backend + Frontend API routes registered")
+    print("[ComfyAI] Backend API routes registered")
 except Exception as e:
     print(f"[ComfyAI] ERROR registering routes: {e}")
 

@@ -198,8 +198,6 @@ See [ROADMAP.md](ROADMAP.md) for a living roadmap. Highlights:
 
 Contributions of all kinds are welcome:
 
-Contributions of all kinds are welcome:
-
 - Bug fixes
 - New features (web search, tools, workflow automation)
 - UI/UX improvements
