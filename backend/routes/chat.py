@@ -4,10 +4,12 @@ from aiohttp import web
 
 from ..provider_manager import ProviderManager
 from ..utils.logger import log
-from ..utils.settings import load_settings
+from ..utils.settings import load_settings, get_resolved_system_prompt
 from ..utils.paths import SETTINGS_PATH
+
 log.warning(f"[ComfyAI][DEBUG] Using settings file: {SETTINGS_PATH}")
 log.error("[ComfyAI][LOAD] backend/routes/chat.py LOADED")
+
 async def chat_handler(request: web.Request) -> web.Response:
     """
     POST /api/comfyai/chat
@@ -31,21 +33,8 @@ async def chat_handler(request: web.Request) -> web.Response:
 
     log.warning(f"[ComfyAI][DEBUG] Loaded mode = {mode}")
 
-    # Get the mode-specific system prompt from defaults
-    defaults = settings.get("defaults", {})
-    mode_system_prompt = defaults.get(f"system_prompt_{mode}", "").strip()
-
-    # Get the global user-defined system prompt
-    user_system_prompt = settings.get("system_prompt", "").strip()
-
-    # Combine prompts: user_system_prompt (if present) prepends mode_system_prompt
-    final_system_prompt = ""
-    if user_system_prompt and mode_system_prompt:
-        final_system_prompt = f"{user_system_prompt}\n\n{mode_system_prompt}"
-    elif user_system_prompt:
-        final_system_prompt = user_system_prompt
-    elif mode_system_prompt:
-        final_system_prompt = mode_system_prompt
+    # Resolve layered system prompt (defaults + user settings)
+    final_system_prompt = get_resolved_system_prompt(mode)
 
     log.warning(
         f"[ComfyAI][DEBUG] Final system_prompt (mode={mode}) = {final_system_prompt!r}"
@@ -110,21 +99,8 @@ async def chat_stream_handler(request: web.Request) -> web.StreamResponse:
 
     log.warning(f"[ComfyAI][DEBUG] Loaded mode = {mode}")
 
-    # Get the mode-specific system prompt from defaults
-    defaults = settings.get("defaults", {})
-    mode_system_prompt = defaults.get(f"system_prompt_{mode}", "").strip()
-
-    # Get the global user-defined system prompt
-    user_system_prompt = settings.get("system_prompt", "").strip()
-
-    # Combine prompts: user_system_prompt (if present) prepends mode_system_prompt
-    final_system_prompt = ""
-    if user_system_prompt and mode_system_prompt:
-        final_system_prompt = f"{user_system_prompt}\n\n{mode_system_prompt}"
-    elif user_system_prompt:
-        final_system_prompt = user_system_prompt
-    elif mode_system_prompt:
-        final_system_prompt = mode_system_prompt
+    # Resolve layered system prompt (defaults + user settings)
+    final_system_prompt = get_resolved_system_prompt(mode)
 
     log.warning(
         f"[ComfyAI][DEBUG] Final system_prompt (mode={mode}) = {final_system_prompt!r}"

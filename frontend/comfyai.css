@@ -210,6 +210,7 @@ button.comfyai-tab-button .side-bar-button-label {
     width: fit-content;
     max-width: 80%;
     align-self: flex-end;
+    white-space: normal;
 }
 
 /* Metadata section inside bubble */
@@ -354,6 +355,55 @@ button.comfyai-tab-button .side-bar-button-label {
     
     /* spacing from messages window */
     padding-top: 10px;
+}
+
+/* ============================================================
+   MARKDOWN NORMALIZATION (Assistant Messages Only)
+   ============================================================ */
+
+.comfyai-msg.comfyai-assistant h1,
+.comfyai-msg.comfyai-assistant h2,
+.comfyai-msg.comfyai-assistant h3,
+.comfyai-msg.comfyai-assistant h4,
+.comfyai-msg.comfyai-assistant h5,
+.comfyai-msg.comfyai-assistant h6 {
+    margin: 0.6em 0 0.4em;
+    line-height: 1.25;
+}
+
+.comfyai-msg.comfyai-assistant p {
+    margin: 0.4em 0;
+}
+
+.comfyai-msg.comfyai-assistant ul,
+.comfyai-msg.comfyai-assistant ol {
+    margin: 0.4em 0;
+    padding-left: 1.2em;
+}
+
+.comfyai-msg.comfyai-assistant li {
+    margin: 0.2em 0;
+}
+
+.comfyai-msg.comfyai-assistant hr {
+    margin: 0.6em 0;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.15);
+}
+
+.comfyai-msg.comfyai-assistant pre {
+    margin: 0.6em 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.25);
+    overflow-x: auto;
+}
+
+.comfyai-msg.comfyai-assistant code {
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.25);
+    font-size: 0.95em;
 }
 
 /* ------------------------------------------------------------

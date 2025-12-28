@@ -13,7 +13,7 @@ and this project adheres to **Semantic Versioning**.
 
 ---
 
-## [1.0.0] – 2025-12-XX
+## [1.0.0] – 2025-12-27
 
 ### Added
 - Major documentation overhaul: README, LICENSE, CONTRIBUTING, FUNDING, SECURITY.
